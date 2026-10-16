@@ -1,0 +1,55 @@
+{
+  "name": "clair-proof",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "node server/index.mjs",
+    "build": "vite build",
+    "start": "node server/index.mjs --production",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "preview": "node server/index.mjs --built",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:e2e:built": "playwright test --config playwright.built.config.mjs"
+  },
+  "dependencies": {
+    "@aztec/bb.js": "0.87.0",
+    "@noir-lang/acvm_js": "1.0.0-beta.9",
+    "@noir-lang/noir_js": "1.0.0-beta.9",
+    "@noir-lang/noir_wasm": "1.0.0-beta.9",
+    "@noir-lang/noirc_abi": "1.0.0-beta.9",
+    "buffer": "^6.0.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.0",
+    "helmet": "^8.1.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "stripe": "^18.5.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.55.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.8",
+    "vite": "^7.1.0",
+    "vite-plugin-node-polyfills": "^0.24.0",
+    "vitest": "^4.1.11"
+  }
+}
