@@ -27,3 +27,15 @@ test('reject invalid public booleans and recursive envelopes before parsing', as
   q.circuit.root.args[0] = q.circuit.root;
   expect(() => parseProof(q)).toThrow(/complexe/);
 });
+
+test('engine selected in the circuit cannot be substituted in an envelope', async () => {
+  const { PLONK_ENGINE } = await import('../../shared/engines.mjs');
+  const { circuitHash } = await import('../../shared/circuit-model.mjs');
+  const p = await proofFixture();
+  p.circuit.engine = PLONK_ENGINE;
+  p.circuitHash = await circuitHash(p.circuit);
+  p.publicInputs[0] = contextField(p.circuitHash);
+  expect(() => parseProof(p)).toThrow(/Moteur/);
+  p.engine = PLONK_ENGINE;
+  expect(parseProof(p).engine).toBe(PLONK_ENGINE);
+});

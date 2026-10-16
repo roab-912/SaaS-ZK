@@ -25,17 +25,23 @@ flowchart LR
   HTTP --> Repo[Repository SQLite]
   HTTP --> Compiler[Registre des compilateurs]
   Compiler --> NoirCompiler[Compilateur Noir]
+  Compiler --> CircomCompiler[Circom et préparation PLONK / FFLONK]
   Client --> Worker[Worker local]
   Worker --> Operations[Contrat ZK]
   Operations --> Registry[Registre des moteurs]
   Registry --> NoirRuntime[Noir / UltraHonk]
+  Registry --> CircomRuntime[Circom / PLONK / FFLONK]
 ```
 
 Les données privées passent du formulaire au worker uniquement. La compilation reçoit le circuit public ; l’enregistrement reçoit l’enveloppe publique, jamais le témoin.
 
+## Moteurs disponibles
+
+Le catalogue `shared/engines.mjs` expose Noir / UltraHonk, Circom / PLONK et Circom / FFLONK. Le champ optionnel `circuit.engine` conserve le choix sans modifier les anciens circuits. Les adaptateurs Circom résident dans `zk/circom/`. Voir [ENGINES.md](ENGINES.md) pour les paramètres, limites et compatibilité.
+
 ## Ajouter un moteur ZK
 
-1. Créer un dossier zk/nom-du-moteur avec un identifiant versionné et stable.
+1. Créer un dossier zk/nom-du-moteur avec un identifiant versionné et stable, puis l’ajouter au catalogue shared/engines.mjs.
 2. Fournir un adaptateur serveur avec id et compile(circuit), retournant hash et artifact, éventuellement source. L’empreinte correspond exactement au domaine canonique.
 3. Fournir un adaptateur navigateur avec id, prove({circuit, compiled, values, onProgress}) et verify({envelope, compiled, onProgress}). Le premier retourne une enveloppe publique, le second {valid: boolean}.
 4. Enregistrer statiquement le compilateur dans createCompiler (server/compiler.mjs) et l’adaptateur navigateur dans src/zk.worker.js. Aucun chemin de module n’est lu depuis un fichier de preuve.

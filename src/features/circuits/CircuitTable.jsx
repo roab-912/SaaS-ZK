@@ -1,4 +1,5 @@
 import React from 'react';
+import { engineName } from '../../../shared/engines.mjs';
 import { ArrowRight, GitBranch, Trash2 } from 'lucide-react';
 import { Badge, Button } from '../../components/ui.jsx';
 import { date } from '../../lib/format.js';
@@ -25,7 +26,7 @@ export function CircuitTable({ circuits, onEdit, onProve, onDelete }) {
                   </span>
                   <span>
                     <strong>{c.schema.name}</strong>
-                    <small>Données déclarées</small>
+                    <small>Données déclarées · {engineName(c.schema.engine)}</small>
                   </span>
                 </button>
               </td>

@@ -1,6 +1,6 @@
 import { api } from './api.js';
 import { ENGINE } from '../../shared/proof.mjs';
-export function compileForEngine(circuit, engine = ENGINE, signal) {
+export function compileForEngine(circuit, engine = circuit.engine ?? ENGINE, signal) {
   return api('/compile?engine=' + encodeURIComponent(engine), circuit, 'POST', { signal });
 }
 export function launchProof(

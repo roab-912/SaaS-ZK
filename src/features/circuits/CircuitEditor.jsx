@@ -1,4 +1,5 @@
 import React from 'react';
+import { ENGINE, ZK_ENGINES } from '../../../shared/engines.mjs';
 import { useState } from 'react';
 import {
   ArrowRight,
@@ -67,6 +68,26 @@ export function Editor({ draft: c, setDraft, onSave }) {
           />
         </label>
       </div>
+      <section className="panel form-panel" style={{ marginBottom: 20 }}>
+        <label>
+          Moteur de preuve
+          <select value={c.engine ?? ENGINE} onChange={(e) => update('engine', e.target.value)}>
+            {ZK_ENGINES.map((engine) => (
+              <option key={engine.id} value={engine.id}>
+                {engine.name}
+                {engine.experimental ? ' · Expérimental' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="help">
+          {ZK_ENGINES.find((engine) => engine.id === (c.engine ?? ENGINE))?.description}
+        </p>
+        <p className="help">
+          Le moteur est conservé avec cette version du circuit. Vos données privées restent sur
+          votre appareil.
+        </p>
+      </section>
       <div className="editor-layout">
         <aside className="panel input-panel">
           <div className="panel-title">

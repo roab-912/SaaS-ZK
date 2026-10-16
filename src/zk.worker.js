@@ -1,7 +1,8 @@
 import { createEngineRegistry } from '../zk/registry.mjs';
 import { executeZkOperation } from '../zk/operations.mjs';
 import { noirBrowser } from '../zk/noir/browser.mjs';
-const registry = createEngineRegistry([noirBrowser], ['prove', 'verify']);
+import { circomBrowsers } from '../zk/circom/browser.mjs';
+const registry = createEngineRegistry([noirBrowser, ...circomBrowsers], ['prove', 'verify']);
 let running = false;
 self.onmessage = async ({ data }) => {
   if (running) {

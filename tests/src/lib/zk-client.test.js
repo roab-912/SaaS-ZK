@@ -41,3 +41,11 @@ test('cancel, timeout, crashes, malformed messages and constructor errors reject
   await expect(task.promise).rejects.toThrow(/démarrer/);
   vi.useRealTimers();
 });
+
+test('compilation defaults to the engine stored in the circuit', async () => {
+  const circuit = { version: 1, engine: 'circom223-snarkjs076-plonk-v1' };
+  await compileForEngine(circuit);
+  expect(api).toHaveBeenCalledWith('/compile?engine=' + circuit.engine, circuit, 'POST', {
+    signal: undefined,
+  });
+});

@@ -19,8 +19,11 @@ test('every runtime source module has its own test file', () => {
 test('domain and UI do not import provider SDKs; SQL is confined to persistence', () => {
   for (const file of ['src', 'server', 'shared', 'zk'].flatMap(sources)) {
     const code = readFileSync(file, 'utf8');
-    if (!file.startsWith('zk/noir/'))
-      expect(code.match(/from\s+['"]@(noir-lang|aztec)\//), file).toBeNull();
+    if (!file.startsWith('zk/noir/') && !file.startsWith('zk/circom/'))
+      expect(
+        code.match(/(?:from\s+|import\(\s*)['"](?:@(noir-lang|aztec)\/|snarkjs|circom2)/),
+        file,
+      ).toBeNull();
     if (file.startsWith('shared/'))
       expect(code.match(/from\s+['"].*(?:zk\/|server\/|node:)/), file).toBeNull();
     if (

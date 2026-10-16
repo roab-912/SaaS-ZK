@@ -18,6 +18,7 @@ test('server startup is injectable and closes HTTP, Vite and database resources'
   expect(await (await fetch('http://127.0.0.1:' + runtime.server.address().port)).text()).toBe(
     'frontend',
   );
+  expect(factory.mock.calls[0][0].server.hmr.server).toBe(runtime.server);
   await runtime.close();
   expect(db.close).toHaveBeenCalledOnce();
   expect(vite.close).toHaveBeenCalledOnce();

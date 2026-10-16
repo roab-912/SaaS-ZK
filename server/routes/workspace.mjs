@@ -17,7 +17,7 @@ export function registerWorkspaceRoutes(app, { repo, sessions, compiler }) {
     res.json({ ok: true });
   });
   app.post('/api/compile', createLimit(15), async (req, res) => {
-    const engine = req.query.engine ?? ENGINE;
+    const engine = req.query.engine ?? req.body?.engine ?? ENGINE;
     if (typeof engine !== 'string') throw fail(400, 'Moteur invalide.');
     res.json(await compiler.compile(req.body, engine));
   });

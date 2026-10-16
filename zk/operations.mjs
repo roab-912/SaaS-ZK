@@ -6,7 +6,8 @@ export async function executeZkOperation(payload, registry, onProgress = () => {
     throw Error('Opération ZK invalide.');
   const envelope = payload.mode === 'verify' ? parseProof(payload.envelope) : null;
   const circuit = envelope?.circuit ?? validateCircuit(payload.circuit);
-  const engineId = envelope?.engine ?? payload.engine ?? ENGINE;
+  const engineId = envelope?.engine ?? payload.engine ?? circuit.engine ?? ENGINE;
+  if (circuit.engine && circuit.engine !== engineId) throw Error('Moteur du circuit incompatible.');
   const adapter = registry.get(engineId);
   const hash = await circuitHash(circuit);
   if (payload.compiled?.hash !== hash || payload.compiled.engine !== engineId)

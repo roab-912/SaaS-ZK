@@ -36,3 +36,19 @@ test('adding another provider needs no changes to dispatch and verifies engine/h
     ),
   ).rejects.toThrow();
 });
+
+test('dispatch selects the stored engine and rejects substitutions before calling the adapter', async () => {
+  const { PLONK_ENGINE, FFLONK_ENGINE } = await import('../../shared/engines.mjs');
+  const { circuitHash } = await import('../../shared/circuit-model.mjs');
+  const circuit = (await proofFixture()).circuit;
+  circuit.engine = PLONK_ENGINE;
+  const adapter = { id: PLONK_ENGINE, prove: vi.fn(async () => ({ ok: true })), verify: vi.fn() };
+  const registry = createEngineRegistry([adapter], ['prove', 'verify']);
+  const compiled = { engine: PLONK_ENGINE, hash: await circuitHash(circuit) };
+  await executeZkOperation({ mode: 'prove', circuit, compiled, values: {} }, registry);
+  expect(adapter.prove).toHaveBeenCalledOnce();
+  await expect(
+    executeZkOperation({ mode: 'prove', engine: FFLONK_ENGINE, circuit, compiled }, registry),
+  ).rejects.toThrow(/Moteur/);
+  expect(adapter.prove).toHaveBeenCalledOnce();
+});

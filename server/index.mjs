@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import express from 'express';
@@ -14,7 +15,8 @@ export async function startServer({
 } = {}) {
   const production = args.includes('--production') || env.NODE_ENV === 'production';
   const { app, db, config } = appFactory({ production, env });
-  let vite, server;
+  let vite;
+  const server = createServer(app);
   async function closeResources() {
     try {
       if (server?.listening)
@@ -35,11 +37,14 @@ export async function startServer({
       app.get('/{*splat}', (req, res) => res.sendFile(resolve(dist, 'index.html')));
     } else {
       const factory = viteFactory ?? (await import('vite')).createServer;
-      vite = await factory({ server: { middlewareMode: true }, appType: 'spa' });
+      vite = await factory({
+        server: { middlewareMode: true, hmr: { server } },
+        appType: 'spa',
+      });
       app.use(vite.middlewares);
     }
     app.use(errorHandler(logger));
-    server = app.listen(config.port, config.host);
+    server.listen(config.port, config.host);
     await new Promise((resolve, reject) => {
       server.once('listening', resolve);
       server.once('error', reject);

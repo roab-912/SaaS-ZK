@@ -39,3 +39,16 @@ test('failed compiles release queue and cannot poison hash cache', async () => {
   await expect(service.compile(template(), 'test')).rejects.toThrow('failed');
   await expect(service.compile(template(), 'test')).rejects.toThrow(/mismatched/);
 });
+
+test('cache is bounded by bytes and refuses a circuit/engine mismatch', async () => {
+  const { PLONK_ENGINE } = await import('../../shared/engines.mjs');
+  const compile = vi.fn(async (c) => ({ hash: await circuitHash(c), artifact: { data: 'large' } }));
+  const service = createCompiler({ adapters: [{ id: PLONK_ENGINE, compile }], maxCacheBytes: 1 });
+  const c = { ...template(), engine: PLONK_ENGINE };
+  await service.compile(c);
+  await service.compile(c);
+  expect(compile).toHaveBeenCalledTimes(2);
+  const other = createCompiler({ adapters: [{ id: 'other', compile }] });
+  await expect(other.compile(c, 'other')).rejects.toMatchObject({ status: 400 });
+  expect(compile).toHaveBeenCalledTimes(2);
+});

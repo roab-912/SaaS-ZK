@@ -26,3 +26,21 @@ test('editor saves valid nested rules and disables invalid unused inputs', async
   await userEvent.type(values, '1, 2, 3');
   expect(screen.getByText('Votre règle est prête')).toBeVisible();
 });
+
+test('engine selector preserves the rule and includes the experimental status', async () => {
+  const { ZK_ENGINES, ENGINE, FFLONK_ENGINE } = await import('../../../../shared/engines.mjs');
+  const save = vi.fn(),
+    initial = template();
+  function Harness() {
+    const [c, set] = useState(initial);
+    return <Editor draft={c} setDraft={set} onSave={() => save(c)} />;
+  }
+  render(<Harness />);
+  expect(screen.getByLabelText('Moteur de preuve')).toHaveValue(ENGINE);
+  for (const engine of ZK_ENGINES) {
+    await userEvent.selectOptions(screen.getByLabelText('Moteur de preuve'), engine.id);
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer', exact: true }));
+    expect(save).toHaveBeenLastCalledWith({ ...initial, engine: engine.id });
+  }
+  expect(screen.getByRole('option', { name: /FFLONK.*Expérimental/ }).value).toBe(FFLONK_ENGINE);
+});

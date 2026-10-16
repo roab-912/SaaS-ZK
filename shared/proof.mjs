@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { circuitSchema, validateCircuit, isDate } from './circuit-schema.mjs';
-export const ENGINE = 'noir-beta9-ultrahonk-0.87';
+export { ENGINE } from './engines.mjs';
 export const PROOF_FORMAT = 'clair-proof/1';
 export const contextField = (hash) => '0x' + hash.slice(0, 62);
 // v1 public statement contract: context first, then declared public inputs in order.
@@ -25,6 +25,8 @@ export const proofSchema = z
 export function parseProof(raw) {
   validateCircuit(raw?.circuit); // bound recursion before the recursive Zod schema
   const envelope = proofSchema.parse(raw);
+  if (envelope.circuit.engine && envelope.circuit.engine !== envelope.engine)
+    throw Error('Moteur du circuit incompatible avec la preuve.');
   publicValues(envelope);
   return envelope;
 }

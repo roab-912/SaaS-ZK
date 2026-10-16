@@ -1,4 +1,5 @@
 import React from 'react';
+import { engineName } from '../../../shared/engines.mjs';
 import { useState, useEffect, useRef } from 'react';
 import { LoaderCircle, Search, ShieldCheck, Upload, X } from 'lucide-react';
 import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
@@ -146,6 +147,7 @@ export function Verify({ initial, notify }) {
             <>
               <Badge>Données déclarées · Non certifiées</Badge>
               <h3>{envelope.circuit.name}</h3>
+              <p className="help">Moteur : {engineName(envelope.engine)}</p>
               <p>{envelope.circuit.description}</p>
               <div className="statement">{describe(envelope.circuit)}</div>
               <h4>Valeurs publiques</h4>

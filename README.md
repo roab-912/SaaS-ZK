@@ -7,6 +7,7 @@ SaaS en français : comptes personnels, abonnement, éditeur de circuits imbriqu
 Le code est séparé entre domaine, écrans React, services serveur, persistance et adaptateurs ZK. Chaque module exécutable possède un test dédié.
 
 - [Architecture et ajout d’un moteur ZK](docs/ARCHITECTURE.md)
+- [Moteurs disponibles, choix et paramètres publics](docs/ENGINES.md)
 - [Contrôles de sécurité et limites](docs/SECURITY.md)
 - [Tests, couverture et non-régression visuelle](docs/TESTING.md)
 
@@ -22,6 +23,12 @@ npm run dev
 Ouvrir http://localhost:3000. Créer un compte avec un mot de passe d’au moins 12 caractères, puis activer les 30 jours de démonstration dans **Mon abonnement**. Aucun paiement ni compte externe n’est nécessaire pour ce parcours.
 
 Les comptes sont conservés dans **data/clair.sqlite**. Les tests utilisent une base en mémoire. Ne pas mettre data/ ou .env dans Git.
+
+## Choisir un moteur ZK
+
+Dans l’éditeur de circuit, le champ **Moteur de preuve** propose **Noir / UltraHonk** (par défaut), **Circom / PLONK** et **Circom / FFLONK** (expérimental). Le choix est conservé avec la version du circuit et utilisé automatiquement lors de la génération et de la vérification. Les anciens circuits et fichiers restent compatibles.
+
+Après cette mise à jour, exécuter `installer.cmd` pour installer les nouvelles dépendances, puis `demarrer.cmd`. La première preuve Circom télécharge environ 76 Mo de paramètres publics côté serveur ; les calculs sur les données privées restent dans le navigateur. Voir [les détails et limites des moteurs](docs/ENGINES.md).
 
 ## Parcours disponibles
 
@@ -65,9 +72,9 @@ Les tests vérifient le contrat d’intégration avec un client Stripe simulé e
 
 ## Cryptographie et confidentialité
 
-L’arbre public est validé puis traduit en Noir. La compilation ne reçoit aucune valeur privée. Un SHA-256 canonique identifie la version complète, y compris les libellés, types et visibilités. Les 248 premiers bits sont aussi contraints comme entrée publique du programme.
+L’arbre public est validé puis traduit en Noir ou en Circom selon le moteur choisi. La compilation ne reçoit aucune valeur privée. Un SHA-256 canonique identifie la version complète, y compris les libellés, types et visibilités. Les 248 premiers bits sont aussi contraints comme entrée publique du programme.
 
-Le navigateur exécute le circuit avec NoirJS, génère une preuve UltraHonk **avec keccakZK: true**, puis la vérifie avant téléchargement. La même option est imposée lors de la vérification. Les versions Noir 1.0.0-beta.9 et Barretenberg 0.87.0 sont verrouillées et testées ensemble. Le fichier identifie son moteur. [Exemples officiels Noir](https://github.com/noir-lang/noir-examples), [code Barretenberg](https://github.com/AztecProtocol/aztec-packages).
+Avec le moteur par défaut, le navigateur exécute le circuit avec NoirJS, génère une preuve UltraHonk **avec keccakZK: true**, puis la vérifie avant téléchargement. La même option est imposée lors de la vérification. Les versions Noir 1.0.0-beta.9 et Barretenberg 0.87.0 sont verrouillées et testées ensemble. Le fichier identifie son moteur. [Exemples officiels Noir](https://github.com/noir-lang/noir-examples), [code Barretenberg](https://github.com/AztecProtocol/aztec-packages).
 
 Le vérificateur reconstruit le circuit depuis l’arbre embarqué via le compilateur public et dérive sa clé de vérification. Il n’accepte pas une clé ou un programme arbitraire du fichier. Une modification de l’énoncé, des paramètres publics ou de la preuve doit être rejetée.
 

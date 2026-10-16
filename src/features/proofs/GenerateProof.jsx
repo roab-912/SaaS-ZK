@@ -1,4 +1,5 @@
 import React from 'react';
+import { ENGINE, engineName } from '../../../shared/engines.mjs';
 import { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight,
@@ -56,7 +57,10 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
       setProgress('Préparation du circuit public…');
       const compiled = await compileForEngine(c);
       if (run !== generation.current) return;
-      task.current = launchProof({ mode: 'prove', circuit: c, compiled, values }, setProgress);
+      task.current = launchProof(
+        { mode: 'prove', engine: c.engine ?? ENGINE, circuit: c, compiled, values },
+        setProgress,
+      );
       const result = await task.current.promise;
       if (run !== generation.current) return;
       setResult(result);
@@ -81,6 +85,7 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
             <Badge>Données déclarées</Badge>
           </div>
           <p className="help">{c.description}</p>
+          <p className="help">Moteur : {engineName(c.engine)}</p>
           <form onSubmit={generate}>
             {c.inputs.map((i) => (
               <label key={i.id}>

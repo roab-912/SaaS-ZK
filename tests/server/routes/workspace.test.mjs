@@ -28,3 +28,39 @@ test('rejects proof smuggling and unknown engines; archives are isolated', async
     await f.close();
   }
 });
+
+test('circuit engine survives saving and reloading; versions and envelopes cannot mix engines', async () => {
+  const { ENGINE, PLONK_ENGINE, FFLONK_ENGINE } = await import('../../../shared/engines.mjs');
+  const f = await serverFixture();
+  try {
+    const { cookie } = await f.account();
+    await f.request('/billing/demo', { cookie, body: { action: 'activate' } });
+    const ids = [];
+    for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
+      const response = await f.request('/circuits', { cookie, body: { ...template(), engine } });
+      expect(response.status).toBe(201);
+      ids.push((await response.json()).id);
+    }
+    expect(new Set(ids).size).toBe(3);
+    const circuits = await (await f.request('/circuits', { cookie })).json();
+    expect(new Set(circuits.map((c) => c.schema.engine))).toEqual(
+      new Set([ENGINE, PLONK_ENGINE, FFLONK_ENGINE]),
+    );
+    expect(
+      (await f.request('/circuits', { cookie, body: { ...template(), engine: 'untrusted' } }))
+        .status,
+    ).toBe(400);
+    expect(
+      (
+        await f.request('/compile?engine=' + ENGINE, {
+          body: { ...template(), engine: PLONK_ENGINE },
+        })
+      ).status,
+    ).toBe(400);
+    const proof = await proofFixture();
+    proof.circuit.engine = PLONK_ENGINE;
+    expect((await f.request('/proofs', { cookie, body: proof })).status).toBe(400);
+  } finally {
+    await f.close();
+  }
+});

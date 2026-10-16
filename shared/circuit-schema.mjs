@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ZK_ENGINES } from './engines.mjs';
 export const LIMITS = { inputs: 12, nodes: 64, depth: 10, list: 32 };
 const id = z.string().regex(/^[a-z][a-z0-9_]{0,23}$/);
 const scalar = z.union([z.number().int().min(0).max(4294967295), z.boolean()]);
@@ -47,6 +48,7 @@ const expr = z.lazy(() =>
 export const circuitSchema = z
   .object({
     version: z.literal(1),
+    engine: z.enum(ZK_ENGINES.map((engine) => engine.id)).optional(),
     name: z.string().trim().min(1).max(80),
     description: z.string().max(500),
     inputs: z
