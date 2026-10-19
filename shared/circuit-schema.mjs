@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ZK_ENGINES } from './engines.mjs';
+import { policySchema } from './attestations.mjs';
 export const LIMITS = { inputs: 12, nodes: 64, depth: 10, list: 32 };
 const id = z.string().regex(/^[a-z][a-z0-9_]{0,23}$/);
 const scalar = z.union([z.number().int().min(0).max(4294967295), z.boolean()]);
@@ -47,7 +48,7 @@ const expr = z.lazy(() =>
 );
 export const circuitSchema = z
   .object({
-    version: z.literal(1),
+    version: z.union([z.literal(1), z.literal(2)]),
     engine: z.enum(ZK_ENGINES.map((engine) => engine.id)).optional(),
     name: z.string().trim().min(1).max(80),
     description: z.string().max(500),
@@ -59,7 +60,8 @@ export const circuitSchema = z
             label: z.string().trim().min(1).max(60),
             type: z.enum(['number', 'date', 'boolean']),
             visibility: z.enum(['private', 'public']),
-            source: z.literal('declared'),
+            source: z.enum(['declared', 'signed']),
+            attestation: policySchema.optional(),
           })
           .strict(),
       )
@@ -89,6 +91,15 @@ export function validateCircuit(raw) {
   const c = circuitSchema.parse(raw);
   if (new Set(c.inputs.map((i) => i.id)).size !== c.inputs.length)
     throw Error('Les identifiants des entrées doivent être uniques.');
+  for (const input of c.inputs) {
+    if (input.source === 'signed') {
+      if (c.version !== 2 || input.visibility !== 'public' || !input.attestation)
+        throw Error(
+          'Les entrées signées nécessitent le mode Vrai ou faux, une visibilité publique et une source approuvée.',
+        );
+    } else if (input.attestation)
+      throw Error('Une entrée déclarée ne doit pas définir de source signataire.');
+  }
   const used = new Set();
   function type(n) {
     if (n.kind === 'input') {

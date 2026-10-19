@@ -1,6 +1,6 @@
 # Architecture
 
-Le refactoring conserve les écrans, les classes CSS, les routes HTTP, les tables SQLite et le format clair-proof/1 du MVP.
+Le MVP conserve ses écrans, classes CSS, routes HTTP et tables SQLite. Les enveloppes historiques clair-proof/1 restent compatibles ; clair-proof/2 ajoute un résultat public vrai ou faux et des valeurs publiques lisibles.
 
 ## Responsabilités
 
@@ -55,6 +55,16 @@ Le registre vérifie les méthodes requises, refuse les doublons et les moteurs 
 Le format v1 utilise une preuve binaire encodée en base64 et un tableau de paramètres publics hexadécimaux. Le premier paramètre lie les 248 premiers bits de SHA-256 au circuit ; les suivants suivent l’ordre des entrées publiques. Le moteur doit contraindre ces valeurs et disposer d’un encodage capable de représenter ce contexte. Un moteur ayant une autre sémantique nécessite un adaptateur explicite ou une nouvelle version d’enveloppe, pas une interprétation approximative de v1.
 
 Les adaptateurs reconstruisent leurs clés depuis le circuit compilé. Une clé de vérification fournie librement par le détenteur d’une preuve n’est jamais utilisée.
+
+### Contrat de l’enveloppe v2
+
+Un circuit de version 2 contraint le résultat de la règle à un booléen public placé immédiatement après le contexte. L’enveloppe clair-proof/2 ajoute result et publicData, dont la concordance avec les paramètres encodés est contrôlée par parseProof. buildProofEnvelope construit ces champs à partir des paramètres réellement produits par le moteur. Les consommateurs doivent distinguer la validité cryptographique du résultat de la règle.
+
+shared/evaluate.mjs évalue localement les données avant le calcul pour signaler champs manquants, divisions par zéro et dépassements. Ce diagnostic ne remplace jamais les contraintes des moteurs. shared/validation.mjs traduit les erreurs de schéma en messages indiquant les champs concernés, sans reprendre les valeurs rejetées.
+
+### Provenance des entrées publiques
+
+shared/attestations.mjs fournit le format versionné, les signatures Web Crypto, les empreintes et les contrôles de provenance. Une entrée signed référence une politique de source liée à l’empreinte du circuit. L’enveloppe clair-proof/3 joint exactement les attestations attendues. zk/operations.mjs ajoute à la vérification ZK les contrôles de signature, de valeur publique et d’approbation courante. Les écrans ne traitent jamais une clé embarquée comme une autorité. Voir [SOURCES.md](SOURCES.md).
 
 ## Compatibilité et migration
 

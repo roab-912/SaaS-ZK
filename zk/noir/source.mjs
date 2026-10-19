@@ -37,6 +37,7 @@ export function noirSource(raw, hash) {
       (i.visibility === 'public' ? 'pub ' : '') +
       (i.type === 'boolean' ? 'bool' : 'u32'),
   );
+  if (c.version === 2) params.unshift('result: pub bool');
   const dates = c.inputs.flatMap((i, n) =>
     i.type === 'date'
       ? ['assert(in_' + n + ' >= 19000101);', 'assert(in_' + n + ' <= 21991231);']
@@ -86,7 +87,7 @@ export function noirSource(raw, hash) {
     ');\n ' +
     [...dates, ...dateChecks].join('\n ') +
     '\n assert(' +
-    emit(c.root) +
+    (c.version === 2 ? '(' + emit(c.root) + ') == result' : emit(c.root)) +
     ');\n}\n'
   );
 }

@@ -37,3 +37,18 @@ test('inactive subscribers keep archives but are sent to billing before creation
   await userEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
   expect(api).toHaveBeenCalledWith('/auth/logout', {});
 });
+
+test('attestation emission is accessible without a paid account or proof creation', async () => {
+  api.mockImplementation(async (path) =>
+    path === '/session' ? { user: null, billingMode: 'demo', paymentEnvironment: 'demo' } : [],
+  );
+  render(<App />);
+  await screen.findByRole('heading', { name: 'Prouvez l’essentiel. Gardez le reste privé.' });
+  await userEvent.click(screen.getByRole('button', { name: 'Sources de confiance', exact: true }));
+  await userEvent.click(screen.getByRole('button', { name: 'Créer une attestation', exact: true }));
+  expect(
+    await screen.findByRole('heading', { name: 'Créer une attestation', exact: true }),
+  ).toBeVisible();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(await screen.findByText(/Aucune source approuvée disponible/)).toBeVisible();
+});

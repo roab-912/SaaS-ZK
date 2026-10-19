@@ -1,5 +1,6 @@
 import { validateInputs } from '../../shared/circuit-model.mjs';
-import { contextField, ENGINE, PROOF_FORMAT, parseProof } from '../../shared/proof.mjs';
+import { contextField, ENGINE, buildProofEnvelope } from '../../shared/proof.mjs';
+import { evaluateCircuit } from '../../shared/evaluate.mjs';
 export function normalizeInputs(circuit, values) {
   const normalized = validateInputs(circuit, values);
   return Object.fromEntries(
@@ -11,7 +12,7 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
   const options = Object.freeze({ keccakZK: true });
   return {
     id: ENGINE,
-    async prove({ circuit, compiled, values, onProgress = () => {} }) {
+    async prove({ circuit, compiled, values, attestations = [], onProgress = () => {} }) {
       await initialize();
       let backend, witness;
       try {
@@ -20,6 +21,7 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
         ({ witness } = await noir.execute({
           context: contextField(compiled.hash),
           ...normalizeInputs(circuit, values),
+          ...(circuit.version === 2 ? { result: evaluateCircuit(circuit, values) } : {}),
         }));
         backend = new Backend(compiled.artifact.bytecode, { threads: 1 });
         onProgress('Calcul de la preuve confidentielle…');
@@ -27,8 +29,8 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
         onProgress('Contrôle de la preuve générée…');
         if (!(await backend.verifyProof(proof, options)))
           throw Error('La preuve générée ne passe pas la vérification.');
-        return parseProof({
-          format: PROOF_FORMAT,
+        return buildProofEnvelope({
+          attestations,
           engine: ENGINE,
           circuit,
           circuitHash: compiled.hash,

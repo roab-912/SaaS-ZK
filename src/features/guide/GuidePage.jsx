@@ -17,7 +17,7 @@ export function Guide() {
             Fingerprint,
             '02',
             'Calculez votre preuve',
-            'Saisissez vos valeurs privées dans le navigateur. Un moteur cryptographique local démontre que les conditions sont satisfaites. Seuls la preuve et les paramètres publics peuvent être enregistrés.',
+            'Saisissez vos valeurs privées dans le navigateur. Un moteur cryptographique local prouve le résultat vrai ou faux de la règle. Seuls la preuve, ce résultat et les paramètres publics peuvent être enregistrés.',
           ],
           [
             ShieldCheck,
@@ -41,10 +41,10 @@ export function Guide() {
       <section className="panel guide-details">
         <h2>Ce qu’une preuve garantit</h2>
         <p>
-          Elle garantit qu’il existe des valeurs qui satisfont exactement la règle affichée. Dans ce
-          MVP, les valeurs sont librement déclarées : la preuve ne garantit pas qu’elles
-          correspondent à la réalité, ni qu’elles appartiennent à la personne qui présente le
-          fichier.
+          Elle garantit que la règle produit le résultat annoncé pour les paramètres publics et les
+          valeurs privées utilisées. Les données librement déclarées n’ont pas de provenance
+          certifiée. Une signature peut authentifier une déclaration d’une source approuvée, sans
+          garantir sa vérité ni l’identité de la personne qui présente le fichier.
         </p>
         <h3>Et dans six mois ?</h3>
         <p>
@@ -61,9 +61,14 @@ export function Guide() {
         </p>
         <h3>Les sources certifiées</h3>
         <p>
-          Les futurs connecteurs permettront de vérifier une signature d’émetteur à l’intérieur de
-          la preuve, puis d’appliquer la règle aux attributs signés. Le registre des émetteurs
-          approuvés prépare cette évolution.
+          Dans Sources de confiance, un administrateur peut approuver une clé publique. Un circuit
+          peut ensuite exiger des données publiques signées par cette source. La vérification
+          contrôle la signature, la valeur utilisée dans la preuve, l’expiration et l’approbation
+          actuelle, puis affiche le nom de la source. L’émetteur peut fournir un fichier depuis «
+          Sources de confiance → Créer une attestation », sans produire de preuve. Le destinataire
+          importe ce fichier dans sa preuve, sans clé privée. La signature manuelle reste une option
+          repliée. Les connecteurs métier et les entrées signées privées seront des étapes
+          ultérieures.
         </p>
       </section>
     </>

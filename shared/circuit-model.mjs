@@ -40,7 +40,8 @@ export function validateInputs(raw, values) {
   const c = validateCircuit(raw),
     result = {};
   for (const i of c.inputs) {
-    let v = values[i.id];
+    let v = values?.[i.id];
+    if (v === '' || v === undefined || v === null) throw Error(i.label + ' : valeur requise.');
     if (i.type === 'boolean') {
       if (typeof v !== 'boolean') throw Error(i.label + ' : booléen requis.');
     } else {
@@ -49,7 +50,6 @@ export function validateInputs(raw, values) {
       if (typeof v === 'string' && !/^(?:[0-9]+|[0-9]{4}-[0-9]{2}-[0-9]{2})$/.test(v))
         throw Error(i.label + ' : format invalide.');
       if (i.type === 'date' && typeof v === 'string') v = v.replaceAll('-', '');
-      if (v === '' || v === undefined || v === null) throw Error(i.label + ' : valeur requise.');
       v = Number(v);
       if (!Number.isInteger(v) || v < 0 || v > 4294967295)
         throw Error(i.label + ' : entier entre 0 et 4 294 967 295 requis.');
@@ -84,6 +84,14 @@ export function template(which = 'age') {
   const ref = (id) => ({ kind: 'input', id }),
     con = (value, type = 'number') => ({ kind: 'constant', type, value }),
     op = (op, ...args) => ({ kind: 'op', op, args });
+  if (which === 'blank')
+    return {
+      version: 1,
+      name: 'Nouveau circuit',
+      description: '',
+      inputs: [input('value_1', 'Valeur')],
+      root: op('eq', ref('value_1'), con(18)),
+    };
   if (which === 'income')
     return {
       version: 1,

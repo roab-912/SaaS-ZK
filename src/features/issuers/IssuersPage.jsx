@@ -1,35 +1,39 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BadgeCheck } from 'lucide-react';
 import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
-export function Issuers({ user, notify }) {
+import { keyFingerprint } from '../../../shared/attestations.mjs';
+export function Issuers({ user, notify, onCreateAttestation = () => {} }) {
   const [issuers, setIssuers] = useState([]),
     [name, setName] = useState(''),
     [id, setId] = useState(''),
     [jwk, setJwk] = useState(''),
-    [approved, setApproved] = useState(true);
-  const refresh = () => api('/issuers').then(setIssuers);
+    [approved, setApproved] = useState(true),
+    [error, setError] = useState(''),
+    [saving, setSaving] = useState(false);
+  const refresh = () =>
+    api('/issuers').then(async (rows) =>
+      setIssuers(
+        await Promise.all(rows.map(async (i) => ({ ...i, keyHash: await keyFingerprint(i.jwk) }))),
+      ),
+    );
   useEffect(() => {
-    refresh().catch((e) => notify(e.message, true));
+    refresh().catch((e) => setError(e.message));
   }, []);
   return (
     <>
       <PageHeading
         title="Sources de confiance"
-        desc="Un registre réservé aux émetteurs approuvés par l’administrateur."
+        desc="Les sources approuvées disponibles pour signer les entrées publiques de vos circuits."
+        action={<Button onClick={onCreateAttestation}>Créer une attestation</Button>}
       />
-      <div className="notice spaced">
-        <BadgeCheck size={20} />
-        <div>
-          <strong>Les preuves du MVP utilisent des données déclarées.</strong>
-          <p>
-            Le registre prépare les futurs modules de certification. L’import d’attestations signées
-            et leur vérification dans le circuit ne sont pas encore activés.
-          </p>
+      {error && (
+        <div className="validation invalid" role="alert">
+          {error}
         </div>
-      </div>
-      <section className="panel">
+      )}
+      <section className="panel form-panel">
+        <h2>Sources disponibles</h2>
         {issuers.length ? (
           issuers.map((i) => (
             <div className="issuer-row" key={i.id}>
@@ -37,39 +41,96 @@ export function Issuers({ user, notify }) {
               <div>
                 <strong>{i.name}</strong>
                 <small>{i.id}</small>
+                <details>
+                  <summary>Voir la clé publique</summary>
+                  <pre>{JSON.stringify(i.jwk, null, 2)}</pre>
+                  <code className="hash">{i.keyHash}</code>
+                </details>
               </div>
-              <Badge>Approuvé · Connecteur à intégrer</Badge>
+              <Badge>Approuvée</Badge>
+              {user?.admin && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setId(i.id);
+                    setName(i.name);
+                    setJwk(JSON.stringify(i.jwk, null, 2));
+                    setApproved(true);
+                    setError('');
+                  }}
+                >
+                  Modifier
+                </Button>
+              )}
             </div>
           ))
         ) : (
-          <Empty icon={BadgeCheck} title="Aucun Émetteur approuvé">
-            Les futures sources seront ajoutées ici après validation de leurs clés et de leur
-            connecteur.
+          <Empty icon={BadgeCheck} title="Aucune source disponible">
+            {user?.admin
+              ? 'Ajoutez une source avec sa clé publique pour commencer.'
+              : 'Un administrateur peut ajouter des sources avec leur clé publique.'}
           </Empty>
         )}
+        <article
+          className="issuer-row source-preview"
+          aria-label="FranceConnect — à venir"
+          aria-disabled="true"
+        >
+          <BadgeCheck aria-hidden="true" />
+          <div>
+            <strong>FranceConnect</strong>
+            <small>À venir · Connexion indisponible</small>
+            <p className="help">
+              Aperçu : connecter une identité numérique et utiliser les attributs autorisés dans un
+              parcours d’attestation et de preuve. Ce module reste à développer.
+            </p>
+          </div>
+          <Badge>Bientôt</Badge>
+        </article>
       </section>
       {user?.admin && (
         <section className="panel form-panel issuer-form">
-          <h2>Administrer le registre</h2>
+          <h2>Ajouter ou modifier une source</h2>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
+              setError('');
+              setSaving(true);
               try {
-                await api('/issuers', { id, name, jwk: JSON.parse(jwk), approved });
+                let key;
+                try {
+                  key = JSON.parse(jwk);
+                } catch {
+                  throw Error('La clé publique doit être un objet JSON au format JWK.');
+                }
+                await api('/issuers', { id, name, jwk: key, approved });
                 await refresh();
                 notify('Registre mis à jour.');
               } catch (e) {
-                notify(e.message, true);
+                setError(e.message);
+              } finally {
+                setSaving(false);
               }
             }}
           >
             <label>
               Identifiant
-              <input required value={id} onChange={(e) => setId(e.target.value)} />
+              <input
+                required
+                maxLength={40}
+                pattern="[a-z0-9-]{1,40}"
+                value={id}
+                onChange={(e) => setId(e.target.value)}
+              />
             </label>
             <label>
               Nom
-              <input required value={name} onChange={(e) => setName(e.target.value)} />
+              <input
+                required
+                maxLength={80}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </label>
             <label>
               Clé publique P-256 (JWK)
@@ -77,7 +138,7 @@ export function Issuers({ user, notify }) {
                 required
                 value={jwk}
                 onChange={(e) => setJwk(e.target.value)}
-                placeholder='{"kty":"EC","crv":"P-256","x":"?","y":"?"}'
+                placeholder='{"kty":"EC","crv":"P-256","x":"…","y":"…"}'
               />
             </label>
             <label>
@@ -86,11 +147,16 @@ export function Issuers({ user, notify }) {
                 value={String(approved)}
                 onChange={(e) => setApproved(e.target.value === 'true')}
               >
-                <option value="true">Approuvé</option>
-                <option value="false">Révoqué</option>
+                <option value="true">Approuvée</option>
+                <option value="false">Révoquée</option>
               </select>
             </label>
-            <Button>Enregistrer</Button>
+            <p className="help">
+              L’émetteur peut créer une attestation depuis la page dédiée et remettre son fichier au
+              destinataire. Révoquer une source ou remplacer sa clé retire l’approbation de ses
+              anciennes attestations.
+            </p>
+            <Button disabled={saving}>Enregistrer la source</Button>
           </form>
         </section>
       )}

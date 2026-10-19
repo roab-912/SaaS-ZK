@@ -26,7 +26,12 @@ export function CircuitTable({ circuits, onEdit, onProve, onDelete }) {
                   </span>
                   <span>
                     <strong>{c.schema.name}</strong>
-                    <small>Données déclarées · {engineName(c.schema.engine)}</small>
+                    <small>
+                      {c.schema.inputs.some((i) => i.source === 'signed')
+                        ? 'Attestations requises'
+                        : 'Données déclarées'}{' '}
+                      · {engineName(c.schema.engine)}
+                    </small>
                   </span>
                 </button>
               </td>

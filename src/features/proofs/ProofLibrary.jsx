@@ -27,7 +27,11 @@ export function ProofLibrary({ user, nav, setAuth, proofs, openVerify, refresh }
                 <span className="template-icon sage">
                   <FileCheck2 size={22} />
                 </span>
-                <Badge>Données déclarées</Badge>
+                <Badge>
+                  {p.envelope.attestations?.length
+                    ? 'Attestations jointes · À vérifier'
+                    : 'Données déclarées'}
+                </Badge>
               </div>
               <h3>{p.envelope.circuit.name}</h3>
               <p className="muted">Enregistrée le {date(p.created)}</p>

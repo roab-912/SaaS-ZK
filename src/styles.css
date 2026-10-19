@@ -1966,3 +1966,15 @@ pre {
     animation: none !important;
   }
 }
+
+.source-preview {
+  background: #f1f2f1;
+  color: #66706a;
+  border-top: 1px dashed #cbd1cc;
+}
+.source-preview svg {
+  color: #8b948e;
+}
+.source-preview small {
+  color: inherit;
+}

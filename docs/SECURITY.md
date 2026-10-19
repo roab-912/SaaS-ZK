@@ -6,7 +6,7 @@ Ces contrôles améliorent la résistance du produit ; ils ne constituent pas un
 
 L’utilisateur contrôle les circuits et fichiers importés. Le code de l’application, les SDK et les adaptateurs enregistrés sont de confiance. Aucune preuve ne peut déclencher le chargement d’un module distant ni fournir librement son programme de vérification.
 
-La validité d’une preuve sur des données déclarées ne certifie pas leur véracité, leur origine ou leur détenteur. Le registre d’émetteurs ne change pas ce statut : les connecteurs signés restent à implémenter.
+La validité d’une preuve sur des données déclarées ne certifie pas leur véracité, leur origine ou leur détenteur. Les attestations publiques signées ajoutent une provenance vérifiable, sans certifier l’identité du porteur ni l’exactitude de la déclaration. Les connecteurs métier restent à implémenter.
 
 ## Contrôles appliqués
 
@@ -36,3 +36,15 @@ Le JavaScript ne permet pas de garantir l’effacement physique de toutes les co
 Les versions Noir/Barretenberg restent verrouillées ensemble afin de préserver les preuves historiques. Toute mise à jour doit exécuter les tests cryptographiques et de compatibilité. L’absence d’alerte npm audit ne prouve pas l’absence de vulnérabilité.
 
 Restent hors périmètre : audit cryptographique indépendant, récupération de mot de passe, vérification d’e-mail, connecteurs d’attestations, preuve de possession et protection contre la copie.
+
+## Validité et résultat public
+
+Pour les circuits v2, une preuve cryptographiquement valide peut annoncer `result: false`. Une application qui exige une condition satisfaite doit contrôler **la validité de la preuve et le résultat vrai**, ainsi que le circuit attendu et ses paramètres publics. Un succès de vérification seul ne signifie plus que la condition est satisfaite.
+
+Les champs lisibles `result` et `publicData` doivent correspondre aux paramètres cryptographiques. Ils ne constituent pas une source de confiance indépendante. Leur falsification est rejetée à l'import ou à la vérification. Les preuves v1 conservent leur sémantique historique : seule une condition vraie peut être prouvée.
+
+## Provenance signée
+
+Les attestations clair-attestation/1 portent uniquement sur des entrées publiques. Le worker vérifie leur signature ECDSA, leur correspondance exacte avec les paramètres publics du circuit, leur période de validité et la clé du registre approuvé relu par le client. La politique de source appartient à l’empreinte du circuit ; une enveloppe signée ne peut pas être rétrogradée en preuve déclarée du même circuit. Les clés embarquées ne sont pas des autorités. Révocation et remplacement de clé retirent l’approbation à la prochaine vérification.
+
+La signature est vérifiée hors du circuit ; aucune certification d’entrée privée n’est revendiquée. La signature se fait sur la page d’émission d’attestation ou dans le volet manuel de génération, sans connexion externe : la clé privée est traitée uniquement en mémoire locale, effacée du formulaire après la tentative et exclue des messages envoyés au worker et au serveur. La possession d’une attestation ne prouve pas l’identité de son porteur. Le registre dépend de l’instance de vérification et la validité temporelle de son horloge. Voir [SOURCES.md](SOURCES.md).

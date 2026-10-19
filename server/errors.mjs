@@ -1,5 +1,6 @@
 import { ZodError } from 'zod';
 import { randomUUID } from 'node:crypto';
+import { validationMessage } from '../shared/validation.mjs';
 export class HttpError extends Error {
   constructor(status, message) {
     super(message);
@@ -34,7 +35,7 @@ export function errorHandler(logger = console) {
       error instanceof HttpError
         ? error.message
         : error instanceof ZodError
-          ? 'Données invalides.'
+          ? validationMessage(error)
           : status === 413
             ? 'Requête trop volumineuse.'
             : status === 400

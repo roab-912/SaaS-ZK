@@ -123,15 +123,20 @@ export function circomSource(raw, hash) {
       }
     }
   }
-  // Declaration order defines the public statement: context, then public inputs in domain order.
+  // Declaration order defines the public statement: context, optional v2 result, then public inputs in domain order.
   lines.push('signal input context;', 'context === ' + BigInt(contextField(hash)) + ';');
+  if (c.version === 2) {
+    lines.push('signal input result;');
+    component('Bits(1)', { in: 'result' });
+    publicNames.push('result');
+  }
   for (const [i, input] of c.inputs.entries()) {
     lines.push('signal input in_' + i + ';');
     if (input.visibility === 'public') publicNames.push('in_' + i);
     component(input.type === 'boolean' ? 'Bits(1)' : 'Bits(32)', { in: 'in_' + i });
     if (input.type === 'date') component('DateCheck()', { in: 'in_' + i });
   }
-  lines.push(emit(c.root) + ' === 1;');
+  lines.push(emit(c.root) + (c.version === 2 ? ' === result;' : ' === 1;'));
   return (
     primitives +
     '\ntemplate Rule() {\n' +

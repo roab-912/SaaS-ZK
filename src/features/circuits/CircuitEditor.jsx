@@ -1,6 +1,8 @@
 import React from 'react';
 import { ENGINE, ZK_ENGINES } from '../../../shared/engines.mjs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '../../lib/api.js';
+import { keyFingerprint } from '../../../shared/attestations.mjs';
 import {
   ArrowRight,
   Braces,
@@ -13,26 +15,57 @@ import {
   X,
 } from 'lucide-react';
 import { Badge, Button, PageHeading } from '../../components/ui.jsx';
-import { ref, constant, comparison } from './editor-model.js';
-import { validateCircuit, describe, ops } from '../../../shared/circuit.mjs';
+import { ref, constant, comparison, removeInput } from './editor-model.js';
+import { validateCircuit, describe, ops, validationMessage } from '../../../shared/circuit.mjs';
 export function Editor({ draft: c, setDraft, onSave }) {
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [editNotice, setEditNotice] = useState('');
+  const [issuers, setIssuers] = useState([]),
+    [sourceError, setSourceError] = useState('');
+  useEffect(() => {
+    let active = true;
+    api('/issuers')
+      .then(async (rows) => {
+        const sources = await Promise.all(
+          rows.map(async (i) => ({ ...i, keyHash: await keyFingerprint(i.jwk) })),
+        );
+        if (active) setIssuers(sources);
+      })
+      .catch(() => {
+        if (active)
+          setSourceError(
+            'Registre indisponible : impossible de sélectionner une source pour le moment.',
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   let error = '';
   try {
     validateCircuit(c);
   } catch (e) {
-    error = e.issues ? 'Complétez les entrées et les blocs.' : e.message;
+    error = validationMessage(e);
   }
   const update = (key, value) => setDraft({ ...c, [key]: value });
   const updateInput = (index, patch) =>
     update(
       'inputs',
-      c.inputs.map((i, n) => (n === index ? { ...i, ...patch } : i)),
+      c.inputs.map((i, n) => {
+        if (n !== index) return i;
+        const next = { ...i, ...patch };
+        if (next.attestation === null) delete next.attestation;
+        return next;
+      }),
     );
   const save = async (go) => {
     setSaving(true);
+    setSaveError('');
     try {
       await onSave(go);
+    } catch (e) {
+      setSaveError(validationMessage(e));
     } finally {
       setSaving(false);
     }
@@ -41,7 +74,7 @@ export function Editor({ draft: c, setDraft, onSave }) {
     <>
       <PageHeading
         title="Construire une règle"
-        desc="Des entrées, des conditions, et une seule conclusion : vrai."
+        desc="Construisez une règle et prouvez son résultat sans révéler vos données privées."
         action={
           <div className="row-actions">
             <Button variant="secondary" disabled={!!error || saving} onClick={() => save(false)}>
@@ -54,6 +87,17 @@ export function Editor({ draft: c, setDraft, onSave }) {
           </div>
         }
       />
+      {saveError && (
+        <div className="validation invalid" role="alert">
+          <CircleHelp size={19} />
+          <p>{saveError}</p>
+        </div>
+      )}
+      {editNotice && (
+        <p className="help" role="status">
+          {editNotice}
+        </p>
+      )}
       <div className="editor-meta panel">
         <label>
           Nom du circuit
@@ -69,6 +113,21 @@ export function Editor({ draft: c, setDraft, onSave }) {
         </label>
       </div>
       <section className="panel form-panel" style={{ marginBottom: 20 }}>
+        <label>
+          Résultat à prouver
+          <select
+            value={String(c.version)}
+            onChange={(e) => update('version', Number(e.target.value))}
+          >
+            <option value="2">Vrai ou faux — publier le résultat</option>
+            <option value="1">Vrai uniquement — condition obligatoire</option>
+          </select>
+        </label>
+        <p className="help">
+          {c.version === 2
+            ? 'Une preuve valide peut démontrer que la règle est vraie ou fausse. Ce résultat sera public, même si toutes les entrées sont privées.'
+            : 'Ce mode historique refuse une preuve lorsque la règle est fausse. Choisissez « Vrai ou faux » pour prouver les deux résultats.'}
+        </p>
         <label>
           Moteur de preuve
           <select value={c.engine ?? ENGINE} onChange={(e) => update('engine', e.target.value)}>
@@ -107,12 +166,20 @@ export function Editor({ draft: c, setDraft, onSave }) {
                 <button
                   className="icon-button"
                   aria-label={'Supprimer l’entrée ' + i.label}
-                  onClick={() =>
-                    update(
-                      'inputs',
-                      c.inputs.filter((_, x) => x !== n),
-                    )
-                  }
+                  disabled={c.inputs.length <= 1}
+                  title={c.inputs.length <= 1 ? 'Conservez au moins une entrée.' : undefined}
+                  onClick={() => {
+                    const next = removeInput(c, i.id);
+                    const replacement =
+                      next.inputs.find((input) => input.type === i.type) ?? next.inputs[0];
+                    setDraft(next);
+                    setEditNotice(
+                      i.label +
+                        ' a été supprimée. Ses références utilisent désormais ' +
+                        replacement.label +
+                        '.',
+                    );
+                  }}
                 >
                   <X size={14} />
                 </button>
@@ -138,6 +205,7 @@ export function Editor({ draft: c, setDraft, onSave }) {
                   Visibilité
                   <select
                     value={i.visibility}
+                    disabled={i.source === 'signed'}
                     onChange={(e) => updateInput(n, { visibility: e.target.value })}
                   >
                     <option value="private">Privée</option>
@@ -145,7 +213,66 @@ export function Editor({ draft: c, setDraft, onSave }) {
                   </select>
                 </label>
               </div>
-              <small className="muted">Source : déclaration de l’utilisateur</small>
+              <label>
+                Source de cette entrée
+                <select
+                  aria-label={'Source de ' + i.label}
+                  value={
+                    i.source === 'signed' ? 'issuer:' + (i.attestation?.issuerId ?? '') : 'declared'
+                  }
+                  onChange={(e) => {
+                    if (e.target.value === 'declared')
+                      return updateInput(n, { source: 'declared', attestation: null });
+                    const issuer = issuers.find(
+                      (source) => 'issuer:' + source.id === e.target.value,
+                    );
+                    if (issuer)
+                      updateInput(n, {
+                        source: 'signed',
+                        visibility: 'public',
+                        attestation: { issuerId: issuer.id, keyHash: issuer.keyHash, claim: i.id },
+                      });
+                  }}
+                >
+                  <option value="declared">Déclaration de l’utilisateur</option>
+                  {i.source === 'signed' &&
+                    !issuers.some((source) => source.id === i.attestation?.issuerId) && (
+                      <option value={'issuer:' + i.attestation?.issuerId}>
+                        Source indisponible : {i.attestation?.issuerId}
+                      </option>
+                    )}
+                  {issuers.map((source) => (
+                    <option
+                      key={source.id}
+                      value={'issuer:' + source.id}
+                      disabled={c.version !== 2}
+                    >
+                      {source.name} — signée, valeur publique
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {sourceError && <small className="help">{sourceError}</small>}
+              {i.source === 'signed' && (
+                <>
+                  <label>
+                    Champ signé attendu
+                    <input
+                      aria-label={'Champ signé pour ' + i.label}
+                      maxLength={64}
+                      value={i.attestation.claim}
+                      onChange={(e) =>
+                        updateInput(n, { attestation: { ...i.attestation, claim: e.target.value } })
+                      }
+                    />
+                  </label>
+                  <small className="help">
+                    Cette valeur et son attestation seront publiques. La clé attendue est figée dans
+                    cette version du circuit.
+                  </small>
+                  <code className="hash">{i.attestation.keyHash}</code>
+                </>
+              )}
             </div>
           ))}
           <Button
@@ -181,7 +308,8 @@ export function Editor({ draft: c, setDraft, onSave }) {
             </Badge>
           </div>
           <p className="help">
-            Imbriquez les blocs pour combiner vos conditions. Le bloc final doit être vrai.
+            Imbriquez les blocs pour combiner vos conditions. Le bloc final produit un résultat vrai
+            ou faux.
           </p>
           <div className="tree-canvas">
             <div className="root-marker">
@@ -217,9 +345,16 @@ function NodeEditor({ node: n, inputs, onChange, depth }) {
     if (key === 'constant') return onChange(constant());
     if (key === 'in')
       return onChange({ kind: 'in', value: ref(inputs[0]?.id || 'value'), values: [1, 2, 3] });
+    const groups = [
+      ['eq', 'ne', 'gt', 'gte', 'lt', 'lte'],
+      ['add', 'sub', 'mul', 'div', 'mod'],
+      ['and', 'or', 'xor'],
+    ];
+    if (n.kind === 'op' && groups.some((group) => group.includes(n.op) && group.includes(key)))
+      return onChange({ ...n, op: key });
     let args = ['and', 'or', 'xor', 'not'].includes(key)
       ? [comparison(inputs), comparison(inputs)]
-      : [ref(inputs[0]?.id || 'value'), constant()];
+      : comparison(inputs).args;
     if (key === 'not') args = args.slice(0, 1);
     onChange({ kind: 'op', op: key, args });
   };
@@ -273,6 +408,9 @@ function NodeEditor({ node: n, inputs, onChange, depth }) {
           value={n.id}
           onChange={(e) => onChange({ ...n, id: e.target.value })}
         >
+          {!inputs.some((input) => input.id === n.id) && (
+            <option value={n.id}>Choisir une entrée — référence absente : {n.id}</option>
+          )}
           {inputs.map((i) => (
             <option key={i.id} value={i.id}>
               {i.label} · {i.visibility === 'private' ? 'privée' : 'publique'}

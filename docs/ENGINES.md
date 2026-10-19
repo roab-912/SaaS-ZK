@@ -42,7 +42,7 @@ Le traducteur Circom contraint dans le circuit les booléens, entiers non signé
 
 Les limites générales de l’éditeur restent applicables. Les paramètres de degré 16 introduisent aussi une limite de capacité propre au protocole, particulièrement pour FFLONK, qui utilise davantage de points. Une règle trop volumineuse est refusée explicitement ; réduire sa complexité ou choisir Noir. Aucun repli silencieux vers un autre moteur n’est effectué.
 
-PLONK et FFLONK utilisent une cérémonie universelle et n’exigent pas de nouvelle contribution secrète par circuit. Les clés sont reconstruites à partir du circuit public, du compilateur versionné et des paramètres épinglés. Les tests vérifient qu’une deuxième compilation produit la même clé et accepte les preuves existantes. Tout changement de traduction, de paramètres ou de protocole qui modifie cette clé demande un nouvel identifiant de moteur.
+PLONK et FFLONK utilisent une cérémonie universelle et n’exigent pas de nouvelle contribution secrète par circuit. Les clés sont reconstruites à partir du circuit public, du compilateur versionné et des paramètres épinglés. Les tests vérifient qu’une deuxième compilation produit la même clé et accepte les preuves existantes. Toute modification de la clé pour un même circuit nécessite un nouvel identifiant de moteur. Le support de circuits v2 conserve les identifiants existants car la traduction v1 reste inchangée et la version du circuit fait partie de son empreinte.
 
 ## Étendre le catalogue
 
@@ -52,3 +52,11 @@ PLONK et FFLONK utilisent une cérémonie universelle et n’exigent pas de nouv
 4. Ajouter les tests du module, les cas cryptographiques négatifs et le parcours Playwright. Préserver les anciens identifiants pour les preuves déjà émises.
 
 La documentation [snarkjs](https://github.com/iden3/snarkjs#readme) décrit les protocoles, leur usage navigateur et le statut expérimental de FFLONK. Les dépendances Circom et snarkjs sont distribuées sous GPL-3.0 ; leurs licences restent applicables à leur distribution.
+
+## Résultats vrais et faux
+
+Les nouveaux circuits de version 2 prouvent l'égalité entre le résultat de leur règle et un booléen public. Une preuve valide peut donc démontrer une condition fausse. Les circuits de version 1 continuent d'exiger une condition vraie ; leur traduction et leurs empreintes restent inchangées. Le mode se choisit dans « Résultat à prouver » et sa modification crée une nouvelle version enregistrée.
+
+L'enveloppe `clair-proof/2` contient `result` (booléen) et `publicData` (identifiant, libellé, type et valeur de chaque entrée publique). Les dates sont au format `YYYY-MM-DD`, les nombres et booléens gardent leurs types JSON. Les entrées privées n'y figurent jamais. Les champs hexadécimaux ne sont pas chiffrés : ils servent à l'encodage cryptographique.
+
+Ordre des paramètres publics : contexte de 248 bits, résultat 0/1, puis entrées publiques dans l'ordre du circuit. L'import contrôle que les champs lisibles correspondent exactement aux paramètres encodés ; la vérification cryptographique contrôle ensuite la preuve et ces paramètres. Le résultat annoncé dans un fichier ne doit être considéré comme prouvé qu'après cette vérification. L'évaluation JavaScript locale fournit des diagnostics ; les contraintes Noir et Circom imposent indépendamment le résultat et les limites de calcul.

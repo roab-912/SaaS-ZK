@@ -4,11 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { LoaderCircle, Search, ShieldCheck, Upload, X } from 'lucide-react';
 import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
 import { launchProof, compileForEngine } from '../../lib/zk-client.js';
+import { api } from '../../lib/api.js';
+import { signedInputs } from '../../../shared/attestations.mjs';
 import {
   validateCircuit,
   circuitHash,
   describe,
-  proofSchema,
+  parseProof,
+  proofResult,
   publicValues,
 } from '../../../shared/circuit.mjs';
 export function Verify({ initial, notify }) {
@@ -16,7 +19,9 @@ export function Verify({ initial, notify }) {
     [busy, setBusy] = useState(false),
     [progress, setProgress] = useState(''),
     [status, setStatus] = useState(null),
-    [expected, setExpected] = useState('');
+    [expected, setExpected] = useState(''),
+    [sources, setSources] = useState([]),
+    [verificationError, setVerificationError] = useState('');
   const task = useRef(),
     input = useRef(),
     generation = useRef(0);
@@ -28,44 +33,75 @@ export function Verify({ initial, notify }) {
     [],
   );
   const load = async (file) => {
+    const run = ++generation.current;
+    task.current?.cancel();
+    setBusy(false);
     setStatus(null);
     setEnvelope(null);
+    setSources([]);
+    setVerificationError('');
     try {
       if (!file) return;
       if (file.size > 300000) throw Error();
       const raw = JSON.parse(await file.text());
+      if (run !== generation.current) return;
       validateCircuit(raw.circuit);
-      setEnvelope(proofSchema.parse(raw));
+      setEnvelope(parseProof(raw));
     } catch {
-      notify('Ce fichier n’est pas une preuve Clair valide (300 Ko maximum).', true);
+      if (run !== generation.current) return;
+      setStatus('invalid');
+      notify(
+        'Fichier invalide : format, valeurs publiques ou résultat incohérents (300 Ko maximum).',
+        true,
+      );
     }
   };
   const verify = async () => {
     const run = ++generation.current;
     setBusy(true);
     setStatus(null);
+    setSources([]);
+    setVerificationError('');
     try {
+      parseProof(envelope);
       const hash = await circuitHash(envelope.circuit);
       if (expected.trim() && expected.trim().toLowerCase() !== hash)
         throw Error('Le circuit ne correspond pas à l’empreinte attendue.');
       setProgress('Reconstruction du circuit public…');
       const compiled = await compileForEngine(envelope.circuit, envelope.engine);
       if (run !== generation.current) return;
-      task.current = launchProof({ mode: 'verify', envelope, compiled }, setProgress);
+      const issuers = signedInputs(envelope.circuit).length ? await api('/issuers') : undefined;
+      if (run !== generation.current) return;
+      task.current = launchProof(
+        { mode: 'verify', envelope, compiled, ...(issuers ? { issuers } : {}) },
+        setProgress,
+      );
       const result = await task.current.promise;
-      if (run === generation.current) setStatus(result.valid ? 'valid' : 'invalid');
+      if (run === generation.current) {
+        setStatus(result.valid ? 'valid' : 'invalid');
+        setSources(result.sources ?? []);
+        if (result.proofValid && !result.valid)
+          setVerificationError(
+            'La preuve ZK est valide, mais la provenance signée n’est pas validée. Consultez les sources ci-dessous.',
+          );
+      }
     } catch (e) {
       if (run === generation.current) {
         setStatus('invalid');
+        setVerificationError(e.message);
         notify(e.message, true);
       }
     } finally {
       if (run === generation.current) setBusy(false);
     }
   };
-  let fields = [];
+  let fields = [],
+    outcome = null;
   try {
-    if (envelope) fields = publicValues(envelope);
+    if (envelope) {
+      fields = publicValues(envelope);
+      outcome = proofResult(envelope);
+    }
   } catch {}
   return (
     <>
@@ -134,8 +170,11 @@ export function Verify({ initial, notify }) {
                 </strong>
                 <p>
                   {status === 'valid'
-                    ? 'La règle affichée est satisfaite pour des données déclarées.'
-                    : 'La preuve, le circuit ou les paramètres ne correspondent pas.'}
+                    ? outcome
+                      ? 'La preuve confirme que la règle donne vrai.'
+                      : 'La preuve confirme que la règle donne faux. La preuve est valide, la condition n’est pas satisfaite.'
+                    : verificationError ||
+                      'La preuve, le circuit ou les paramètres ne correspondent pas.'}
                 </p>
               </div>
             </div>
@@ -145,11 +184,17 @@ export function Verify({ initial, notify }) {
           <h2>Ce que contient la preuve</h2>
           {envelope ? (
             <>
-              <Badge>Données déclarées · Non certifiées</Badge>
+              <Badge>
+                {signedInputs(envelope.circuit).length
+                  ? 'Attestations publiques jointes'
+                  : 'Données déclarées · Non certifiées'}
+              </Badge>
               <h3>{envelope.circuit.name}</h3>
               <p className="help">Moteur : {engineName(envelope.engine)}</p>
               <p>{envelope.circuit.description}</p>
               <div className="statement">{describe(envelope.circuit)}</div>
+              <h4>{status === 'valid' ? 'Résultat prouvé' : 'Résultat annoncé — à vérifier'}</h4>
+              <p>{outcome === null ? 'Indéterminé' : outcome ? 'Vrai' : 'Faux'}</p>
               <h4>Valeurs publiques</h4>
               {fields.length ? (
                 fields.map((i) => (
@@ -163,7 +208,51 @@ export function Verify({ initial, notify }) {
                   </div>
                 ))
               ) : (
-                <p className="muted">Aucune valeur saisie publique.</p>
+                <p className="muted">
+                  Toutes les entrées sont privées. Seul le résultat de la règle est public.
+                </p>
+              )}
+              {signedInputs(envelope.circuit).length > 0 && (
+                <>
+                  <h4>Provenance des données signées</h4>
+                  <p className="help">
+                    La signature porte sur une valeur publique. La preuve ZK lie cette même valeur
+                    au résultat. L’approbation est relue dans le registre à chaque vérification.
+                  </p>
+                  {signedInputs(envelope.circuit).map((input) => {
+                    const source = sources.find((s) => s.inputId === input.id);
+                    return (
+                      <div
+                        className={
+                          source && status === 'valid'
+                            ? 'validation'
+                            : source && !source.valid
+                              ? 'validation invalid'
+                              : 'notice spaced'
+                        }
+                        key={input.id}
+                      >
+                        <div>
+                          <strong>
+                            {input.label} · {source?.issuerName ?? input.attestation.issuerId}
+                          </strong>
+                          <p>
+                            {!source
+                              ? 'Provenance annoncée — à vérifier'
+                              : source.valid && status === 'valid'
+                                ? 'Origine vérifiée · Source approuvée'
+                                : source.reason}
+                          </p>
+                          <small>Champ signé : {input.attestation.claim}</small>
+                          <code className="hash">{input.attestation.keyHash}</code>
+                          {source && (
+                            <p>Expiration : {new Date(source.expiresAt).toLocaleString('fr-FR')}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
               )}
               <h4>Empreinte du circuit</h4>
               <code className="hash">{envelope.circuitHash}</code>

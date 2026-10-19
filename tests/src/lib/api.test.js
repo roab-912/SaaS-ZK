@@ -3,8 +3,16 @@ import { api } from '../../../src/lib/api.js';
 test('API client serializes bodies and handles HTTP and non-JSON failures', async () => {
   const fetch = vi
     .fn()
-    .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) })
-    .mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'Denied' }) })
+    .mockResolvedValueOnce({
+      ok: true,
+      headers: new Headers({ 'X-Clair-Protocol': '3' }),
+      json: async () => ({ ok: true }),
+    })
+    .mockResolvedValueOnce({
+      ok: false,
+      headers: new Headers({ 'X-Clair-Protocol': '3' }),
+      json: async () => ({ error: 'Denied' }),
+    })
     .mockResolvedValueOnce({
       ok: false,
       json: async () => {
@@ -21,4 +29,20 @@ test('API client serializes bodies and handles HTTP and non-JSON failures', asyn
   await expect(api('/x')).rejects.toThrow('Denied');
   await expect(api('/x')).rejects.toThrow(/invalide/);
   vi.unstubAllGlobals();
+});
+
+test('stale servers explain how to restart instead of returning vague validation errors', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({
+      ok: false,
+      headers: new Headers(),
+      json: async () => ({ error: 'Données invalides.' }),
+    })),
+  );
+  try {
+    await expect(api('/circuits', {})).rejects.toThrow('demarrer.cmd');
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

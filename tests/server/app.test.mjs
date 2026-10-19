@@ -14,6 +14,7 @@ test('HTTP composition enforces headers, body limits, origin and safe errors', a
   try {
     const session = await f.request('/session');
     expect(session.headers.get('cache-control')).toBe('no-store');
+    expect(session.headers.get('x-clair-protocol')).toBe('3');
     expect(session.headers.get('x-powered-by')).toBeNull();
     expect(session.headers.get('cross-origin-embedder-policy')).toBe('require-corp');
     expect((await f.request('/not-found')).status).toBe(404);

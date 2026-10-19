@@ -39,3 +39,68 @@ test('engine selected in the circuit cannot be substituted in an envelope', asyn
   p.engine = PLONK_ENGINE;
   expect(parseProof(p).engine).toBe(PLONK_ENGINE);
 });
+
+test('v2 exports readable values and rejects altered public metadata', async () => {
+  const { buildProofEnvelope, proofResult } = await import('../../shared/proof.mjs');
+  const { circuitHash } = await import('../../shared/circuit-model.mjs');
+  const old = await proofFixture(),
+    circuit = { ...old.circuit, version: 2 },
+    hash = await circuitHash(circuit);
+  const p = buildProofEnvelope({
+    engine: old.engine,
+    circuit,
+    circuitHash: hash,
+    proof: old.proof,
+    publicInputs: [contextField(hash), '0x0', old.publicInputs[1]],
+  });
+  expect(p.result).toBe(false);
+  expect(proofResult(old)).toBe(true);
+  expect(p.publicData).toEqual([
+    { id: 'cutoff', label: 'Né au plus tard le', type: 'date', value: '2008-09-21' },
+  ]);
+  for (const mutate of [
+    (q) => (q.result = true),
+    (q) => (q.publicInputs[1] = '0x2'),
+    (q) => (q.publicData[0].value = '2009-09-21'),
+    (q) => (q.publicData[0].label = 'Autre seuil'),
+    (q) =>
+      q.publicData.push({ id: 'birth', label: 'Naissance', type: 'date', value: '1991-07-14' }),
+    (q) => (q.format = 'clair-proof/1'),
+  ]) {
+    const q = structuredClone(p);
+    mutate(q);
+    expect(() => parseProof(q)).toThrow();
+  }
+});
+test('readable public booleans and numbers preserve their JSON types', async () => {
+  const { buildProofEnvelope } = await import('../../shared/proof.mjs');
+  const { circuitHash } = await import('../../shared/circuit-model.mjs');
+  for (const [type, value, encoded] of [
+    ['boolean', false, '0x0'],
+    ['number', 4294967295, '0xffffffff'],
+  ]) {
+    const circuit = {
+        version: 2,
+        name: 'Valeur publique',
+        description: '',
+        inputs: [{ id: 'x', label: 'Valeur', type, visibility: 'public', source: 'declared' }],
+        root: {
+          kind: 'op',
+          op: 'eq',
+          args: [
+            { kind: 'input', id: 'x' },
+            { kind: 'constant', type, value },
+          ],
+        },
+      },
+      hash = await circuitHash(circuit);
+    const p = buildProofEnvelope({
+      engine: (await proofFixture()).engine,
+      circuit,
+      circuitHash: hash,
+      proof: 'AAAA',
+      publicInputs: [contextField(hash), '0x1', encoded],
+    });
+    expect(p.publicData[0].value).toBe(value);
+  }
+});

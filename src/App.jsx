@@ -31,6 +31,7 @@ import { Generate } from './features/proofs/GenerateProof.jsx';
 import { Verify } from './features/proofs/VerifyProof.jsx';
 import { Billing } from './features/billing/BillingPage.jsx';
 import { Issuers } from './features/issuers/IssuersPage.jsx';
+import { IssueAttestation } from './features/issuers/IssueAttestation.jsx';
 import { Guide } from './features/guide/GuidePage.jsx';
 import { Dashboard } from './features/dashboard/Dashboard.jsx';
 import { ProofLibrary } from './features/proofs/ProofLibrary.jsx';
@@ -46,7 +47,7 @@ export function App() {
     [circuits, setCircuits] = useState([]),
     [proofs, setProofs] = useState([]),
     [toast, setToast] = useState(null),
-    [draft, setDraft] = useState(template()),
+    [draft, setDraft] = useState(() => ({ ...template('blank'), version: 2 })),
     [selected, setSelected] = useState(null),
     [verifyFile, setVerifyFile] = useState(null),
     [mobile, setMobile] = useState(false);
@@ -105,9 +106,9 @@ export function App() {
     }
     return true;
   };
-  const start = (kind = 'age') => {
+  const start = (kind = 'blank') => {
     if (needPaid()) {
-      setDraft(template(kind));
+      setDraft({ ...template(kind), version: 2 });
       nav('editor');
     }
   };
@@ -181,7 +182,7 @@ export function App() {
         <div className="nav-label second">PARAMÈTRES</div>
         <nav>
           <button
-            className={'nav-item ' + (page === 'issuers' ? 'active' : '')}
+            className={'nav-item ' + (['issuers', 'attestation'].includes(page) ? 'active' : '')}
             onClick={() => nav('issuers')}
           >
             <BadgeCheck size={19} />
@@ -244,6 +245,7 @@ export function App() {
                   verify: 'Vérification',
                   billing: 'Abonnement',
                   issuers: 'Sources de confiance',
+                  attestation: 'Créer une attestation',
                   guide: 'Guide',
                 }[page]
               }
@@ -329,16 +331,12 @@ export function App() {
                   draft={draft}
                   setDraft={setDraft}
                   onSave={async (go) => {
-                    try {
-                      const schema = validateCircuit(draft);
-                      const result = await api('/circuits', schema);
-                      await refresh();
-                      notify('Version du circuit enregistrée.');
-                      if (go) prove({ ...result, schema });
-                      else nav('circuits');
-                    } catch (e) {
-                      notify(e.message, true);
-                    }
+                    const schema = validateCircuit(draft);
+                    const result = await api('/circuits', schema);
+                    await refresh();
+                    notify('Version du circuit enregistrée.');
+                    if (go) prove({ ...result, schema });
+                    else nav('circuits');
                   }}
                 />
               )}
@@ -362,7 +360,14 @@ export function App() {
                   login={() => setAuth('register')}
                 />
               )}
-              {page === 'issuers' && <Issuers user={user} notify={notify} />}
+              {page === 'issuers' && (
+                <Issuers
+                  user={user}
+                  notify={notify}
+                  onCreateAttestation={() => nav('attestation')}
+                />
+              )}
+              {page === 'attestation' && <IssueAttestation onBack={() => nav('issuers')} />}
               {page === 'guide' && <Guide />}
             </>
           )}

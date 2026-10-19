@@ -41,7 +41,7 @@ Après cette mise à jour, exécuter `installer.cmd` pour installer les nouvelle
 - Preuve locale dans un Web Worker, contrôle automatique après génération, annulation et délai maximal de cinq minutes.
 - Téléchargement .clair.json, enregistrement explicite et consultation des preuves du compte.
 - Vérification sans compte, consultation du circuit et des paramètres publics, comparaison facultative à une empreinte attendue.
-- Registre administrateur des émetteurs approuvés. Les attestations certifiées ne sont pas encore intégrées au moteur.
+- Registre administrateur des émetteurs approuvés et attestations signées pour les entrées publiques.
 
 ## Stripe en mode test
 
@@ -86,17 +86,17 @@ Le serveur conserve les comptes, sessions, statuts de facturation, circuits publ
 
 ## Sens d’une preuve réutilisable
 
-Une preuve démontre l’existence de valeurs satisfaisant une règle. Avec des entrées déclarées, elle ne garantit pas leur véracité, leur origine ni leur appartenance à la personne qui présente le fichier.
+Une preuve démontre que la règle produit le résultat annoncé pour ses paramètres publics et des valeurs privées. Avec des entrées déclarées, elle ne garantit pas leur véracité, leur origine ni leur appartenance à la personne qui présente le fichier.
 
 Le modèle de majorité compare une date de naissance privée à une date limite publique. Le destinataire doit vérifier la cohérence de cette limite avec son seuil et sa date de référence. Le titre « majorité » n’est pas une garantie. Le fichier n’expire pas automatiquement : il peut être revérifié dans six mois, mais la pertinence dépend de ses paramètres. Une preuve réutilisable peut être copiée et corrélée.
 
-## Futurs modules de certification
+## Sources signées et futurs connecteurs
 
-Le MVP accepte uniquement la source **declared** dans les circuits. La certification est différée conformément au périmètre initial. Le registre ne crée aucun badge de certification sur les preuves.
+Les circuits acceptent les entrées déclarées et les entrées publiques signées par une source approuvée. L’écran de vérification affiche une origine vérifiée après contrôle de la signature, de la valeur publique, de l’expiration et du registre courant.
 
 Ajouter les **identifiants de comptes** administrateurs dans ADMIN_USER_IDS, séparés par des virgules, puis redémarrer. L’identifiant est visible dans /api/session après connexion. Une adresse e-mail non vérifiée n’accorde jamais les droits administrateur.
 
-Le registre conserve une clé publique JWK P-256 et un état approuvé/révoqué. Le futur module devra définir le format signé, contraindre la signature et les attributs dans le circuit, gérer validité/révocation et afficher la chaîne de confiance. Une vérification de signature uniquement en JavaScript ne suffit pas.
+Le registre conserve une clé publique JWK P-256 et un état approuvé/révoqué. Pour les entrées publiques, le vérificateur contrôle la signature hors du circuit et compare sa valeur au paramètre public de la preuve ZK. Les entrées signées privées restent à développer et nécessiteront des contraintes cryptographiques supplémentaires. Voir [SOURCES.md](docs/SOURCES.md).
 
 ## Tests et build
 
@@ -131,7 +131,19 @@ Les paiements réels exigent ALLOW_LIVE_PAYMENTS=true et les clés, prix et secr
 - Entiers non signés sur 32 bits ; pas de décimales, négatifs, chaînes ni expressions libres.
 - Dates entre 1900 et 2199, contrôlées dans le circuit.
 - Pas de court-circuit : une division invalide bloque aussi une branche inutilisée d’un OU.
-- Aucune certification activée, contrôle du détenteur ou protection contre la copie.
+- Les attestations signées concernent uniquement les entrées publiques ; les connecteurs métier, le contrôle du détenteur et la protection contre la copie restent à développer.
 - Pas encore de vérification d’e-mail, récupération de mot de passe ni espace d’équipe.
 - Bibliothèques cryptographiques en préversion, verrouillées pour leur compatibilité. Une ouverture publique nécessite une revue de sécurité du produit et du compilateur.
 - Le calcul local est reproductible par quelqu’un conservant le code et le circuit. L’abonnement contrôle le service et les parcours du SaaS ; il n’est pas un verrou cryptographique sur une opération locale.
+
+### Résultats et diagnostics
+
+Les nouveaux circuits utilisent par défaut « Vrai ou faux » : une preuve valide peut démontrer que la condition est fausse. L'écran de vérification distingue ces deux informations. Les anciennes règles restent en mode « Vrai uniquement » ; ouvrez-les dans l'éditeur pour changer ce mode et enregistrer une nouvelle version.
+
+Les nouveaux fichiers de preuve contiennent un résultat booléen `result` et les entrées publiques lisibles dans `publicData`. L'encodage hexadécimal de `publicInputs` est conservé pour les moteurs cryptographiques. Aucune entrée privée n'est ajoutée à l'export.
+
+En développement, `demarrer.cmd` lance Node sans le mode `--watch`, pour éviter les redémarrages en boucle avec Vite. Vite actualise l’interface ; après une modification du serveur, du domaine partagé ou des moteurs ZK, redémarrez manuellement le serveur. Si un ancien serveur tourne déjà, arrêtez-le une fois avec **Ctrl+C**, relancez **demarrer.cmd**, puis rechargez la page. Le client détecte un serveur obsolète et affiche cette marche à suivre. Les erreurs de validation indiquent les champs concernés ; les erreurs de sauvegarde et de génération restent visibles dans leur formulaire.
+
+### Sources de confiance
+
+Le registre accepte des clés publiques P-256 approuvées par l’administrateur. Les émetteurs créent un fichier signé depuis « Sources de confiance → Créer une attestation », sans compte ni preuve ZK. Le destinataire importe ce fichier dans la génération de sa preuve ; la signature manuelle y reste disponible dans un volet replié. La vérification affiche la source et contrôle les signatures, les valeurs, l’expiration et l’approbation actuelle. Les connecteurs FranceConnect, banque et facturation restent à développer. Voir [le parcours complet et le format de signature](docs/SOURCES.md).

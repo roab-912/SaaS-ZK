@@ -1,5 +1,6 @@
 import { validateInputs } from '../../shared/circuit-model.mjs';
-import { contextField, PROOF_FORMAT, parseProof } from '../../shared/proof.mjs';
+import { contextField, buildProofEnvelope } from '../../shared/proof.mjs';
+import { evaluateCircuit } from '../../shared/evaluate.mjs';
 export function createCircomRuntime({
   id,
   protocol,
@@ -15,10 +16,11 @@ export function createCircomRuntime({
   };
   return {
     id,
-    async prove({ circuit, compiled, values, onProgress = () => {} }) {
+    async prove({ circuit, compiled, values, attestations = [], onProgress = () => {} }) {
       checkArtifact(compiled);
       const normalized = validateInputs(circuit, values);
       const inputs = { context: contextField(compiled.hash) };
+      if (circuit.version === 2) inputs.result = evaluateCircuit(circuit, values) ? '1' : '0';
       circuit.inputs.forEach((input, i) => {
         inputs['in_' + i] = normalized[input.id];
       });
@@ -43,8 +45,8 @@ export function createCircomRuntime({
           ))
         )
           throw Error('Preuve incorrecte.');
-        return parseProof({
-          format: PROOF_FORMAT,
+        return buildProofEnvelope({
+          attestations,
           engine: id,
           circuit,
           circuitHash: compiled.hash,

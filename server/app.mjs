@@ -38,6 +38,7 @@ export function createApp(options = {}) {
     '/api',
     (req, res, next) => {
       res.set('Cache-Control', 'no-store');
+      res.set('X-Clair-Protocol', '3');
       next();
     },
     createLimit(120),
