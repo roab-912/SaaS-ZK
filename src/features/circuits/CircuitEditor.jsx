@@ -2,6 +2,7 @@ import React from 'react';
 import { ENGINE, ZK_ENGINES } from '../../../shared/engines.mjs';
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api.js';
+import { download } from '../../lib/files.js';
 import { keyFingerprint } from '../../../shared/attestations.mjs';
 import {
   ArrowRight,
@@ -77,6 +78,13 @@ export function Editor({ draft: c, setDraft, onSave }) {
         desc="Construisez une règle et prouvez son résultat sans révéler vos données privées."
         action={
           <div className="row-actions">
+            <Button
+              variant="secondary"
+              disabled={!!error || saving}
+              onClick={() => download(validateCircuit(c), c.name + '.circuit.clair.json')}
+            >
+              Exporter le circuit public
+            </Button>
             <Button variant="secondary" disabled={!!error || saving} onClick={() => save(false)}>
               <Save size={17} />
               Enregistrer

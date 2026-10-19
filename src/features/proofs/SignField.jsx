@@ -2,12 +2,32 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '../../components/ui.jsx';
 import { signInputValue } from '../../../shared/attestations.mjs';
 export function SignField({ input, value, disabled, onSigned }) {
+  return (
+    <SignInputs
+      items={[{ input, value }]}
+      label={input.label}
+      disabled={disabled}
+      onSigned={(results) => onSigned(results[0])}
+    />
+  );
+}
+export function SignFields({ items, disabled, onSigned }) {
+  return (
+    <SignInputs
+      items={items}
+      label="les données du circuit"
+      disabled={disabled}
+      onSigned={onSigned}
+    />
+  );
+}
+function SignInputs({ items, label, disabled, onSigned }) {
   const [key, setKey] = useState(''),
     [signing, setSigning] = useState(false),
     [error, setError] = useState('');
-  const latest = useRef(value),
+  const latest = useRef(''),
     mounted = useRef(true);
-  latest.current = value;
+  latest.current = JSON.stringify(items);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -17,12 +37,23 @@ export function SignField({ input, value, disabled, onSigned }) {
   async function sign() {
     setError('');
     setSigning(true);
-    const signedValue = value;
+    const snapshot = latest.current,
+      now = Date.now();
     try {
-      const attestation = await signInputValue(input, signedValue, key);
+      if (!items.length) throw Error('Aucun champ à signer.');
+      const results = await Promise.all(
+        items.map(async ({ input, value }) => {
+          try {
+            return await signInputValue(input, value, key, now);
+          } catch (error) {
+            throw Error(input.label + ' : ' + error.message, { cause: error });
+          }
+        }),
+      );
       if (!mounted.current) return;
-      if (latest.current !== signedValue) throw Error('La valeur a changé : signez-la à nouveau.');
-      onSigned(attestation);
+      if (latest.current !== snapshot)
+        throw Error('Les valeurs ont changé : signez-les à nouveau.');
+      onSigned(results);
     } catch (e) {
       if (mounted.current) setError(e.message);
     } finally {
@@ -35,9 +66,9 @@ export function SignField({ input, value, disabled, onSigned }) {
   return (
     <div>
       <label>
-        Clé privée pour {input.label}
+        Clé privée pour {label}
         <textarea
-          aria-label={'Clé privée pour ' + input.label}
+          aria-label={'Clé privée pour ' + label}
           value={key}
           onChange={(e) => {
             setKey(e.target.value);
@@ -50,9 +81,9 @@ export function SignField({ input, value, disabled, onSigned }) {
         />
       </label>
       <label className="help">
-        Importer une clé privée pour {input.label}
+        Importer une clé privée pour {label}
         <input
-          aria-label={'Importer une clé privée pour ' + input.label}
+          aria-label={'Importer une clé privée pour ' + label}
           type="file"
           accept=".json"
           disabled={disabled || signing}
@@ -63,7 +94,7 @@ export function SignField({ input, value, disabled, onSigned }) {
             setError('');
             const element = e.target;
             try {
-              if (file.size > 4096) throw Error('Fichier de clé trop volumineux (4 Ko maximum).');
+              if (file.size > 4096) throw Error();
               const text = await file.text();
               if (mounted.current) setKey(text);
             } catch {
@@ -76,8 +107,8 @@ export function SignField({ input, value, disabled, onSigned }) {
         />
       </label>
       <p className="help">
-        La clé privée reste sur cet appareil et est effacée de ce champ après la signature.
-        L’attestation publique est valable 7 jours.
+        La clé privée reste sur cet appareil et est effacée de ce champ après la signature. Les
+        attestations sont valables 7 jours.
       </p>
       {error && (
         <p className="validation invalid" role="alert">
@@ -87,10 +118,10 @@ export function SignField({ input, value, disabled, onSigned }) {
       <Button
         type="button"
         variant="secondary"
-        disabled={disabled || signing || !key.trim()}
+        disabled={disabled || signing || !key.trim() || !items.length}
         onClick={sign}
       >
-        {signing ? 'Signature en cours…' : 'Signer ' + input.label}
+        {signing ? 'Signature en cours…' : 'Signer ' + label}
       </Button>
     </div>
   );

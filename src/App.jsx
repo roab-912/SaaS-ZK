@@ -367,7 +367,9 @@ export function App() {
                   onCreateAttestation={() => nav('attestation')}
                 />
               )}
-              {page === 'attestation' && <IssueAttestation onBack={() => nav('issuers')} />}
+              {page === 'attestation' && (
+                <IssueAttestation circuits={circuits} onBack={() => nav('issuers')} />
+              )}
               {page === 'guide' && <Guide />}
             </>
           )}

@@ -4,7 +4,18 @@ import { test, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Editor } from '../../../../src/features/circuits/CircuitEditor.jsx';
-import { template } from '../../../../shared/circuit.mjs';
+import { template, validateCircuit } from '../../../../shared/circuit.mjs';
+import { download } from '../../../../src/lib/files.js';
+vi.mock('../../../../src/lib/files.js', () => ({ download: vi.fn() }));
+test('exports only a valid public circuit schema', async () => {
+  const draft = template('blank');
+  render(<Editor draft={draft} setDraft={vi.fn()} onSave={vi.fn()} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Exporter le circuit public' }));
+  expect(download).toHaveBeenLastCalledWith(
+    validateCircuit(draft),
+    draft.name + '.circuit.clair.json',
+  );
+});
 test('editor saves valid nested rules and disables invalid unused inputs', async () => {
   const save = vi.fn();
   function Harness() {

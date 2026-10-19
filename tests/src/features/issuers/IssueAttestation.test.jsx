@@ -27,6 +27,7 @@ test.each([
       const onBack = vi.fn();
       render(<IssueAttestation onBack={onBack} />);
       await screen.findByLabelText('Source émettrice');
+      await userEvent.selectOptions(screen.getByLabelText('Circuit à utiliser'), 'manual');
       fireEvent.change(screen.getByLabelText('Nom du champ signé'), {
         target: { value: 'test_claim' },
       });
