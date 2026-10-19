@@ -76,3 +76,7 @@ shared/attestations.mjs fournit le format versionné, les signatures Web Crypto,
 - L’application serveur peut être importée sans ouvrir un port ; startServer est testable et propose un arrêt explicite.
 
 L’architecture reste volontairement celle d’un MVP à un processus : le registre, les limites de débit, la file de compilation et les verrous Stripe sont locaux au processus.
+
+## Vérificateur portable
+
+`offline/` fournit une interface indépendante et un serveur limité à la boucle locale. La compilation et la vérification réutilisent les adaptateurs ZK du projet dans un processus isolé. `scripts/build-offline.mjs` assemble les modules explicitement autorisés, leurs dépendances, Node et les paramètres publics. `server/routes/offline.mjs` distribue cette archive avec un instantané `clair-trust/1` du registre, validé par `shared/trust-snapshot.mjs`. Aucun secret du serveur n’entre dans le paquet. Les détails d’utilisation, de confiance et de préparation sont dans [OFFLINE.md](OFFLINE.md).

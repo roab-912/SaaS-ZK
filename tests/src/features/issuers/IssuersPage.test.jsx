@@ -24,3 +24,20 @@ test('sources page only lists available sources and gates the addition form by a
   expect(screen.getByLabelText('Clé publique P-256 (JWK)')).toBeVisible();
   expect(api).toHaveBeenCalledWith('/issuers');
 });
+
+test('available sources offer Windows offline downloads for all sources or one selected source', async () => {
+  const { signedFixture } = await import('../../../helpers/attestation.mjs');
+  const { issuers } = await signedFixture();
+  api.mockImplementation(async (path) =>
+    path === '/issuers'
+      ? issuers
+      : { available: true, bytes: 100 * 1048576, platform: 'win32-x64' },
+  );
+  render(<Issuers user={null} notify={vi.fn()} />);
+  const all = await screen.findByRole('link', { name: 'Télécharger le vérificateur hors ligne' });
+  expect(all).toHaveAttribute('href', '/api/offline-verifier');
+  expect(
+    screen.getByRole('link', { name: 'Télécharger le vérificateur pour Source de test' }),
+  ).toHaveAttribute('href', '/api/offline-verifier?issuer=source-1');
+  expect(screen.getByText(/révocations et changements de clés ultérieurs/)).toBeVisible();
+});

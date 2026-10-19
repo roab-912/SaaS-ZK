@@ -10,7 +10,8 @@ export function Issuers({ user, notify, onCreateAttestation = () => {} }) {
     [jwk, setJwk] = useState(''),
     [approved, setApproved] = useState(true),
     [error, setError] = useState(''),
-    [saving, setSaving] = useState(false);
+    [saving, setSaving] = useState(false),
+    [offline, setOffline] = useState(null);
   const refresh = () =>
     api('/issuers').then(async (rows) =>
       setIssuers(
@@ -19,12 +20,23 @@ export function Issuers({ user, notify, onCreateAttestation = () => {} }) {
     );
   useEffect(() => {
     refresh().catch((e) => setError(e.message));
+    let active = true;
+    api('/offline-verifier/status')
+      .then((status) => {
+        if (active) setOffline(status);
+      })
+      .catch(() => {
+        if (active) setOffline({ available: false });
+      });
+    return () => {
+      active = false;
+    };
   }, []);
   return (
     <>
       <PageHeading
         title="Sources de confiance"
-        desc="Les sources approuvées disponibles pour signer les entrées publiques de vos circuits."
+        desc="Les sources approuvées disponibles pour signer les entrées de vos circuits."
         action={<Button onClick={onCreateAttestation}>Créer une attestation</Button>}
       />
       {error && (
@@ -33,7 +45,26 @@ export function Issuers({ user, notify, onCreateAttestation = () => {} }) {
         </div>
       )}
       <section className="panel form-panel">
-        <h2>Sources disponibles</h2>
+        <div className="row-actions source-downloads">
+          <h2>Sources disponibles</h2>
+          {offline?.available && (
+            <a className="button secondary" href="/api/offline-verifier" download>
+              Télécharger le vérificateur hors ligne
+            </a>
+          )}
+        </div>
+        <p className="help">
+          {offline?.available
+            ? 'Logiciel portable Windows 64 bits · ' +
+              Math.ceil(offline.bytes / 1048576) +
+              ' Mio environ. Extrayez l’archive ZIP puis lancez demarrer.cmd. Aucune installation ni connexion Internet nécessaire.'
+            : 'Le téléchargement du vérificateur Windows sera disponible une fois sa préparation terminée.'}
+        </p>
+        <p className="help">
+          Le logiciel inclut un instantané des clés publiques approuvées. Hors ligne, les
+          révocations et changements de clés ultérieurs ne sont pas connus. Retéléchargez-le pour
+          actualiser les sources.
+        </p>
         {issuers.length ? (
           issuers.map((i) => (
             <div className="issuer-row" key={i.id}>
@@ -48,6 +79,16 @@ export function Issuers({ user, notify, onCreateAttestation = () => {} }) {
                 </details>
               </div>
               <Badge>Approuvée</Badge>
+              {offline?.available && (
+                <a
+                  className="button secondary"
+                  href={'/api/offline-verifier?issuer=' + encodeURIComponent(i.id)}
+                  download
+                  aria-label={'Télécharger le vérificateur pour ' + i.name}
+                >
+                  Vérificateur hors ligne
+                </a>
+              )}
               {user?.admin && (
                 <Button
                   variant="secondary"

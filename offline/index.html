@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="clair-token" content="__TOKEN__" />
+    <title>Clair — Vérification hors ligne</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header><b>clair.</b><span>Vérificateur hors ligne</span></header>
+      <h1>Vérifier une preuve sur cet ordinateur</h1>
+      <p>
+        Aucun compte ni accès Internet. Les moteurs et les clés publiques sont inclus dans le
+        logiciel.
+      </p>
+      <section>
+        <h2>Sources de confiance incluses</h2>
+        <p id="snapshot">Chargement du registre local…</p>
+        <p>
+          Les révocations et changements de clés survenus après cet export ne sont pas connus hors
+          ligne. Retéléchargez le logiciel pour actualiser les sources.
+        </p>
+        <div id="issuers"></div>
+      </section>
+      <section>
+        <label for="proof">Fichier de preuve .clair</label
+        ><input id="proof" type="file" accept=".clair" /><label for="expected"
+          >Empreinte du circuit attendu (facultatif)</label
+        ><input id="expected" maxlength="64" placeholder="SHA-256 fourni par le demandeur" /><button
+          id="verify"
+          disabled
+        >
+          Vérifier la preuve
+        </button>
+        <p id="status" role="status" aria-live="polite"></p>
+      </section>
+      <section id="result" hidden>
+        <h2 id="validity"></h2>
+        <p id="condition"></p>
+        <p id="name"></p>
+        <p id="statement"></p>
+        <code id="hash"></code>
+        <h3>Valeurs publiques</h3>
+        <div id="values"></div>
+        <h3>Provenance selon le registre téléchargé</h3>
+        <div id="sources"></div>
+        <p id="date"></p>
+      </section>
+    </main>
+  </body>
+</html>

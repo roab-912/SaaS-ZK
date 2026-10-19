@@ -11,7 +11,7 @@ function sources(dir) {
   );
 }
 test('every runtime source module has its own test file', () => {
-  const missing = ['src', 'server', 'shared', 'zk']
+  const missing = ['src', 'server', 'shared', 'zk', 'offline']
     .flatMap(sources)
     .filter((file) => !existsSync('tests/' + file.replace(/\.(mjs|js|jsx)$/, '.test.$1')));
   expect(missing).toEqual([]);

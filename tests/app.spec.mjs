@@ -503,3 +503,36 @@ test('new circuit and removal of birth both allow a single integer equals 18', a
     timeout: 150000,
   });
 });
+
+test('offline verifier links identify source scope and fit on mobile', async ({ page }) => {
+  const { generateKeyPairSync } = await import('node:crypto');
+  const jwk = generateKeyPairSync('ec', { namedCurve: 'P-256' }).publicKey.export({
+    format: 'jwk',
+  });
+  await page.route('**/api/offline-verifier/status', (route) =>
+    route.fulfill({
+      json: { available: true, platform: 'win32-x64', bytes: 280 * 1048576 },
+      headers: { 'X-Clair-Protocol': '4' },
+    }),
+  );
+  await page.route('**/api/issuers', (route) =>
+    route.fulfill({
+      json: [{ id: 'source-1', name: 'Source de test', jwk }],
+      headers: { 'X-Clair-Protocol': '4' },
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
+  await page.getByRole('button', { name: 'Sources de confiance', exact: true }).click();
+  await expect(
+    page.getByRole('link', { name: 'Télécharger le vérificateur hors ligne' }),
+  ).toHaveAttribute('href', '/api/offline-verifier');
+  await expect(
+    page.getByRole('link', { name: 'Télécharger le vérificateur pour Source de test' }),
+  ).toHaveAttribute('href', '/api/offline-verifier?issuer=source-1');
+  await expect(page.getByText(/révocations et changements de clés ultérieurs/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+});

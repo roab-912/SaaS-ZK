@@ -66,3 +66,7 @@ Ordre des paramètres publics : contexte de 248 bits, résultat 0/1, puis entré
 Seul **Noir / UltraHonk** annonce la capacité `privateSignedInputs`. Le générateur contraint SHA-256 et ECDSA P-256 dans le circuit, avec la clé de la source figée dans sa définition publique. Les attestations privées utilisent `clair-attestation/2` et les preuves `clair-proof/4`. Les autres circuits et enveloppes conservent leurs traductions et leur compatibilité. Voir [SOURCES.md](SOURCES.md) pour le message signé et les paramètres publics supplémentaires.
 
 Circom / PLONK et Circom / FFLONK refusent les entrées signées privées avant compilation, y compris lors d’une sélection de moteur par API ou worker. Aucun repli vers une simple vérification JavaScript n’est autorisé.
+
+## Vérification hors ligne
+
+Le [vérificateur portable Windows](OFFLINE.md) reconstruit et vérifie les circuits des trois moteurs localement, avec les paramètres publics et les clés de confiance incluses au téléchargement. Il ne connaît pas les révocations ultérieures à son instantané.

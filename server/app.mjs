@@ -10,6 +10,7 @@ import { errorHandler } from './errors.mjs';
 import { registerAuthRoutes } from './routes/auth.mjs';
 import { registerBillingWebhook, registerBillingRoutes } from './routes/billing.mjs';
 import { registerWorkspaceRoutes } from './routes/workspace.mjs';
+import { registerOfflineRoutes } from './routes/offline.mjs';
 import { registerIssuerRoutes } from './routes/issuers.mjs';
 
 export function createApp(options = {}) {
@@ -51,6 +52,7 @@ export function createApp(options = {}) {
   registerBillingRoutes(app, dependencies);
   registerWorkspaceRoutes(app, dependencies);
   registerIssuerRoutes(app, dependencies);
+  registerOfflineRoutes(app, { ...dependencies, offlineDirectory: options.offlineDirectory });
   app.use('/api', (req, res) => res.status(404).json({ error: 'Ressource introuvable.' }));
   app.use(errorHandler(options.logger ?? console));
   return { app, db, config };

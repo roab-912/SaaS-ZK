@@ -80,7 +80,7 @@ Le vérificateur reconstruit le circuit depuis l’arbre embarqué via le compil
 
 Les entrées privées et le témoin intermédiaire restent dans le navigateur. Le témoin est effacé après génération ; le worker est terminé et le formulaire privé réinitialisé. JavaScript ne garantit pas l’effacement physique de toutes les copies en mémoire. Aucun outil de télémétrie ni police externe n’est chargé.
 
-Les paramètres publics sont téléchargés depuis crs.aztec.network. Le calcul est local, mais une connexion reste nécessaire pour compiler le circuit public et charger ces ressources. Ce MVP ne promet pas une vérification entièrement hors ligne.
+Les paramètres publics sont téléchargés depuis crs.aztec.network. Le calcul est local, mais une connexion reste nécessaire pour compiler le circuit public et charger ces ressources. Ce parcours web nécessite une connexion. Le [vérificateur portable Windows](docs/OFFLINE.md) permet aussi de vérifier sans Internet après téléchargement du logiciel et de son registre de clés.
 
 Le serveur conserve les comptes, sessions, statuts de facturation, circuits publics et fichiers explicitement enregistrés. Les constantes, noms et descriptions des circuits sont publics : ne pas y placer de secrets. Un fichier n’est pas considéré comme vérifié simplement parce qu’il est enregistré.
 

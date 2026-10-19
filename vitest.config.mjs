@@ -4,6 +4,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     include: ['tests/**/*.test.{mjs,js,jsx}'],
+    exclude: ['tests/offline-distribution.test.mjs'],
     environment: 'node',
     setupFiles: ['./tests/setup.mjs'],
     maxWorkers: 2,
@@ -13,7 +14,13 @@ export default defineConfig({
     restoreMocks: true,
     coverage: {
       provider: 'v8',
-      include: ['server/**/*.{mjs,js}', 'shared/**/*.mjs', 'zk/**/*.mjs', 'src/**/*.{js,jsx}'],
+      include: [
+        'server/**/*.{mjs,js}',
+        'shared/**/*.mjs',
+        'zk/**/*.mjs',
+        'src/**/*.{js,jsx}',
+        'offline/**/*.{js,mjs}',
+      ],
       exclude: [],
       reporter: ['text', 'html', 'json-summary'],
       thresholds: { statements: 75, branches: 65, functions: 75, lines: 75 },

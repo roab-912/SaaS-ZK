@@ -52,3 +52,7 @@ Les tests d’architecture empêchent l’import de SDK ZK dans les écrans/doma
 Les tests exécutent une vraie preuve UltraHonk avec signature P-256 cachée, puis sa vérification, la révocation et la falsification des dates. Les tests soumettent directement au programme Noir des témoins dont la valeur, la signature, l’UUID ou la validité ont été modifiés pour éviter de tester uniquement les gardes de l’interface. Les encodages nombre, date et booléen sont exécutés dans Noir. Les enveloppes mixtes publiques/privées sont contrôlées pour éviter toute fuite de signature ou valeur privée.
 
 Le parcours navigateur supplémentaire configure une entrée signée privée, émet et importe son attestation, génère et archive la preuve, puis vérifie sa provenance sans compte. Il contrôle l’absence de valeur et signature privées dans les requêtes API et dans l’export, ainsi que le refus des moteurs incompatibles.
+
+## Distribution hors ligne
+
+Les tests de offline/ couvrent le registre public, les contrôles d’intégrité, les accès locaux, les erreurs expurgées et l’interface de vérification. La suite séparée `npm run test:offline` construit et télécharge le vrai logiciel, l’extrait hors du dépôt et utilise son Node embarqué pour vérifier les trois moteurs, une signature privée et une falsification. Voir [OFFLINE.md](OFFLINE.md).

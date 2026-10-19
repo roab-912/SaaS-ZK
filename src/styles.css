@@ -1291,6 +1291,19 @@ pre {
   margin-top: 20px;
   flex-wrap: wrap;
 }
+.source-downloads {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.source-downloads h2 {
+  margin: 0;
+}
+.source-downloads .button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
 .issuer-row {
   padding: 23px;
   display: flex;
