@@ -11,10 +11,7 @@ test('exports only a valid public circuit schema', async () => {
   const draft = template('blank');
   render(<Editor draft={draft} setDraft={vi.fn()} onSave={vi.fn()} />);
   await userEvent.click(screen.getByRole('button', { name: 'Exporter le circuit public' }));
-  expect(download).toHaveBeenLastCalledWith(
-    validateCircuit(draft),
-    draft.name + '.circuit.clair.json',
-  );
+  expect(download).toHaveBeenLastCalledWith(validateCircuit(draft), draft.name + '.circuit.clair');
 });
 test('editor saves valid nested rules and disables invalid unused inputs', async () => {
   const save = vi.fn();

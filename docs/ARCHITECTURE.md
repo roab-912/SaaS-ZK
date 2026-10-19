@@ -70,7 +70,7 @@ shared/attestations.mjs fournit le format versionné, les signatures Web Crypto,
 
 - Le schéma public des circuits et son empreinte canonique sont conservés.
 - Le moteur historique noir-beta9-ultrahonk-0.87 reste enregistré avec keccakZK activé.
-- Les anciens fichiers .clair.json et les archives SQLite sont lisibles.
+- Les exports et sélecteurs de fichiers utilisent `.clair` ; les protocoles JSON et les archives SQLite restent inchangés.
 - Le démarrage ajoute seulement les tables/index manquants ; il ne réinitialise pas les comptes.
 - Les anciens mots de passe restent vérifiables et sont re-hachés après une connexion réussie.
 - L’application serveur peut être importée sans ouvrir un port ; startServer est testable et propose un arrêt explicite.

@@ -39,7 +39,7 @@ export function ProofLibrary({ user, nav, setAuth, proofs, openVerify, refresh }
               <div className="proof-actions">
                 <Button
                   variant="secondary small"
-                  onClick={() => download(p.envelope, p.envelope.circuit.name + '.clair.json')}
+                  onClick={() => download(p.envelope, p.envelope.circuit.name + '.preuve.clair')}
                 >
                   <Download size={15} />
                   Télécharger

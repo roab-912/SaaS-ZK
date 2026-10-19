@@ -42,7 +42,7 @@ test('generation keeps private inputs in worker, clears form and archives only e
   expect(JSON.stringify(api.mock.calls)).not.toContain('1991');
   expect(compileForEngine).toHaveBeenCalledWith(envelope.circuit);
   await userEvent.click(screen.getByRole('button', { name: 'Télécharger la preuve' }));
-  expect(download).toHaveBeenCalledWith(envelope, expect.any(String));
+  expect(download).toHaveBeenCalledWith(envelope, envelope.circuit.name + '.preuve.clair');
   await userEvent.click(screen.getByRole('button', { name: 'Enregistrer dans mon espace' }));
   expect(api).toHaveBeenCalledWith('/proofs', envelope);
   await userEvent.click(screen.getByRole('button', { name: 'Ouvrir la vérification' }));
@@ -143,6 +143,9 @@ test('inline signing is local and editing a signed value requires a new signatur
     expect(
       screen.getByLabelText('Importer l’attestation pour Revenu public', { exact: true }),
     ).toBeVisible();
+    expect(
+      screen.getByLabelText('Importer l’attestation pour Revenu public', { exact: true }),
+    ).toHaveAttribute('accept', '.clair');
     expect(
       screen.getByRole('button', { name: 'Signer Revenu public', exact: true }),
     ).not.toBeVisible();

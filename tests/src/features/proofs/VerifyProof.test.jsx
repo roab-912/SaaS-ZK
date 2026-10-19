@@ -27,7 +27,8 @@ test('verifier displays actual statement and checks requested fingerprint before
 test('invalid imports never enter the worker', async () => {
   const notify = vi.fn();
   render(<Verify initial={null} notify={notify} />);
-  const file = new File(['bad'], 'bad.json', { type: 'application/json' });
+  expect(screen.getByLabelText('Fichier de preuve')).toHaveAttribute('accept', '.clair');
+  const file = new File(['bad'], 'bad.clair', { type: 'application/json' });
   file.text = async () => '{bad';
   await userEvent.upload(screen.getByLabelText('Fichier de preuve'), file);
   expect(notify).toHaveBeenCalledWith(expect.stringContaining('valide'), true);

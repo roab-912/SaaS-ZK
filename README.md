@@ -39,7 +39,7 @@ Après cette mise à jour, exécuter `installer.cmd` pour installer les nouvelle
 - Comparaisons =, ≠, >, ≥, <, ≤ ; ET, OU, XOR, NON ; +, −, ×, division entière, modulo ; appartenance à une liste.
 - Versions immuables des circuits ; une modification crée une nouvelle version.
 - Preuve locale dans un Web Worker, contrôle automatique après génération, annulation et délai maximal de cinq minutes.
-- Téléchargement .clair.json, enregistrement explicite et consultation des preuves du compte.
+- Téléchargement .clair, enregistrement explicite et consultation des preuves du compte.
 - Vérification sans compte, consultation du circuit et des paramètres publics, comparaison facultative à une empreinte attendue.
 - Registre administrateur des émetteurs approuvés et attestations signées pour les entrées publiques.
 

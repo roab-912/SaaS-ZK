@@ -103,8 +103,9 @@ test('external issuer imports a circuit locally; missing values produce no parti
     const { schema, privateKey } = await fixture();
     render(<IssueAttestation />);
     await screen.findByLabelText('Source émettrice');
-    const file = new File([''], 'circuit.json', { type: 'application/json' });
+    const file = new File([''], 'circuit.clair', { type: 'application/json' });
     file.text = async () => JSON.stringify(schema);
+    expect(screen.getByLabelText('Importer un circuit public')).toHaveAttribute('accept', '.clair');
     await userEvent.upload(screen.getByLabelText('Importer un circuit public'), file);
     await screen.findByLabelText('Valeur pour Champ 0 (field_0)');
     fireEvent.change(
@@ -208,7 +209,7 @@ test('importing a circuit for another authority is refused without changing the 
       });
     render(<IssueAttestation />);
     await screen.findByLabelText('Source émettrice');
-    const file = new File([''], 'other.json', { type: 'application/json' });
+    const file = new File([''], 'other.clair', { type: 'application/json' });
     file.text = async () => JSON.stringify(schema);
     await userEvent.upload(screen.getByLabelText('Importer un circuit public'), file);
     expect(await screen.findByRole('alert')).toHaveTextContent(/ne désigne pas cette autorité/);

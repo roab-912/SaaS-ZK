@@ -29,6 +29,8 @@ La présence d’un fichier n’est pas suffisante : les tests vérifient des co
 - Interface : actions des composants, erreurs de saisie, accès à l’abonnement, téléchargement, archivage, vérification et conservation locale des entrées privées.
 - Bout en bout : inscription, abonnement, circuit, preuve WASM locale, téléchargement, archivage, vérification sans compte, falsification et expiration.
 
+Les imports et exports de circuits, preuves, attestations et clés privées utilisent exclusivement l’extension `.clair`. Les tests contrôlent les filtres des sélecteurs et les noms réellement téléchargés, tout en conservant la validation du contenu JSON.
+
 Les tests utilisent une base en mémoire et un port distinct ; ils ne réemploient pas le serveur ou la base personnels. Le test de migration SQLite crée seulement un dossier temporaire propre au test.
 
 Les tests Circom réutilisent les paramètres publics du cache `data/zk-parameters/`. À défaut, le premier lancement télécharge environ 76 Mo depuis PSE et en contrôle l’empreinte. Les tests des contraintes contournent la validation de l’interface pour soumettre directement des témoins invalides au WASM. Les tests cryptographiques vérifient aussi les falsifications et la reproductibilité des clés après recompilation. Le parcours navigateur complet s’exécute pour chacun des trois moteurs.

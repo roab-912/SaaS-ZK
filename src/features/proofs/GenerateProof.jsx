@@ -194,7 +194,7 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
                           aria-label={'Importer l’attestation pour ' + i.label}
                           disabled={busy}
                           type="file"
-                          accept=".json"
+                          accept=".clair"
                           onChange={async (e) => {
                             const file = e.target.files[0];
                             if (!file) return;
@@ -343,7 +343,7 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
                 La preuve est valide : elle atteste ce résultat, sans révéler les entrées privées.
               </p>
               <p>Les champs privés du formulaire ont été effacés.</p>
-              <Button variant="full" onClick={() => download(result, c.name + '.clair.json')}>
+              <Button variant="full" onClick={() => download(result, c.name + '.preuve.clair')}>
                 <Download size={16} />
                 Télécharger la preuve
               </Button>

@@ -123,14 +123,14 @@ export function Verify({ initial, notify }) {
               <Upload size={27} />
             </span>
             <h3>{envelope ? 'Fichier chargé' : 'Déposez votre preuve ici'}</h3>
-            <p>{envelope ? envelope.circuit.name : 'Un fichier .clair.json généré avec Clair'}</p>
+            <p>{envelope ? envelope.circuit.name : 'Un fichier .clair généré avec Clair'}</p>
             <Button disabled={busy} variant="secondary" onClick={() => input.current.click()}>
               {envelope ? 'Choisir un autre fichier' : 'Parcourir les fichiers'}
             </Button>
             <input
               ref={input}
               type="file"
-              accept=".json"
+              accept=".clair"
               aria-label="Fichier de preuve"
               hidden
               onChange={(e) => load(e.target.files[0])}

@@ -53,6 +53,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Télécharger la preuve' }).click();
     const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.preuve\.clair$/);
     const stream = await download.createReadStream();
     let body = '';
     for await (const chunk of stream) body += chunk;
@@ -81,7 +82,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     await publicPage.goto('/');
     await publicPage.getByRole('button', { name: 'Vérifier une preuve', exact: true }).click();
     await publicPage.getByLabel('Fichier de preuve').setInputFiles({
-      name: 'proof.clair.json',
+      name: 'proof.clair',
       mimeType: 'application/json',
       buffer: Buffer.from(body),
     });
@@ -91,7 +92,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     });
     envelope.circuit.name = 'Circuit falsifié';
     await publicPage.getByLabel('Fichier de preuve').setInputFiles({
-      name: 'tampered.json',
+      name: 'tampered.clair',
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify(envelope)),
     });
@@ -188,7 +189,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     await verifier.goto('/');
     await verifier.getByRole('button', { name: 'Vérifier une preuve', exact: true }).click();
     await verifier.getByLabel('Fichier de preuve').setInputFiles({
-      name: 'false.clair.json',
+      name: 'false.clair',
       mimeType: 'application/json',
       buffer: Buffer.from(body),
     });
@@ -202,7 +203,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     ).toBeVisible();
     envelope.result = true;
     await verifier.getByLabel('Fichier de preuve').setInputFiles({
-      name: 'tampered.clair.json',
+      name: 'tampered.clair',
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify(envelope)),
     });
@@ -281,6 +282,7 @@ test('custom source: local signing, public proof, anonymous verification and rev
     .selectOption('private');
   const circuitDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exporter le circuit public' }).click();
+  expect((await circuitDownload).suggestedFilename()).toMatch(/\.circuit\.clair$/);
   let circuitBody = '';
   for await (const chunk of await (await circuitDownload).createReadStream()) circuitBody += chunk;
   const exportedCircuit = JSON.parse(circuitBody);
@@ -307,7 +309,7 @@ test('custom source: local signing, public proof, anonymous verification and rev
   ).toBeVisible();
   await expect(issuerPage.getByLabel('Source émettrice')).toBeVisible();
   await issuerPage.getByLabel('Importer un circuit public').setInputFiles({
-    name: 'circuit.clair.json',
+    name: 'circuit.clair',
     mimeType: 'application/json',
     buffer: Buffer.from(circuitBody),
   });
@@ -325,6 +327,7 @@ test('custom source: local signing, public proof, anonymous verification and rev
   ).toHaveValue('');
   const issuingDownload = issuerPage.waitForEvent('download');
   await issuerPage.getByRole('button', { name: 'Télécharger l’attestation' }).click();
+  expect((await issuingDownload).suggestedFilename()).toMatch(/\.attestation\.clair$/);
   let attestationBody = '';
   for await (const chunk of await (await issuingDownload).createReadStream())
     attestationBody += chunk;
@@ -346,7 +349,7 @@ test('custom source: local signing, public proof, anonymous verification and rev
   await page
     .getByLabel('Importer l’attestation pour Revenus mensuels', { exact: true })
     .setInputFiles({
-      name: 'income.attestation.clair.json',
+      name: 'income.attestation.clair',
       mimeType: 'application/json',
       buffer: Buffer.from(attestationBody),
     });
@@ -357,6 +360,7 @@ test('custom source: local signing, public proof, anonymous verification and rev
   await expect(page.getByText('Preuve prête', { exact: true })).toBeVisible({ timeout: 150000 });
   const pending = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Télécharger la preuve' }).click();
+  expect((await pending).suggestedFilename()).toMatch(/\.preuve\.clair$/);
   let body = '';
   for await (const chunk of await (await pending).createReadStream()) body += chunk;
   const envelope = JSON.parse(body);
@@ -377,9 +381,11 @@ test('custom source: local signing, public proof, anonymous verification and rev
   const verifier = await context.newPage();
   await verifier.goto('/');
   await verifier.getByRole('button', { name: 'Vérifier une preuve', exact: true }).click();
-  await verifier
-    .getByLabel('Fichier de preuve')
-    .setInputFiles({ name: 'proof.json', mimeType: 'application/json', buffer: Buffer.from(body) });
+  await verifier.getByLabel('Fichier de preuve').setInputFiles({
+    name: 'proof.clair',
+    mimeType: 'application/json',
+    buffer: Buffer.from(body),
+  });
   await expect(verifier.getByText('Provenance annoncée — à vérifier')).toBeVisible();
   await verifier.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
   await expect(verifier.getByText('Origine vérifiée · Source approuvée')).toBeVisible({
@@ -400,7 +406,7 @@ test('custom source: local signing, public proof, anonymous verification and rev
   approved = old;
   envelope.attestations[0].attestation.signature = 'A'.repeat(86);
   await verifier.getByLabel('Fichier de preuve').setInputFiles({
-    name: 'tampered.json',
+    name: 'tampered.clair',
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(envelope)),
   });

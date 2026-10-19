@@ -85,7 +85,7 @@ function SignInputs({ items, label, disabled, onSigned }) {
         <input
           aria-label={'Importer une clé privée pour ' + label}
           type="file"
-          accept=".json"
+          accept=".clair"
           disabled={disabled || signing}
           onChange={async (e) => {
             const file = e.target.files[0];

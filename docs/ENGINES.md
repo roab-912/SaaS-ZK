@@ -14,7 +14,7 @@ Les trois moteurs calculent la preuve et la vérification dans un Web Worker loc
 
 Le champ `engine` est optionnel dans le schéma de circuit v1, sans valeur ajoutée automatiquement aux anciens circuits. Leur empreinte reste inchangée. Un circuit ancien sans ce champ utilise toujours Noir par défaut.
 
-Lorsqu’il est présent, le moteur fait partie de l’empreinte et doit correspondre à celui de l’enveloppe. Changer de moteur crée donc une nouvelle version ; cela ne convertit pas une preuve déjà générée. Les fichiers historiques `.clair.json` restent vérifiables.
+Lorsqu’il est présent, le moteur fait partie de l’empreinte et doit correspondre à celui de l’enveloppe. Changer de moteur crée donc une nouvelle version ; cela ne convertit pas une preuve déjà générée. Les fichiers échangés utilisent l’extension `.clair` ; leur contenu JSON et les protocoles de preuve restent inchangés.
 
 L’enveloppe `clair-proof/1` conserve des paramètres publics hexadécimaux : contexte de 248 bits, puis valeurs publiques dans l’ordre du circuit. Pour Circom, les octets de preuve sont le JSON UTF-8 snarkjs encodé en base64. Aucun témoin, clé de vérification ou chemin de module fourni dans le fichier n’est accepté comme autorité.
 

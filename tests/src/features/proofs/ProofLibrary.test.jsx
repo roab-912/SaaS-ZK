@@ -24,7 +24,7 @@ test('library downloads, verifies and deletes only the selected public envelope'
     />,
   );
   await userEvent.click(screen.getByRole('button', { name: 'Télécharger' }));
-  expect(download).toHaveBeenCalledWith(envelope, expect.any(String));
+  expect(download).toHaveBeenCalledWith(envelope, envelope.circuit.name + '.preuve.clair');
   await userEvent.click(screen.getByRole('button', { name: 'Vérifier', exact: true }));
   expect(verify).toHaveBeenCalledWith(envelope);
   await userEvent.click(screen.getByRole('button', { name: 'Supprimer la preuve' }));

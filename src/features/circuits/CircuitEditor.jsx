@@ -81,7 +81,7 @@ export function Editor({ draft: c, setDraft, onSave }) {
             <Button
               variant="secondary"
               disabled={!!error || saving}
-              onClick={() => download(validateCircuit(c), c.name + '.circuit.clair.json')}
+              onClick={() => download(validateCircuit(c), c.name + '.circuit.clair')}
             >
               Exporter le circuit public
             </Button>

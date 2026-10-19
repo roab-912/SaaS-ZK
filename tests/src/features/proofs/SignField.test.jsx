@@ -35,10 +35,14 @@ test('field signing uses the expected key locally, clears it, and only returns a
     expect(await screen.findByRole('alert')).toHaveTextContent('ne correspond pas');
     expect(field).toHaveValue('');
     expect(onSigned).not.toHaveBeenCalled();
-    const file = new File([JSON.stringify(privateJwk)], 'private.json', {
+    const file = new File([JSON.stringify(privateJwk)], 'private.clair', {
       type: 'application/json',
     });
     file.text = async () => JSON.stringify(privateJwk);
+    expect(screen.getByLabelText('Importer une clé privée pour Revenu')).toHaveAttribute(
+      'accept',
+      '.clair',
+    );
     await userEvent.upload(screen.getByLabelText('Importer une clé privée pour Revenu'), file);
     await waitFor(() => expect(field).not.toHaveValue(''));
     await userEvent.click(screen.getByRole('button', { name: 'Signer Revenu' }));

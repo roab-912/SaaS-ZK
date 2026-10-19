@@ -159,7 +159,7 @@ export function IssueAttestation({ onBack = () => {}, circuits = [] }) {
           <input
             aria-label="Importer un circuit public"
             type="file"
-            accept=".json"
+            accept=".clair"
             disabled={importing || loading || !source}
             onChange={async (e) => {
               const file = e.target.files[0];
@@ -378,7 +378,7 @@ export function IssueAttestation({ onBack = () => {}, circuits = [] }) {
                       input.id +
                       '-' +
                       attestation.claim +
-                      '.attestation.clair.json',
+                      '.attestation.clair',
                   )
                 }
               >
