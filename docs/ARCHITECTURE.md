@@ -62,9 +62,9 @@ Un circuit de version 2 contraint le résultat de la règle à un booléen publi
 
 shared/evaluate.mjs évalue localement les données avant le calcul pour signaler champs manquants, divisions par zéro et dépassements. Ce diagnostic ne remplace jamais les contraintes des moteurs. shared/validation.mjs traduit les erreurs de schéma en messages indiquant les champs concernés, sans reprendre les valeurs rejetées.
 
-### Provenance des entrées publiques
+### Provenance des entrées signées
 
-shared/attestations.mjs fournit le format versionné, les signatures Web Crypto, les empreintes et les contrôles de provenance. Une entrée signed référence une politique de source liée à l’empreinte du circuit. L’enveloppe clair-proof/3 joint exactement les attestations attendues. zk/operations.mjs ajoute à la vérification ZK les contrôles de signature, de valeur publique et d’approbation courante. Les écrans ne traitent jamais une clé embarquée comme une autorité. Voir [SOURCES.md](SOURCES.md).
+shared/attestations.mjs fournit le format versionné, les signatures Web Crypto, les empreintes et les contrôles de provenance. Une entrée signed référence une politique de source liée à l’empreinte du circuit. L’enveloppe clair-proof/3 joint les attestations publiques attendues. clair-proof/4 ajoute les signatures privées Noir : seules les dates sont exposées dans privateAttestations, les attestations privées sont retirées de l’export. shared/private-attestations.mjs définit le message binaire signé et la liaison des dates ; zk/noir/private-signatures.mjs génère les contraintes SHA-256/P-256 et prépare le témoin privé. Les moteurs qui ne déclarent pas cette capacité sont refusés. zk/operations.mjs ajoute à la vérification ZK les contrôles de signature, de valeur publique et d’approbation courante. Les écrans ne traitent jamais une clé embarquée comme une autorité. Voir [SOURCES.md](SOURCES.md).
 
 ## Compatibilité et migration
 

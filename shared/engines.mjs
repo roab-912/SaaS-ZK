@@ -5,6 +5,7 @@ export const ZK_ENGINES = Object.freeze([
   Object.freeze({
     id: ENGINE,
     name: 'Noir / UltraHonk',
+    privateSignedInputs: true,
     description: 'Moteur historique de Clair. Calcul et vérification sur votre appareil.',
     experimental: false,
   }),
@@ -23,5 +24,12 @@ export const ZK_ENGINES = Object.freeze([
     experimental: true,
   }),
 ]);
+export function assertEngineCapabilities(circuit, engine = circuit.engine ?? ENGINE) {
+  if (
+    circuit.inputs.some((i) => i.source === 'signed' && i.visibility === 'private') &&
+    engine !== ENGINE
+  )
+    throw Error('Les entrées signées privées nécessitent Noir / UltraHonk.');
+}
 export const engineName = (id = ENGINE) =>
   ZK_ENGINES.find((engine) => engine.id === id)?.name ?? 'Moteur inconnu';

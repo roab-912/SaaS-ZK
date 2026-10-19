@@ -184,9 +184,11 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
                         besoin de sa clé privée.
                       </p>
                       <p className="help">
-                        Champ attendu : {i.attestation.claim}. La valeur publique sera remplie
-                        automatiquement. La signature et la source seront vérifiées avant la
-                        génération.
+                        Champ attendu : {i.attestation.claim}. La valeur sera remplie
+                        automatiquement.
+                        {i.visibility === 'private'
+                          ? ' La valeur et la signature resteront privées et seront vérifiées dans le circuit Noir. La source et les dates seront publiques.'
+                          : ' La signature et la source seront vérifiées avant la génération.'}
                       </p>
                       <label>
                         Importer l’attestation pour {i.label}
@@ -328,7 +330,7 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
             ))}
             <div className="notice">
               {signed.length
-                ? 'Les attestations publiques seront vérifiées avec les clés approuvées. Les autres valeurs restent déclarées. Cela ne prouve pas l’identité du porteur.'
+                ? 'Les attestations seront vérifiées avec les clés approuvées. Les valeurs et signatures des entrées signées privées restent locales. Les autres valeurs restent déclarées. Cela ne prouve pas l’identité du porteur.'
                 : 'Les valeurs sont déclarées par vous. Cette preuve ne certifie ni leur origine, ni votre identité.'}
             </div>
           </section>

@@ -243,7 +243,8 @@ export function IssueAttestation({ onBack = () => {}, circuits = [] }) {
                     <h3>Valeurs à signer · {source.name}</h3>
                     {fields.map((input) => (
                       <label key={input.id}>
-                        {input.label} · {typeNames[input.type]}
+                        {input.label} · {typeNames[input.type]} ·{' '}
+                        {input.visibility === 'private' ? 'privée dans la preuve' : 'publique'}
                         {valueControl(
                           input,
                           fieldValue(input),

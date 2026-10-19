@@ -186,7 +186,9 @@ export function Verify({ initial, notify }) {
             <>
               <Badge>
                 {signedInputs(envelope.circuit).length
-                  ? 'Attestations publiques jointes'
+                  ? envelope.privateAttestations?.length
+                    ? 'Signatures privées prouvées · Noir'
+                    : 'Attestations publiques jointes'
                   : 'Données déclarées · Non certifiées'}
               </Badge>
               <h3>{envelope.circuit.name}</h3>
@@ -209,15 +211,17 @@ export function Verify({ initial, notify }) {
                 ))
               ) : (
                 <p className="muted">
-                  Toutes les entrées sont privées. Seul le résultat de la règle est public.
+                  Toutes les valeurs d’entrée sont privées. Le résultat, le circuit et la provenance
+                  éventuelle restent publics.
                 </p>
               )}
               {signedInputs(envelope.circuit).length > 0 && (
                 <>
                   <h4>Provenance des données signées</h4>
                   <p className="help">
-                    La signature porte sur une valeur publique. La preuve ZK lie cette même valeur
-                    au résultat. L’approbation est relue dans le registre à chaque vérification.
+                    Les signatures des entrées privées sont vérifiées dans le circuit ZK sans
+                    révéler les valeurs. Les attestations publiques sont jointes à la preuve.
+                    L’approbation et les dates sont contrôlées à chaque vérification.
                   </p>
                   {signedInputs(envelope.circuit).map((input) => {
                     const source = sources.find((s) => s.inputId === input.id);
@@ -243,7 +247,10 @@ export function Verify({ initial, notify }) {
                                 ? 'Origine vérifiée · Source approuvée'
                                 : source.reason}
                           </p>
-                          <small>Champ signé : {input.attestation.claim}</small>
+                          <small>
+                            Champ signé : {input.attestation.claim}
+                            {input.visibility === 'private' ? ' · Valeur et signature privées' : ''}
+                          </small>
                           <code className="hash">{input.attestation.keyHash}</code>
                           {source && (
                             <p>Expiration : {new Date(source.expiresAt).toLocaleString('fr-FR')}</p>

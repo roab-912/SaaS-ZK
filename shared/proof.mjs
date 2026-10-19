@@ -1,7 +1,15 @@
 import { z } from 'zod';
+import { assertEngineCapabilities } from './engines.mjs';
 import { circuitSchema, validateCircuit, isDate } from './circuit-schema.mjs';
 import { canonical } from './circuit-model.mjs';
 import { evidenceSchema, signedInputs, bindEvidence } from './attestations.mjs';
+import {
+  privateSignedInputs,
+  privateStatementsSchema,
+  privateDisclosures,
+  bindPrivateDisclosures,
+} from './private-attestations.mjs';
+export const PRIVATE_SIGNED_PROOF_FORMAT = 'clair-proof/4';
 export const SIGNED_PROOF_FORMAT = 'clair-proof/3';
 export { ENGINE } from './engines.mjs';
 export const PROOF_FORMAT = 'clair-proof/1';
@@ -38,6 +46,18 @@ const readableSchema = z
   )
   .max(12);
 export const proofSchema = z.discriminatedUnion('format', [
+  z
+    .object({
+      ...base,
+      format: z.literal(PRIVATE_SIGNED_PROOF_FORMAT),
+      circuit: circuitSchema.extend({ version: z.literal(2) }),
+      publicInputs: fields(38),
+      result: z.boolean(),
+      publicData: readableSchema,
+      attestations: evidenceSchema,
+      privateAttestations: privateStatementsSchema.min(1),
+    })
+    .strict(),
   z
     .object({
       ...base,
@@ -82,7 +102,7 @@ export function publicValues(envelope) {
   if (!/^[a-f0-9]{64}$/.test(envelope.circuitHash)) throw Error('Empreinte invalide.');
   if (
     !Array.isArray(envelope.publicInputs) ||
-    envelope.publicInputs.length !== fields.length + offset ||
+    envelope.publicInputs.length !== fields.length + offset + privateSignedInputs(c).length * 2 ||
     envelope.publicInputs.some((v) => typeof v !== 'string' || !/^0x[0-9a-fA-F]{1,64}$/.test(v))
   )
     throw Error('Paramètres publics incorrects.');
@@ -111,6 +131,7 @@ export function readablePublicValues(envelope) {
 export function parseProof(raw) {
   validateCircuit(raw?.circuit);
   const envelope = proofSchema.parse(raw);
+  assertEngineCapabilities(envelope.circuit, envelope.engine);
   if (envelope.circuit.engine && envelope.circuit.engine !== envelope.engine)
     throw Error('Moteur du circuit incompatible avec la preuve.');
   publicValues(envelope);
@@ -122,26 +143,44 @@ export function parseProof(raw) {
         'Les valeurs publiques lisibles ne correspondent pas aux paramètres de la preuve.',
       );
   }
-  const signed = signedInputs(envelope.circuit).length > 0;
-  if (signed !== (envelope.format === SIGNED_PROOF_FORMAT))
-    throw Error('Les entrées signées exigent une enveloppe clair-proof/3 avec leurs attestations.');
-  if (signed)
+  const privateInputs = privateSignedInputs(envelope.circuit);
+  const publicSigned = signedInputs(envelope.circuit).filter((i) => i.visibility === 'public');
+  const expected = privateInputs.length
+    ? PRIVATE_SIGNED_PROOF_FORMAT
+    : publicSigned.length
+      ? SIGNED_PROOF_FORMAT
+      : envelope.circuit.version === 2
+        ? RESULT_PROOF_FORMAT
+        : PROOF_FORMAT;
+  if (envelope.format !== expected)
+    throw Error('Format de preuve incompatible avec les entrées signées.');
+  if (publicSigned.length || privateInputs.length)
     bindEvidence(
-      envelope.circuit,
+      { ...envelope.circuit, inputs: publicSigned },
       Object.fromEntries(envelope.publicData.map((i) => [i.id, i.value])),
       envelope.attestations,
     );
+  if (privateInputs.length) bindPrivateDisclosures(envelope);
   return envelope;
 }
 export function buildProofEnvelope(raw) {
+  const hasPrivate = privateSignedInputs(raw.circuit).length > 0;
   const envelope = {
     ...raw,
-    format: signedInputs(raw.circuit).length
-      ? SIGNED_PROOF_FORMAT
-      : raw.circuit.version === 2
-        ? RESULT_PROOF_FORMAT
-        : PROOF_FORMAT,
+    format: hasPrivate
+      ? PRIVATE_SIGNED_PROOF_FORMAT
+      : signedInputs(raw.circuit).length
+        ? SIGNED_PROOF_FORMAT
+        : raw.circuit.version === 2
+          ? RESULT_PROOF_FORMAT
+          : PROOF_FORMAT,
   };
+  if (hasPrivate) {
+    envelope.privateAttestations = privateDisclosures(raw.circuit, raw.attestations ?? []);
+    envelope.attestations = (raw.attestations ?? []).filter(
+      (e) => raw.circuit.inputs.find((i) => i.id === e.inputId)?.visibility === 'public',
+    );
+  }
   if (!signedInputs(raw.circuit).length) delete envelope.attestations;
   if (raw.circuit.version === 2) {
     envelope.result = proofResult(envelope);

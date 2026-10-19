@@ -92,11 +92,11 @@ Le modèle de majorité compare une date de naissance privée à une date limite
 
 ## Sources signées et futurs connecteurs
 
-Les circuits acceptent les entrées déclarées et les entrées publiques signées par une source approuvée. L’écran de vérification affiche une origine vérifiée après contrôle de la signature, de la valeur publique, de l’expiration et du registre courant.
+Les circuits acceptent les entrées déclarées et les entrées signées par une source approuvée. Noir / UltraHonk permet aussi de garder une entrée signée privée. L’écran de vérification affiche une origine vérifiée après contrôle de la signature, de la valeur publique, de l’expiration et du registre courant.
 
 Ajouter les **identifiants de comptes** administrateurs dans ADMIN_USER_IDS, séparés par des virgules, puis redémarrer. L’identifiant est visible dans /api/session après connexion. Une adresse e-mail non vérifiée n’accorde jamais les droits administrateur.
 
-Le registre conserve une clé publique JWK P-256 et un état approuvé/révoqué. Pour les entrées publiques, le vérificateur contrôle la signature hors du circuit et compare sa valeur au paramètre public de la preuve ZK. Les entrées signées privées restent à développer et nécessiteront des contraintes cryptographiques supplémentaires. Voir [SOURCES.md](docs/SOURCES.md).
+Le registre conserve une clé publique JWK P-256 et un état approuvé/révoqué. Pour les entrées publiques, le vérificateur contrôle la signature hors du circuit et compare sa valeur au paramètre public de la preuve ZK. Pour les entrées signées privées, Noir vérifie la signature P-256 et le hachage SHA-256 dans le circuit. La valeur, la signature et l’identifiant de l’attestation restent cachés ; la source et les dates de validité restent publiques. Voir [SOURCES.md](docs/SOURCES.md).
 
 ## Tests et build
 
@@ -131,7 +131,7 @@ Les paiements réels exigent ALLOW_LIVE_PAYMENTS=true et les clés, prix et secr
 - Entiers non signés sur 32 bits ; pas de décimales, négatifs, chaînes ni expressions libres.
 - Dates entre 1900 et 2199, contrôlées dans le circuit.
 - Pas de court-circuit : une division invalide bloque aussi une branche inutilisée d’un OU.
-- Les attestations signées concernent uniquement les entrées publiques ; les connecteurs métier, le contrôle du détenteur et la protection contre la copie restent à développer.
+- Les signatures privées sont disponibles uniquement sur Noir / UltraHonk ; les connecteurs métier, le contrôle du détenteur et la protection contre la copie restent à développer.
 - Pas encore de vérification d’e-mail, récupération de mot de passe ni espace d’équipe.
 - Bibliothèques cryptographiques en préversion, verrouillées pour leur compatibilité. Une ouverture publique nécessite une revue de sécurité du produit et du compilateur.
 - Le calcul local est reproductible par quelqu’un conservant le code et le circuit. L’abonnement contrôle le service et les parcours du SaaS ; il n’est pas un verrou cryptographique sur une opération locale.

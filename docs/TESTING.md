@@ -46,3 +46,9 @@ Ces captures ont été prises sous Windows/Chromium ; un autre système ou un ch
 Ajouter son test au même chemin, vérifier le cas valide et les principales erreurs, puis lancer la suite concernée. Pour un moteur ZK, conserver une vraie preuve positive et des tests négatifs sur preuve, contexte et paramètres publics. Pour une route, tester aussi un autre compte et un compte sans abonnement.
 
 Les tests d’architecture empêchent l’import de SDK ZK dans les écrans/domaine et la dispersion du SQL hors de la persistance.
+
+## Signatures privées Noir
+
+Les tests exécutent une vraie preuve UltraHonk avec signature P-256 cachée, puis sa vérification, la révocation et la falsification des dates. Les tests soumettent directement au programme Noir des témoins dont la valeur, la signature, l’UUID ou la validité ont été modifiés pour éviter de tester uniquement les gardes de l’interface. Les encodages nombre, date et booléen sont exécutés dans Noir. Les enveloppes mixtes publiques/privées sont contrôlées pour éviter toute fuite de signature ou valeur privée.
+
+Le parcours navigateur supplémentaire configure une entrée signée privée, émet et importe son attestation, génère et archive la preuve, puis vérifie sa provenance sans compte. Il contrôle l’absence de valeur et signature privées dans les requêtes API et dans l’export, ainsi que le refus des moteurs incompatibles.

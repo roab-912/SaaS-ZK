@@ -1,5 +1,6 @@
 import { validateCircuit } from '../../shared/circuit-schema.mjs';
 import { contextField } from '../../shared/proof.mjs';
+import { privateSignatureSource } from './private-signatures.mjs';
 const operators = {
   eq: '==',
   ne: '!=',
@@ -37,6 +38,8 @@ export function noirSource(raw, hash) {
       (i.visibility === 'public' ? 'pub ' : '') +
       (i.type === 'boolean' ? 'bool' : 'u32'),
   );
+  const signatures = privateSignatureSource(c);
+  params.push(...signatures.params);
   if (c.version === 2) params.unshift('result: pub bool');
   const dates = c.inputs.flatMap((i, n) =>
     i.type === 'date'
@@ -85,7 +88,7 @@ export function noirSource(raw, hash) {
     ') {\n assert(context == ' +
     contextField(hash) +
     ');\n ' +
-    [...dates, ...dateChecks].join('\n ') +
+    [...dates, ...dateChecks, ...signatures.checks].join('\n ') +
     '\n assert(' +
     (c.version === 2 ? '(' + emit(c.root) + ') == result' : emit(c.root)) +
     ');\n}\n'

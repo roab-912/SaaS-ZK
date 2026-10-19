@@ -55,47 +55,58 @@ async function fixture() {
   api.mockResolvedValue([source]);
   return { source, privateKey, schema, record: { id: 'saved', hash: 'a'.repeat(64), schema } };
 }
-test('one key signs all expected typed fields without exposing private or other-source inputs', async () => {
-  vi.stubGlobal('crypto', webcrypto);
-  vi.clearAllMocks();
-  try {
-    const { record, privateKey } = await fixture();
-    render(<IssueAttestation circuits={[record]} />);
-    await screen.findByLabelText('Source émettrice');
-    await userEvent.selectOptions(screen.getByLabelText('Circuit à utiliser'), record.hash);
-    expect(screen.queryByLabelText('Nom du champ signé')).toBeNull();
-    expect(screen.queryByLabelText(/Valeur pour Secret/)).toBeNull();
-    expect(screen.queryByLabelText(/Valeur pour Autre/)).toBeNull();
-    fireEvent.change(screen.getByLabelText('Valeur pour Champ 0 (field_0)'), {
-      target: { value: '3000' },
-    });
-    fireEvent.change(screen.getByLabelText('Valeur pour Champ 1 (field_1)'), {
-      target: { value: '2000-02-29' },
-    });
-    await userEvent.selectOptions(screen.getByLabelText('Valeur pour Champ 2 (field_2)'), 'true');
-    const key = screen.getByLabelText('Clé privée pour les données du circuit', { exact: true });
-    fireEvent.change(key, { target: { value: JSON.stringify(privateKey) } });
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Signer les données du circuit', exact: true }),
-    );
-    expect(await screen.findByText('Attestations prêtes')).toBeVisible();
-    expect(key).toHaveValue('');
-    for (let i = 0; i < 3; i++) {
-      await userEvent.click(screen.getByRole('button', { name: 'Télécharger Champ ' + i }));
-      const a = download.mock.lastCall[0];
-      expect(a).toMatchObject({ claim: 'claim_' + i, value: [3000, '2000-02-29', true][i] });
-      expect(await verifySignature(a)).toBe(true);
-      expect(JSON.stringify(a)).not.toContain(privateKey.d);
+test.each([false, true])(
+  'one key signs expected typed fields (private attestation: %s)',
+  async (privateInput) => {
+    vi.stubGlobal('crypto', webcrypto);
+    vi.clearAllMocks();
+    try {
+      const { record, privateKey, source } = await fixture();
+      if (privateInput) {
+        record.schema.inputs[0].visibility = 'private';
+        record.schema.inputs[0].attestation.publicKey = source.jwk;
+      }
+      render(<IssueAttestation circuits={[record]} />);
+      await screen.findByLabelText('Source émettrice');
+      await userEvent.selectOptions(screen.getByLabelText('Circuit à utiliser'), record.hash);
+      expect(screen.queryByLabelText('Nom du champ signé')).toBeNull();
+      expect(screen.queryByLabelText(/Valeur pour Secret/)).toBeNull();
+      expect(screen.queryByLabelText(/Valeur pour Autre/)).toBeNull();
+      fireEvent.change(screen.getByLabelText('Valeur pour Champ 0 (field_0)'), {
+        target: { value: '3000' },
+      });
+      fireEvent.change(screen.getByLabelText('Valeur pour Champ 1 (field_1)'), {
+        target: { value: '2000-02-29' },
+      });
+      await userEvent.selectOptions(screen.getByLabelText('Valeur pour Champ 2 (field_2)'), 'true');
+      const key = screen.getByLabelText('Clé privée pour les données du circuit', { exact: true });
+      fireEvent.change(key, { target: { value: JSON.stringify(privateKey) } });
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Signer les données du circuit', exact: true }),
+      );
+      expect(await screen.findByText('Attestations prêtes')).toBeVisible();
+      expect(key).toHaveValue('');
+      for (let i = 0; i < 3; i++) {
+        await userEvent.click(screen.getByRole('button', { name: 'Télécharger Champ ' + i }));
+        const a = download.mock.lastCall[0];
+        expect(a).toMatchObject({
+          format: privateInput && i === 0 ? 'clair-attestation/2' : 'clair-attestation/1',
+          claim: 'claim_' + i,
+          value: [3000, '2000-02-29', true][i],
+        });
+        expect(await verifySignature(a)).toBe(true);
+        expect(JSON.stringify(a)).not.toContain(privateKey.d);
+      }
+      expect(api.mock.calls.map((c) => c[0])).toEqual(['/issuers']);
+      fireEvent.change(screen.getByLabelText('Valeur pour Champ 0 (field_0)'), {
+        target: { value: '4000' },
+      });
+      expect(screen.queryByText('Attestations prêtes')).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
     }
-    expect(api.mock.calls.map((c) => c[0])).toEqual(['/issuers']);
-    fireEvent.change(screen.getByLabelText('Valeur pour Champ 0 (field_0)'), {
-      target: { value: '4000' },
-    });
-    expect(screen.queryByText('Attestations prêtes')).toBeNull();
-  } finally {
-    vi.unstubAllGlobals();
-  }
-});
+  },
+);
 test('external issuer imports a circuit locally; missing values produce no partial attestations', async () => {
   vi.stubGlobal('crypto', webcrypto);
   vi.clearAllMocks();

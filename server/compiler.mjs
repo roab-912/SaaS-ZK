@@ -1,5 +1,10 @@
 import { validateCircuit, circuitHash } from '../shared/circuit.mjs';
-import { ENGINE, PLONK_ENGINE, FFLONK_ENGINE } from '../shared/engines.mjs';
+import {
+  ENGINE,
+  PLONK_ENGINE,
+  FFLONK_ENGINE,
+  assertEngineCapabilities,
+} from '../shared/engines.mjs';
 import { compileCircom } from '../zk/circom/compiler.mjs';
 import { createEngineRegistry } from '../zk/registry.mjs';
 import { compileNoir } from '../zk/noir/compiler.mjs';
@@ -23,6 +28,7 @@ export function createCompiler({
     const circuit = input(() => validateCircuit(raw)),
       hash = await circuitHash(circuit),
       key = engine + ':' + hash;
+    input(() => assertEngineCapabilities(circuit, engine));
     if (circuit.engine && circuit.engine !== engine)
       throw fail(400, 'Moteur du circuit incompatible.');
     if (cache.has(key)) return structuredClone(cache.get(key).compiled);

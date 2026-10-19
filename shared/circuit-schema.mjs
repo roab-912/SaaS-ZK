@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ZK_ENGINES } from './engines.mjs';
+import { ZK_ENGINES, assertEngineCapabilities } from './engines.mjs';
 import { policySchema } from './attestations.mjs';
 export const LIMITS = { inputs: 12, nodes: 64, depth: 10, list: 32 };
 const id = z.string().regex(/^[a-z][a-z0-9_]{0,23}$/);
@@ -89,13 +89,18 @@ export function validateCircuit(raw) {
   }
   bound(raw?.root);
   const c = circuitSchema.parse(raw);
+  assertEngineCapabilities(c);
   if (new Set(c.inputs.map((i) => i.id)).size !== c.inputs.length)
     throw Error('Les identifiants des entrées doivent être uniques.');
   for (const input of c.inputs) {
     if (input.source === 'signed') {
-      if (c.version !== 2 || input.visibility !== 'public' || !input.attestation)
+      if (
+        c.version !== 2 ||
+        !input.attestation ||
+        (input.visibility === 'private' && !input.attestation.publicKey)
+      )
         throw Error(
-          'Les entrées signées nécessitent le mode Vrai ou faux, une visibilité publique et une source approuvée.',
+          'Les entrées signées nécessitent le mode Vrai ou faux et une source approuvée ; en privé, sa clé publique doit être figée dans le circuit.',
         );
     } else if (input.attestation)
       throw Error('Une entrée déclarée ne doit pas définir de source signataire.');

@@ -5,12 +5,12 @@ test('API client serializes bodies and handles HTTP and non-JSON failures', asyn
     .fn()
     .mockResolvedValueOnce({
       ok: true,
-      headers: new Headers({ 'X-Clair-Protocol': '3' }),
+      headers: new Headers({ 'X-Clair-Protocol': '4' }),
       json: async () => ({ ok: true }),
     })
     .mockResolvedValueOnce({
       ok: false,
-      headers: new Headers({ 'X-Clair-Protocol': '3' }),
+      headers: new Headers({ 'X-Clair-Protocol': '4' }),
       json: async () => ({ error: 'Denied' }),
     })
     .mockResolvedValueOnce({

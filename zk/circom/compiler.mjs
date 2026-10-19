@@ -6,7 +6,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { validateCircuit } from '../../shared/circuit-schema.mjs';
 import { circuitHash } from '../../shared/circuit-model.mjs';
-import { PLONK_ENGINE, FFLONK_ENGINE } from '../../shared/engines.mjs';
+import { PLONK_ENGINE, FFLONK_ENGINE, assertEngineCapabilities } from '../../shared/engines.mjs';
 import { circomSource } from './source.mjs';
 import { loadParameters } from './parameters.mjs';
 const protocols = new Map([
@@ -18,6 +18,7 @@ export async function compileCircom(raw, engine) {
   if (!protocol) throw Error('Moteur Circom inconnu.');
   const circuit = validateCircuit(raw),
     hash = await circuitHash(circuit);
+  assertEngineCapabilities(circuit, engine);
   const source = circomSource(circuit, hash);
   const parameters = await loadParameters();
   const directory = await mkdtemp(join(tmpdir(), 'clair-circom-'));

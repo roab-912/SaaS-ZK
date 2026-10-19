@@ -216,206 +216,252 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
   });
 }
 
-test('custom source: local signing, public proof, anonymous verification and revocation', async ({
-  page,
-  browser,
-}) => {
-  const { generateKeyPairSync } = await import('node:crypto');
-  const pair = generateKeyPairSync('ec', { namedCurve: 'P-256' }),
-    publicJwk = pair.publicKey.export({ format: 'jwk' }),
-    privateJwk = pair.privateKey.export({ format: 'jwk' });
-  let approved = [];
-  const requests = [];
-  await page.context().route('**/api/session', async (route) => {
-    const response = await route.fetch(),
-      data = await response.json();
-    if (data.user) data.user.admin = true; // Admin UI fixture; real authorization is covered by route integration tests.
-    await route.fulfill({ response, json: data });
-  });
-  const registry = async (context) =>
-    context.route('**/api/issuers', async (route) => {
-      if (route.request().method() === 'POST') {
-        const body = route.request().postDataJSON();
-        expect(body.jwk.d).toBeUndefined();
-        approved = body.approved ? [{ id: body.id, name: body.name, jwk: body.jwk }] : [];
-        await route.fulfill({ json: { ok: true }, headers: { 'X-Clair-Protocol': '3' } });
-      } else await route.fulfill({ json: approved, headers: { 'X-Clair-Protocol': '3' } });
-    });
-  await registry(page.context());
-  page.on('request', (r) => {
-    if (r.url().includes('/api/')) requests.push(r.postData() ?? '');
-  });
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Créer un circuit', exact: true }).click();
-  await page.getByLabel('Adresse e-mail').fill('sources@example.test');
-  await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
-  await page.getByRole('button', { name: 'Créer mon compte' }).click();
-  await page.getByRole('button', { name: 'Activer 30 jours de test' }).click();
-  await expect(page.getByRole('button', { name: 'Désactiver l’abonnement de test' })).toBeVisible();
-  await page.getByRole('button', { name: 'Sources de confiance', exact: true }).click();
-  await expect(page.getByText('Aucune source disponible')).toBeVisible();
-  await expect(page.getByRole('article', { name: 'FranceConnect — à venir' })).toHaveAttribute(
-    'aria-disabled',
-    'true',
-  );
-  await page.getByLabel('Identifiant', { exact: true }).fill('source-1');
-  await page.getByLabel('Nom', { exact: true }).fill('Banque de test — simulation');
-  await page.getByLabel('Clé publique P-256 (JWK)').fill(JSON.stringify(publicJwk));
-  await page.getByRole('button', { name: 'Enregistrer la source' }).click();
-  await expect(page.getByText('Banque de test — simulation', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
-  await page.getByRole('button', { name: /Capacité financière Prouvez/ }).click();
-  await expect(
-    page
-      .getByRole('option', { name: 'Banque de test — simulation — signée, valeur publique' })
-      .first(),
-  ).toBeAttached();
-  await page
-    .getByLabel('Source de Revenus mensuels', { exact: true })
-    .selectOption('issuer:source-1');
-  await page
-    .getByLabel('Champ signé pour Revenus mensuels', { exact: true })
-    .fill('income_monthly_eur');
-  await page
-    .getByRole('combobox', { name: /^Visibilité/ })
-    .nth(1)
-    .selectOption('private');
-  const circuitDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Exporter le circuit public' }).click();
-  expect((await circuitDownload).suggestedFilename()).toMatch(/\.circuit\.clair$/);
-  let circuitBody = '';
-  for await (const chunk of await (await circuitDownload).createReadStream()) circuitBody += chunk;
-  const exportedCircuit = JSON.parse(circuitBody);
-  expect(exportedCircuit.inputs.find((i) => i.id === 'income').attestation.claim).toBe(
-    'income_monthly_eur',
-  );
-  expect(exportedCircuit.inputs.every((i) => i.value === undefined)).toBe(true);
-  await page.getByRole('button', { name: 'Enregistrer et prouver' }).click();
-  const issuerContext = await browser.newContext();
-  await registry(issuerContext);
-  const issuerPage = await issuerContext.newPage(),
-    issuerRequests = [];
-  issuerPage.on('request', (r) => {
-    if (r.url().includes('/api/')) {
-      issuerRequests.push(r.url());
-      requests.push(r.postData() ?? '');
-    }
-  });
-  await issuerPage.goto('/');
-  await issuerPage.getByRole('button', { name: 'Sources de confiance', exact: true }).click();
-  await issuerPage.getByRole('button', { name: 'Créer une attestation', exact: true }).click();
-  await expect(
-    issuerPage.getByRole('heading', { name: 'Créer une attestation', exact: true }),
-  ).toBeVisible();
-  await expect(issuerPage.getByLabel('Source émettrice')).toBeVisible();
-  await issuerPage.getByLabel('Importer un circuit public').setInputFiles({
-    name: 'circuit.clair',
-    mimeType: 'application/json',
-    buffer: Buffer.from(circuitBody),
-  });
-  await issuerPage.getByLabel('Valeur pour Revenus mensuels (income)').fill('3000');
-  await expect(issuerPage.getByLabel('Nom du champ signé')).toHaveCount(0);
-  await issuerPage
-    .getByLabel('Clé privée pour les données du circuit', { exact: true })
-    .fill(JSON.stringify(privateJwk));
-  await issuerPage
-    .getByRole('button', { name: 'Signer les données du circuit', exact: true })
-    .click();
-  await expect(issuerPage.getByText('Attestation prête', { exact: true })).toBeVisible();
-  await expect(
-    issuerPage.getByLabel('Clé privée pour les données du circuit', { exact: true }),
-  ).toHaveValue('');
-  const issuingDownload = issuerPage.waitForEvent('download');
-  await issuerPage.getByRole('button', { name: 'Télécharger l’attestation' }).click();
-  expect((await issuingDownload).suggestedFilename()).toMatch(/\.attestation\.clair$/);
-  let attestationBody = '';
-  for await (const chunk of await (await issuingDownload).createReadStream())
-    attestationBody += chunk;
-  const issued = JSON.parse(attestationBody);
-  expect(issued.format).toBe('clair-attestation/1');
-  expect(issued.proof).toBeUndefined();
-  expect(issued.value).toBe(3000);
-  expect(attestationBody).not.toContain(privateJwk.d);
-  expect(issuerRequests.some((url) => /\/api\/(compile|prover|proofs)/.test(url))).toBe(false);
-  await issuerPage.screenshot({ path: 'test-results/issued-attestation.png', fullPage: true });
-  await issuerContext.close();
+for (const privateInput of [false, true]) {
+  test(
+    'custom source: ' +
+      (privateInput ? 'private' : 'public') +
+      ' signed input, anonymous verification and revocation',
+    async ({ page, browser }) => {
+      const { generateKeyPairSync } = await import('node:crypto');
+      const pair = generateKeyPairSync('ec', { namedCurve: 'P-256' }),
+        publicJwk = pair.publicKey.export({ format: 'jwk' }),
+        privateJwk = pair.privateKey.export({ format: 'jwk' });
+      let approved = [];
+      const requests = [];
+      await page.context().route('**/api/session', async (route) => {
+        const response = await route.fetch(),
+          data = await response.json();
+        if (data.user) data.user.admin = true; // Admin UI fixture; real authorization is covered by route integration tests.
+        await route.fulfill({ response, json: data });
+      });
+      const registry = async (context) =>
+        context.route('**/api/issuers', async (route) => {
+          if (route.request().method() === 'POST') {
+            const body = route.request().postDataJSON();
+            expect(body.jwk.d).toBeUndefined();
+            approved = body.approved ? [{ id: body.id, name: body.name, jwk: body.jwk }] : [];
+            await route.fulfill({ json: { ok: true }, headers: { 'X-Clair-Protocol': '4' } });
+          } else await route.fulfill({ json: approved, headers: { 'X-Clair-Protocol': '4' } });
+        });
+      await registry(page.context());
+      page.on('request', (r) => {
+        if (r.url().includes('/api/')) requests.push(r.postData() ?? '');
+      });
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Créer un circuit', exact: true }).click();
+      await page.getByLabel('Adresse e-mail').fill('sources-' + privateInput + '@example.test');
+      await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+      await page.getByRole('button', { name: 'Créer mon compte' }).click();
+      await page.getByRole('button', { name: 'Activer 30 jours de test' }).click();
+      await expect(
+        page.getByRole('button', { name: 'Désactiver l’abonnement de test' }),
+      ).toBeVisible();
+      await page.getByRole('button', { name: 'Sources de confiance', exact: true }).click();
+      await expect(page.getByText('Aucune source disponible')).toBeVisible();
+      await expect(page.getByRole('article', { name: 'FranceConnect — à venir' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+      await page.getByLabel('Identifiant', { exact: true }).fill('source-1');
+      await page.getByLabel('Nom', { exact: true }).fill('Banque de test — simulation');
+      await page.getByLabel('Clé publique P-256 (JWK)').fill(JSON.stringify(publicJwk));
+      await page.getByRole('button', { name: 'Enregistrer la source' }).click();
+      await expect(page.getByText('Banque de test — simulation', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
+      await page.getByRole('button', { name: /Capacité financière Prouvez/ }).click();
+      await expect(
+        page
+          .getByRole('option', {
+            name: 'Banque de test — simulation — signée, valeur publique ou privée',
+          })
+          .first(),
+      ).toBeAttached();
+      await page
+        .getByLabel('Source de Revenus mensuels', { exact: true })
+        .selectOption('issuer:source-1');
+      await page
+        .getByLabel('Champ signé pour Revenus mensuels', { exact: true })
+        .fill('income_monthly_eur');
+      await page
+        .getByRole('combobox', { name: /^Visibilité/ })
+        .nth(1)
+        .selectOption('private');
+      if (privateInput) {
+        await page
+          .getByRole('combobox', { name: /^Visibilité/ })
+          .first()
+          .selectOption('private');
+        await expect(page.getByRole('option', { name: 'Circom / PLONK' })).toHaveAttribute(
+          'disabled',
+          '',
+        );
+      }
+      const circuitDownload = page.waitForEvent('download');
+      await page.getByRole('button', { name: 'Exporter le circuit public' }).click();
+      expect((await circuitDownload).suggestedFilename()).toMatch(/\.circuit\.clair$/);
+      let circuitBody = '';
+      for await (const chunk of await (await circuitDownload).createReadStream())
+        circuitBody += chunk;
+      const exportedCircuit = JSON.parse(circuitBody);
+      expect(exportedCircuit.inputs.find((i) => i.id === 'income').attestation.claim).toBe(
+        'income_monthly_eur',
+      );
+      expect(exportedCircuit.inputs.every((i) => i.value === undefined)).toBe(true);
+      await page.getByRole('button', { name: 'Enregistrer et prouver' }).click();
+      const issuerContext = await browser.newContext();
+      await registry(issuerContext);
+      const issuerPage = await issuerContext.newPage(),
+        issuerRequests = [];
+      issuerPage.on('request', (r) => {
+        if (r.url().includes('/api/')) {
+          issuerRequests.push(r.url());
+          requests.push(r.postData() ?? '');
+        }
+      });
+      await issuerPage.goto('/');
+      await issuerPage.getByRole('button', { name: 'Sources de confiance', exact: true }).click();
+      await issuerPage.getByRole('button', { name: 'Créer une attestation', exact: true }).click();
+      await expect(
+        issuerPage.getByRole('heading', { name: 'Créer une attestation', exact: true }),
+      ).toBeVisible();
+      await expect(issuerPage.getByLabel('Source émettrice')).toBeVisible();
+      await issuerPage.getByLabel('Importer un circuit public').setInputFiles({
+        name: 'circuit.clair',
+        mimeType: 'application/json',
+        buffer: Buffer.from(circuitBody),
+      });
+      await issuerPage.getByLabel('Valeur pour Revenus mensuels (income)').fill('3000');
+      await expect(issuerPage.getByLabel('Nom du champ signé')).toHaveCount(0);
+      await issuerPage
+        .getByLabel('Clé privée pour les données du circuit', { exact: true })
+        .fill(JSON.stringify(privateJwk));
+      await issuerPage
+        .getByRole('button', { name: 'Signer les données du circuit', exact: true })
+        .click();
+      await expect(issuerPage.getByText('Attestation prête', { exact: true })).toBeVisible();
+      await expect(
+        issuerPage.getByLabel('Clé privée pour les données du circuit', { exact: true }),
+      ).toHaveValue('');
+      const issuingDownload = issuerPage.waitForEvent('download');
+      await issuerPage.getByRole('button', { name: 'Télécharger l’attestation' }).click();
+      expect((await issuingDownload).suggestedFilename()).toMatch(/\.attestation\.clair$/);
+      let attestationBody = '';
+      for await (const chunk of await (await issuingDownload).createReadStream())
+        attestationBody += chunk;
+      const issued = JSON.parse(attestationBody);
+      expect(issued.format).toBe(privateInput ? 'clair-attestation/2' : 'clair-attestation/1');
+      expect(issued.proof).toBeUndefined();
+      expect(issued.value).toBe(3000);
+      expect(attestationBody).not.toContain(privateJwk.d);
+      expect(issuerRequests.some((url) => /\/api\/(compile|prover|proofs)/.test(url))).toBe(false);
+      await issuerPage.screenshot({ path: 'test-results/issued-attestation.png', fullPage: true });
+      await issuerContext.close();
 
-  await expect(
-    page.getByLabel('Importer l’attestation pour Revenus mensuels', { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByLabel('Clé privée pour Revenus mensuels', { exact: true }),
-  ).not.toBeVisible();
-  await page
-    .getByLabel('Importer l’attestation pour Revenus mensuels', { exact: true })
-    .setInputFiles({
-      name: 'income.attestation.clair',
-      mimeType: 'application/json',
-      buffer: Buffer.from(attestationBody),
-    });
-  await expect(page.getByLabel('Revenus mensuels', { exact: true })).toHaveValue('3000');
-  await expect(page.getByText('Attestation chargée · source-1', { exact: true })).toBeVisible();
-  await page.getByLabel('Loyer mensuel', { exact: true }).fill('777');
-  await page.getByRole('button', { name: 'Générer ma preuve' }).click();
-  await expect(page.getByText('Preuve prête', { exact: true })).toBeVisible({ timeout: 150000 });
-  const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Télécharger la preuve' }).click();
-  expect((await pending).suggestedFilename()).toMatch(/\.preuve\.clair$/);
-  let body = '';
-  for await (const chunk of await (await pending).createReadStream()) body += chunk;
-  const envelope = JSON.parse(body);
-  expect(envelope.format).toBe('clair-proof/3');
-  expect(envelope.attestations).toHaveLength(1);
-  expect(envelope.publicData).toEqual([
-    { id: 'income', label: 'Revenus mensuels', type: 'number', value: 3000 },
-  ]);
-  await page.getByRole('button', { name: 'Enregistrer dans mon espace' }).click();
-  await expect(page.getByRole('button', { name: 'Enregistrée', exact: true })).toBeVisible();
-  expect(requests.join('\n')).not.toContain('"rent":"777"');
-  expect(requests.join('\n')).not.toContain('"rent":777');
-  expect(requests.join('\n')).not.toContain('"privateKey"');
-  expect(requests.join('\n')).not.toContain(privateJwk.d);
-  expect(body).not.toContain(privateJwk.d);
-  const context = await browser.newContext();
-  await registry(context);
-  const verifier = await context.newPage();
-  await verifier.goto('/');
-  await verifier.getByRole('button', { name: 'Vérifier une preuve', exact: true }).click();
-  await verifier.getByLabel('Fichier de preuve').setInputFiles({
-    name: 'proof.clair',
-    mimeType: 'application/json',
-    buffer: Buffer.from(body),
-  });
-  await expect(verifier.getByText('Provenance annoncée — à vérifier')).toBeVisible();
-  await verifier.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
-  await expect(verifier.getByText('Origine vérifiée · Source approuvée')).toBeVisible({
-    timeout: 150000,
-  });
-  await expect(verifier.getByText('Revenus mensuels · Banque de test — simulation')).toBeVisible();
-  await verifier.screenshot({ path: 'test-results/signed-proof-verified.png', fullPage: true });
-  const old = approved;
-  approved = [];
-  await verifier.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
-  await expect(verifier.getByText('Preuve invalide', { exact: true })).toBeVisible({
-    timeout: 150000,
-  });
-  await expect(
-    verifier.getByText('Source non approuvée, révoquée ou clé remplacée.'),
-  ).toBeVisible();
-  await expect(verifier.getByText('Origine vérifiée · Source approuvée')).toHaveCount(0);
-  approved = old;
-  envelope.attestations[0].attestation.signature = 'A'.repeat(86);
-  await verifier.getByLabel('Fichier de preuve').setInputFiles({
-    name: 'tampered.clair',
-    mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(envelope)),
-  });
-  await verifier.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
-  await expect(verifier.getByText('Signature invalide.', { exact: true })).toBeVisible({
-    timeout: 150000,
-  });
-  await context.close();
-});
+      await expect(
+        page.getByLabel('Importer l’attestation pour Revenus mensuels', { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByLabel('Clé privée pour Revenus mensuels', { exact: true }),
+      ).not.toBeVisible();
+      await page
+        .getByLabel('Importer l’attestation pour Revenus mensuels', { exact: true })
+        .setInputFiles({
+          name: 'income.attestation.clair',
+          mimeType: 'application/json',
+          buffer: Buffer.from(attestationBody),
+        });
+      await expect(page.getByLabel('Revenus mensuels', { exact: true })).toHaveValue('3000');
+      await expect(page.getByText('Attestation chargée · source-1', { exact: true })).toBeVisible();
+      await page.getByLabel('Loyer mensuel', { exact: true }).fill('777');
+      await page.getByRole('button', { name: 'Générer ma preuve' }).click();
+      await expect(page.getByText('Preuve prête', { exact: true })).toBeVisible({
+        timeout: 150000,
+      });
+      const pending = page.waitForEvent('download');
+      await page.getByRole('button', { name: 'Télécharger la preuve' }).click();
+      expect((await pending).suggestedFilename()).toMatch(/\.preuve\.clair$/);
+      let body = '';
+      for await (const chunk of await (await pending).createReadStream()) body += chunk;
+      const envelope = JSON.parse(body);
+      expect(envelope.format).toBe(privateInput ? 'clair-proof/4' : 'clair-proof/3');
+      expect(envelope.attestations).toHaveLength(privateInput ? 0 : 1);
+      expect(envelope.publicData).toEqual(
+        privateInput
+          ? []
+          : [{ id: 'income', label: 'Revenus mensuels', type: 'number', value: 3000 }],
+      );
+      if (privateInput) {
+        expect(body).not.toContain(issued.signature);
+        expect(body).not.toContain(issued.id);
+        expect(body).not.toContain('"value": 3000');
+        expect(await page.getByLabel('Revenus mensuels', { exact: true }).inputValue()).toBe('');
+      }
+      await page.getByRole('button', { name: 'Enregistrer dans mon espace' }).click();
+      await expect(page.getByRole('button', { name: 'Enregistrée', exact: true })).toBeVisible();
+      expect(requests.join('\n')).not.toContain('"rent":"777"');
+      expect(requests.join('\n')).not.toContain('"rent":777');
+      expect(requests.join('\n')).not.toContain('"privateKey"');
+      expect(requests.join('\n')).not.toContain(privateJwk.d);
+      expect(body).not.toContain(privateJwk.d);
+      if (privateInput) {
+        expect(requests.join('\n')).not.toContain(issued.signature);
+        expect(requests.join('\n')).not.toContain('"income":"3000"');
+        expect(requests.join('\n')).not.toContain('"income":3000');
+      }
+      const context = await browser.newContext();
+      await registry(context);
+      const verifier = await context.newPage();
+      await verifier.goto('/');
+      await verifier.getByRole('button', { name: 'Vérifier une preuve', exact: true }).click();
+      await verifier.getByLabel('Fichier de preuve').setInputFiles({
+        name: 'proof.clair',
+        mimeType: 'application/json',
+        buffer: Buffer.from(body),
+      });
+      await expect(verifier.getByText('Provenance annoncée — à vérifier')).toBeVisible();
+      await verifier.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
+      await expect(verifier.getByText('Origine vérifiée · Source approuvée')).toBeVisible({
+        timeout: 150000,
+      });
+      await expect(
+        verifier.getByText('Revenus mensuels · Banque de test — simulation'),
+      ).toBeVisible();
+      await verifier.screenshot({ path: 'test-results/signed-proof-verified.png', fullPage: true });
+      const old = approved;
+      approved = [];
+      await verifier.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
+      await expect(verifier.getByText('Preuve invalide', { exact: true })).toBeVisible({
+        timeout: 150000,
+      });
+      await expect(
+        verifier.getByText('Source non approuvée, révoquée ou clé remplacée.'),
+      ).toBeVisible();
+      await expect(verifier.getByText('Origine vérifiée · Source approuvée')).toHaveCount(0);
+      approved = old;
+      if (privateInput) {
+        const expires = new Date(
+          Date.parse(envelope.privateAttestations[0].expiresAt) + 1000,
+        ).toISOString();
+        envelope.privateAttestations[0].expiresAt = expires;
+        envelope.publicInputs[3] = '0x' + Date.parse(expires).toString(16);
+      } else envelope.attestations[0].attestation.signature = 'A'.repeat(86);
+      await verifier.getByLabel('Fichier de preuve').setInputFiles({
+        name: 'tampered.clair',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify(envelope)),
+      });
+      await verifier.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
+      await expect(
+        verifier.getByText(privateInput ? 'Preuve de signature invalide.' : 'Signature invalide.', {
+          exact: true,
+        }),
+      ).toBeVisible({
+        timeout: 150000,
+      });
+      await context.close();
+    },
+  );
+}
 
 test('new circuit and removal of birth both allow a single integer equals 18', async ({ page }) => {
   await page.goto('/');

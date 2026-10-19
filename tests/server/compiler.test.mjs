@@ -52,3 +52,17 @@ test('cache is bounded by bytes and refuses a circuit/engine mismatch', async ()
   await expect(other.compile(c, 'other')).rejects.toMatchObject({ status: 400 });
   expect(compile).toHaveBeenCalledTimes(2);
 });
+
+test('private signatures reject provider overrides before compilation', async () => {
+  const { privateFixture } = await import('../helpers/private-attestation.mjs');
+  const { PLONK_ENGINE, FFLONK_ENGINE } = await import('../../shared/engines.mjs');
+  const { createCompiler } = await import('../../server/compiler.mjs');
+  const { circuit } = await privateFixture();
+  const { engine: _engine, ...withoutEngine } = circuit;
+  for (const target of [PLONK_ENGINE, FFLONK_ENGINE]) {
+    const compile = vi.fn();
+    const compiler = createCompiler({ adapters: [{ id: target, compile }] });
+    await expect(compiler.compile(withoutEngine, target)).rejects.toThrow(/Noir/);
+    expect(compile).not.toHaveBeenCalled();
+  }
+});

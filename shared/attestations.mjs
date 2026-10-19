@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  PRIVATE_ATTESTATION_FORMAT,
+  privateMessage,
+  privateSignedInputs,
+} from './private-attestations.mjs';
 export const publicKeySchema = z
   .object({
     kty: z.literal('EC'),
@@ -12,10 +17,11 @@ export const policySchema = z
     issuerId: z.string().regex(/^[a-z0-9-]{1,40}$/),
     keyHash: z.string().regex(/^[a-f0-9]{64}$/),
     claim: z.string().regex(/^[a-z][a-z0-9_]{0,63}$/),
+    publicKey: publicKeySchema.optional(),
   })
   .strict();
 const fields = {
-  format: z.literal('clair-attestation/1'),
+  format: z.enum(['clair-attestation/1', PRIVATE_ATTESTATION_FORMAT]),
   id: z.string().uuid(),
   issuerId: policySchema.shape.issuerId,
   keyHash: policySchema.shape.keyHash,
@@ -86,6 +92,7 @@ export function parseAttestation(raw) {
 function signingBytes(raw) {
   // Fixed field order and a versioned domain; independent of JSON property ordering in the file.
   const p = payloadSchema.parse(raw);
+  if (p.format === PRIVATE_ATTESTATION_FORMAT) return privateMessage(p);
   return bytes(
     JSON.stringify([
       p.format,
@@ -164,12 +171,11 @@ export function bindEvidence(circuit, values, raw = []) {
       a.keyHash !== i.attestation.keyHash ||
       a.claim !== i.attestation.claim ||
       a.type !== i.type ||
-      a.value !== values[i.id]
+      a.value !== values[i.id] ||
+      a.format !== (i.visibility === 'private' ? PRIVATE_ATTESTATION_FORMAT : 'clair-attestation/1')
     )
       throw Error(
-        'L’attestation ne correspond pas à la source, au champ ou à la valeur publique de ' +
-          i.label +
-          '.',
+        'L’attestation ne correspond pas à la source, au champ ou à la valeur de ' + i.label + '.',
       );
     return { input: i, attestation: a };
   });
@@ -209,8 +215,12 @@ export async function verifyEvidence(circuit, values, evidence, issuers = [], no
 }
 
 export async function signInputValue(input, rawValue, privateJwk, now = Date.now()) {
-  if (input.source !== 'signed' || input.visibility !== 'public' || !input.attestation)
-    throw Error('Cette entrée ne demande pas de signature publique.');
+  if (
+    input.source !== 'signed' ||
+    !input.attestation ||
+    (input.visibility === 'private' && !input.attestation.publicKey)
+  )
+    throw Error('Cette entrée ne demande pas de signature ou sa clé publique est manquante.');
   if (rawValue === '' || rawValue === null || rawValue === undefined)
     throw Error('Saisissez la valeur avant de la signer.');
   let value = rawValue;
@@ -234,7 +244,11 @@ export async function signInputValue(input, rawValue, privateJwk, now = Date.now
   } catch {
     throw Error('Clé privée JWK P-256 invalide.');
   }
-  if ((await keyFingerprint(publicKey)) !== input.attestation.keyHash)
+  if (
+    (await keyFingerprint(publicKey)) !== input.attestation.keyHash ||
+    (input.visibility === 'private' &&
+      (await keyFingerprint(input.attestation.publicKey)) !== input.attestation.keyHash)
+  )
     throw Error('Cette clé privée ne correspond pas à la source attendue.');
   try {
     privateKey = await crypto.subtle.importKey(
@@ -250,7 +264,7 @@ export async function signInputValue(input, rawValue, privateJwk, now = Date.now
   try {
     return await signAttestation(
       {
-        format: 'clair-attestation/1',
+        format: input.visibility === 'private' ? PRIVATE_ATTESTATION_FORMAT : 'clair-attestation/1',
         id: crypto.randomUUID(),
         issuerId: input.attestation.issuerId,
         keyHash: input.attestation.keyHash,
@@ -266,4 +280,47 @@ export async function signInputValue(input, rawValue, privateJwk, now = Date.now
   } catch {
     throw Error('Signature impossible : vérifiez la clé privée, le type et la valeur du champ.');
   }
+}
+
+export async function verifyPrivateSources(
+  circuit,
+  rows,
+  issuers = [],
+  now = Date.now(),
+  proofValid = true,
+) {
+  return Promise.all(
+    privateSignedInputs(circuit).map(async (input) => {
+      const policy = input.attestation,
+        a = rows.find((r) => r.inputId === input.id),
+        issuer = issuers.find((i) => i.id === policy.issuerId);
+      let approved = false;
+      try {
+        approved =
+          !!issuer &&
+          issuer.approved !== false &&
+          (await keyFingerprint(issuer.jwk)) === policy.keyHash &&
+          (await keyFingerprint(policy.publicKey)) === policy.keyHash;
+      } catch {}
+      const current = !!a && Date.parse(a.issuedAt) <= now && Date.parse(a.expiresAt) > now;
+      return {
+        inputId: input.id,
+        issuerId: policy.issuerId,
+        issuerName: issuer?.name ?? policy.issuerId,
+        keyHash: policy.keyHash,
+        signatureValid: proofValid,
+        approved,
+        current,
+        valid: proofValid && approved && current,
+        reason: !proofValid
+          ? 'Preuve de signature invalide.'
+          : !current
+            ? 'Attestation expirée ou pas encore valable.'
+            : !approved
+              ? 'Source non approuvée, révoquée ou clé remplacée.'
+              : 'Signature vérifiée dans la preuve ZK · Source approuvée',
+        expiresAt: a?.expiresAt,
+      };
+    }),
+  );
 }

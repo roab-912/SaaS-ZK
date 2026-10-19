@@ -140,7 +140,14 @@ export function Editor({ draft: c, setDraft, onSave }) {
           Moteur de preuve
           <select value={c.engine ?? ENGINE} onChange={(e) => update('engine', e.target.value)}>
             {ZK_ENGINES.map((engine) => (
-              <option key={engine.id} value={engine.id}>
+              <option
+                key={engine.id}
+                value={engine.id}
+                disabled={
+                  !engine.privateSignedInputs &&
+                  c.inputs.some((i) => i.source === 'signed' && i.visibility === 'private')
+                }
+              >
                 {engine.name}
                 {engine.experimental ? ' · Expérimental' : ''}
               </option>
@@ -213,8 +220,28 @@ export function Editor({ draft: c, setDraft, onSave }) {
                   Visibilité
                   <select
                     value={i.visibility}
-                    disabled={i.source === 'signed'}
-                    onChange={(e) => updateInput(n, { visibility: e.target.value })}
+                    disabled={i.source === 'signed' && (c.engine ?? ENGINE) !== ENGINE}
+                    onChange={(e) => {
+                      const visibility = e.target.value;
+                      if (i.source !== 'signed') return updateInput(n, { visibility });
+                      const { publicKey: oldKey, ...policy } = i.attestation;
+                      const issuer = issuers.find(
+                        (s) => s.id === policy.issuerId && s.keyHash === policy.keyHash,
+                      );
+                      if (visibility === 'private' && !issuer && !oldKey) {
+                        setEditNotice(
+                          'Source indisponible : impossible de figer sa clé publique pour une signature privée.',
+                        );
+                        return;
+                      }
+                      updateInput(n, {
+                        visibility,
+                        attestation:
+                          visibility === 'private'
+                            ? { ...policy, publicKey: issuer?.jwk ?? oldKey }
+                            : policy,
+                      });
+                    }}
                   >
                     <option value="private">Privée</option>
                     <option value="public">Publique</option>
@@ -256,6 +283,7 @@ export function Editor({ draft: c, setDraft, onSave }) {
                       disabled={c.version !== 2}
                     >
                       {source.name} — signée, valeur publique
+                      {(c.engine ?? ENGINE) === ENGINE ? ' ou privée' : ''}
                     </option>
                   ))}
                 </select>
@@ -275,8 +303,12 @@ export function Editor({ draft: c, setDraft, onSave }) {
                     />
                   </label>
                   <small className="help">
-                    Cette valeur et son attestation seront publiques. La clé attendue est figée dans
-                    cette version du circuit.
+                    {i.visibility === 'private'
+                      ? 'Noir vérifie la signature dans le circuit. La valeur et la signature restent privées ; la source et les dates de validité sont publiques.'
+                      : 'Cette valeur et son attestation seront publiques.'}{' '}
+                    La clé attendue est figée dans cette version du circuit.
+                    {(c.engine ?? ENGINE) !== ENGINE &&
+                      ' Les signatures privées nécessitent Noir / UltraHonk.'}
                   </small>
                   <code className="hash">{i.attestation.keyHash}</code>
                 </>

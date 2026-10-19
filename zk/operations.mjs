@@ -1,8 +1,10 @@
 import { validateCircuit } from '../shared/circuit-schema.mjs';
 import { circuitHash } from '../shared/circuit-model.mjs';
 import { ENGINE, parseProof, readablePublicValues } from '../shared/proof.mjs';
-import { signedInputs, verifyEvidence } from '../shared/attestations.mjs';
+import { signedInputs, verifyEvidence, verifyPrivateSources } from '../shared/attestations.mjs';
 import { validateInputs } from '../shared/circuit-model.mjs';
+import { privateSignedInputs, privateDisclosures } from '../shared/private-attestations.mjs';
+import { assertEngineCapabilities } from '../shared/engines.mjs';
 export async function executeZkOperation(payload, registry, onProgress = () => {}) {
   if (!payload || !['prove', 'verify'].includes(payload.mode))
     throw Error('Opération ZK invalide.');
@@ -10,6 +12,7 @@ export async function executeZkOperation(payload, registry, onProgress = () => {
   const circuit = envelope?.circuit ?? validateCircuit(payload.circuit);
   const engineId = envelope?.engine ?? payload.engine ?? circuit.engine ?? ENGINE;
   if (circuit.engine && circuit.engine !== engineId) throw Error('Moteur du circuit incompatible.');
+  assertEngineCapabilities(circuit, engineId);
   const adapter = registry.get(engineId);
   const hash = await circuitHash(circuit);
   if (payload.compiled?.hash !== hash || payload.compiled.engine !== engineId)
@@ -19,7 +22,20 @@ export async function executeZkOperation(payload, registry, onProgress = () => {
     const proof = await adapter.verify({ envelope, compiled: payload.compiled, onProgress });
     if (!signedInputs(circuit).length) return proof;
     const values = Object.fromEntries(readablePublicValues(envelope).map((i) => [i.id, i.value]));
-    const sources = await verifyEvidence(circuit, values, envelope.attestations, payload.issuers);
+    const publicCircuit = {
+      ...circuit,
+      inputs: circuit.inputs.filter((i) => i.visibility === 'public'),
+    };
+    const sources = [
+      ...(await verifyEvidence(publicCircuit, values, envelope.attestations, payload.issuers)),
+      ...(await verifyPrivateSources(
+        circuit,
+        envelope.privateAttestations ?? [],
+        payload.issuers,
+        Date.now(),
+        proof.valid,
+      )),
+    ];
     return {
       valid: proof.valid && sources.every((s) => s.valid),
       proofValid: proof.valid,
@@ -39,7 +55,17 @@ export async function executeZkOperation(payload, registry, onProgress = () => {
       ]),
     );
     const sources = await verifyEvidence(circuit, values, payload.attestations, payload.issuers);
-    if (sources.some((s) => !s.valid))
+    if (
+      sources.some((s) => !s.valid) ||
+      (privateSignedInputs(circuit).length &&
+        (
+          await verifyPrivateSources(
+            circuit,
+            privateDisclosures(circuit, payload.attestations),
+            payload.issuers,
+          )
+        ).some((s) => !s.valid))
+    )
       throw Error('Une attestation est invalide ou sa source n’est pas approuvée.');
   }
   return adapter.prove({
