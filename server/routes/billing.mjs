@@ -1,5 +1,5 @@
 import express from 'express';
-import { demoAction } from '../schemas.mjs';
+import { checkoutAction } from '../schemas.mjs';
 import { fail } from '../errors.mjs';
 const events = new Set([
   'checkout.session.completed',
@@ -35,19 +35,10 @@ export function registerBillingWebhook(app, { stripe, billing, config }) {
     },
   );
 }
-export function registerBillingRoutes(app, { repo, sessions, config, stripe, billing }) {
-  app.post('/api/billing/demo', sessions.auth, (req, res) => {
-    if (config.mode !== 'demo') throw fail(404, 'Mode de démonstration désactivé.');
-    const { action } = demoAction.parse(req.body);
-    repo.setDemo(
-      req.user.id,
-      action === 'activate' ? 'active' : 'canceled',
-      action === 'activate' ? Date.now() + 30 * 86400000 : 0,
-    );
-    res.json({ ok: true });
-  });
+export function registerBillingRoutes(app, { sessions, stripe, billing }) {
+  app.get('/api/billing/plans', async (req, res) => res.json(await billing.plans()));
   app.post('/api/billing/checkout', sessions.auth, async (req, res) =>
-    res.json(await billing.checkout(req.user)),
+    res.json(await billing.checkout(req.user, checkoutAction.parse(req.body).plan)),
   );
   app.post('/api/billing/portal', sessions.auth, async (req, res) =>
     res.json(await billing.portal(req.user)),

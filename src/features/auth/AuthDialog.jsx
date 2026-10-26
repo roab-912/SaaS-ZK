@@ -3,24 +3,31 @@ import { useState, useEffect } from 'react';
 import { ArrowRight, Fingerprint, LoaderCircle, X } from 'lucide-react';
 import { Button } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
-export function Auth({ mode, setMode, onClose, onDone }) {
+export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   useEffect(() => {
     const listener = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !embedded) onClose();
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, []);
+  }, [onClose, embedded]);
   return (
-    <div className="modal-backdrop">
-      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-        <button className="icon-button modal-close" aria-label="Fermer" onClick={onClose}>
-          <X size={20} />
-        </button>
+    <div className={embedded ? 'auth-page' : 'modal-backdrop'}>
+      <section
+        className="modal"
+        role={embedded ? undefined : 'dialog'}
+        aria-modal={embedded ? undefined : 'true'}
+        aria-labelledby="auth-title"
+      >
+        {!embedded && (
+          <button className="icon-button modal-close" aria-label="Fermer" onClick={onClose}>
+            <X size={20} />
+          </button>
+        )}
         <span className="brand-icon">
           <Fingerprint size={30} />
         </span>
@@ -28,6 +35,7 @@ export function Auth({ mode, setMode, onClose, onDone }) {
           {mode === 'register' ? 'Votre espace de confiance.' : 'Heureux de vous retrouver.'}
         </h2>
         <p>Vos circuits et vos preuves, au même endroit.</p>
+        {embedded && <p>{mode === 'register' ? 'Inscription' : 'Connexion'}</p>}
         <form
           onSubmit={async (e) => {
             e.preventDefault();

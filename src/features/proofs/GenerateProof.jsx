@@ -63,6 +63,7 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
     setResult(null);
     setSaved(false);
     setError('');
+    let authorization;
     try {
       const outcome = evaluateCircuit(c, values);
       if (c.version === 1 && !outcome)
@@ -79,7 +80,7 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
         const failed = sources.find((s) => !s.valid);
         if (failed) throw Error(failed.issuerName + ' : ' + failed.reason);
       }
-      await api('/prover/authorize', {});
+      authorization = await api('/prover/authorize', {});
       setProgress('Préparation du circuit public…');
       const compiled = await compileForEngine(c);
       if (run !== generation.current) return;
@@ -96,10 +97,13 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
       );
       const result = await task.current.promise;
       if (run !== generation.current) return;
+      await api('/prover/finish', { token: authorization.token, complete: true });
+      authorization = null;
       setResult(result);
       setValues(initial);
       setAttestations([]);
       setImports({});
+      await refresh();
       notify('Preuve générée et vérifiée sur votre appareil.');
     } catch (e) {
       if (run === generation.current) {
@@ -107,6 +111,13 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
         notify(e.message, true);
       }
     } finally {
+      if (authorization?.token) {
+        try {
+          await api('/prover/finish', { token: authorization.token, complete: false });
+        } catch {
+          /* Reservation expires automatically after ten minutes. */
+        }
+      }
       if (run === generation.current) setBusy(false);
     }
   };

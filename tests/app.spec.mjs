@@ -34,9 +34,15 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     await page.getByLabel('Adresse e-mail').fill(engine + '@example.test');
     await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
     await page.getByRole('button', { name: 'Créer mon compte' }).click();
-    await page.getByRole('button', { name: 'Activer 30 jours de test' }).click();
+    await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
+    await page.request.post('/__test__/subscription', {
+      headers: { Origin: 'http://localhost:3001' },
+      data: {},
+    });
+    await page.reload();
+    await page.getByRole('button', { name: 'Mon abonnement', exact: true }).click();
     await expect(
-      page.getByRole('button', { name: 'Désactiver l’abonnement de test' }),
+      page.getByRole('button', { name: 'Configurer Stripe pour souscrire' }).first(),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
     await page.getByRole('button', { name: /Condition de majorité/ }).click();
@@ -106,7 +112,11 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
       page.getByRole('option', { name: new RegExp(engineName(engine).replaceAll('/', '\\/')) }),
     ).toHaveAttribute('value', engine);
     await page.getByRole('button', { name: 'Mon abonnement' }).click();
-    await page.getByRole('button', { name: 'Désactiver l’abonnement de test' }).click();
+    await page.request.post('/__test__/subscription', {
+      headers: { Origin: 'http://localhost:3001' },
+      data: { active: false },
+    });
+    await page.reload();
     await page.getByRole('button', { name: 'Mes preuves', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Condition de majorité' })).toBeVisible();
     await page.reload();
@@ -144,9 +154,15 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     await page.getByLabel('Adresse e-mail').fill('false-' + engine + '@example.test');
     await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
     await page.getByRole('button', { name: 'Créer mon compte' }).click();
-    await page.getByRole('button', { name: 'Activer 30 jours de test' }).click();
+    await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
+    await page.request.post('/__test__/subscription', {
+      headers: { Origin: 'http://localhost:3001' },
+      data: {},
+    });
+    await page.reload();
+    await page.getByRole('button', { name: 'Mon abonnement', exact: true }).click();
     await expect(
-      page.getByRole('button', { name: 'Désactiver l’abonnement de test' }),
+      page.getByRole('button', { name: 'Configurer Stripe pour souscrire' }).first(),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
     await page.getByRole('button', { name: /Condition de majorité/ }).click();
@@ -240,8 +256,8 @@ for (const privateInput of [false, true]) {
             const body = route.request().postDataJSON();
             expect(body.jwk.d).toBeUndefined();
             approved = body.approved ? [{ id: body.id, name: body.name, jwk: body.jwk }] : [];
-            await route.fulfill({ json: { ok: true }, headers: { 'X-Clair-Protocol': '4' } });
-          } else await route.fulfill({ json: approved, headers: { 'X-Clair-Protocol': '4' } });
+            await route.fulfill({ json: { ok: true }, headers: { 'X-Clair-Protocol': '5' } });
+          } else await route.fulfill({ json: approved, headers: { 'X-Clair-Protocol': '5' } });
         });
       await registry(page.context());
       page.on('request', (r) => {
@@ -252,9 +268,15 @@ for (const privateInput of [false, true]) {
       await page.getByLabel('Adresse e-mail').fill('sources-' + privateInput + '@example.test');
       await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
       await page.getByRole('button', { name: 'Créer mon compte' }).click();
-      await page.getByRole('button', { name: 'Activer 30 jours de test' }).click();
+      await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
+      await page.request.post('/__test__/subscription', {
+        headers: { Origin: 'http://localhost:3001' },
+        data: {},
+      });
+      await page.reload();
+      await page.getByRole('button', { name: 'Mon abonnement', exact: true }).click();
       await expect(
-        page.getByRole('button', { name: 'Désactiver l’abonnement de test' }),
+        page.getByRole('button', { name: 'Configurer Stripe pour souscrire' }).first(),
       ).toBeVisible();
       await page.getByRole('button', { name: 'Sources de confiance', exact: true }).click();
       await expect(page.getByText('Aucune source disponible')).toBeVisible();
@@ -469,8 +491,16 @@ test('new circuit and removal of birth both allow a single integer equals 18', a
   await page.getByLabel('Adresse e-mail').fill('integer-equals@example.test');
   await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
   await page.getByRole('button', { name: 'Créer mon compte' }).click();
-  await page.getByRole('button', { name: 'Activer 30 jours de test' }).click();
-  await expect(page.getByRole('button', { name: 'Désactiver l’abonnement de test' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
+  await page.request.post('/__test__/subscription', {
+    headers: { Origin: 'http://localhost:3001' },
+    data: {},
+  });
+  await page.reload();
+  await page.getByRole('button', { name: 'Mon abonnement', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Configurer Stripe pour souscrire' }).first(),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
   await page.getByRole('button', { name: 'Créer un circuit', exact: true }).click();
   await expect(page.getByLabel('Nom du circuit')).toHaveValue('Nouveau circuit');
@@ -512,13 +542,13 @@ test('offline verifier links identify source scope and fit on mobile', async ({ 
   await page.route('**/api/offline-verifier/status', (route) =>
     route.fulfill({
       json: { available: true, platform: 'win32-x64', bytes: 280 * 1048576 },
-      headers: { 'X-Clair-Protocol': '4' },
+      headers: { 'X-Clair-Protocol': '5' },
     }),
   );
   await page.route('**/api/issuers', (route) =>
     route.fulfill({
       json: [{ id: 'source-1', name: 'Source de test', jwk }],
-      headers: { 'X-Clair-Protocol': '4' },
+      headers: { 'X-Clair-Protocol': '5' },
     }),
   );
   await page.setViewportSize({ width: 390, height: 844 });

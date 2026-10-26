@@ -21,8 +21,25 @@ test('sessions rotate tokens, hide secrets and enforce expiry/admin IDs', () => 
   sessions.attach(req, res, next);
   expect(req.user.id).toBe('u');
   expect(
-    sessions.view({ id: 'u', email: 'a', password: 'secret', status: 'active', expires: 101 }),
-  ).toEqual({ id: 'u', email: 'a', status: 'active', expires: 101, active: true, admin: true });
+    sessions.view({
+      id: 'u',
+      email: 'a',
+      password: 'secret',
+      subscription: 'sub',
+      status: 'active',
+      expires: 101,
+    }),
+  ).toEqual({
+    id: 'u',
+    email: 'a',
+    status: 'active',
+    plan: 'essential',
+    expires: 101,
+    active: true,
+    trialActive: false,
+    trialEligible: true,
+    admin: true,
+  });
   expect(sessions.view({ id: 'u', status: 'active', expires: 100 }).active).toBe(false);
   expect(sessions.view(null)).toBeNull();
   sessions.auth({}, res, next);

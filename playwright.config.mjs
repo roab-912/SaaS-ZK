@@ -12,7 +12,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'node server/index.mjs',
+    command: 'node tests/helpers/browser-server.mjs',
     url: 'http://localhost:3001',
     reuseExistingServer: false,
     timeout: 60000,

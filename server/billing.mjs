@@ -1,4 +1,6 @@
 import { fail } from './errors.mjs';
+import { createPricing } from './pricing.mjs';
+import { PLANS, planFor, priceFor } from './plans.mjs';
 export function createBilling({ stripe, repo, config, isActive }) {
   const checkoutLocks = new Set(),
     syncQueues = new Map();
@@ -19,16 +21,41 @@ export function createBilling({ stripe, repo, config, isActive }) {
           subscriptions.push(...page.data);
           cursor = page.has_more ? page.data.at(-1)?.id : undefined;
         } while (cursor);
-        const eligible = subscriptions.filter((s) =>
-          s.items.data.some((i) => i.price.id === config.stripePrice),
-        );
+        const plans = PLANS.filter((p) => priceFor(config, p.id));
+        if (subscriptions.some((s) => s.trial_start || s.trial_end)) repo.markTrialUsed(customer);
+        const eligible = subscriptions
+          .filter((s) =>
+            s.items.data.some((i) => plans.some((p) => i.price.id === priceFor(config, p.id))),
+          )
+          .sort((a, b) => (b.created || 0) - (a.created || 0));
         const sub = eligible.find((s) => ['active', 'trialing'].includes(s.status)) || eligible[0];
-        const matching = sub?.items.data.filter((i) => i.price.id === config.stripePrice) || [];
-        const expires = sub
+        const plan = [...plans]
+          .reverse()
+          .find((p) => sub?.items.data.some((i) => i.price.id === priceFor(config, p.id)));
+        const matching =
+          sub?.items.data.filter((i) => i.price.id === priceFor(config, plan?.id)) || [];
+        let expires = sub
           ? Math.max(0, ...matching.map((i) => i.current_period_end || 0), sub.trial_end || 0) *
             1000
           : 0;
-        repo.updateSubscription(customer, sub?.status || 'inactive', expires, sub?.id || null);
+        if (sub?.status === 'trialing') {
+          let method = sub.default_payment_method || sub.default_source;
+          if (!method) {
+            const customerRecord = await stripe.customers.retrieve(customer);
+            method =
+              !customerRecord.deleted &&
+              (customerRecord.invoice_settings?.default_payment_method ||
+                customerRecord.default_source);
+          }
+          expires = method ? (sub.trial_end || 0) * 1000 : 0;
+        }
+        repo.updateSubscription(
+          customer,
+          sub?.status || 'inactive',
+          expires,
+          sub?.id || null,
+          plan?.id || 'essential',
+        );
       });
     syncQueues.set(customer, current);
     return current.finally(() => {
@@ -37,8 +64,12 @@ export function createBilling({ stripe, repo, config, isActive }) {
   }
   return {
     syncCustomer,
-    async checkout(user) {
+    plans: createPricing({ stripe, config }),
+    async checkout(user, planId = 'essential') {
+      planFor(planId);
       if (!stripe) throw fail(400, 'Activez l’abonnement de démonstration.');
+      const price = priceFor(config, planId);
+      if (!price) throw fail(400, 'Cette offre n’est pas encore disponible au paiement.');
       if (checkoutLocks.has(user.id)) throw fail(409, 'Paiement en cours de préparation.');
       checkoutLocks.add(user.id);
       try {
@@ -53,23 +84,49 @@ export function createBilling({ stripe, repo, config, isActive }) {
           repo.setCustomer(user.id, customer);
         }
         await syncCustomer(customer);
-        if (isActive(repo.userById(user.id)))
-          throw fail(409, 'Un abonnement est déjà actif. Utilisez le portail de facturation.');
+        const fresh = repo.userById(user.id);
+        if (
+          isActive(fresh) ||
+          (fresh.subscription &&
+            !['canceled', 'incomplete_expired', 'inactive'].includes(fresh.status))
+        )
+          throw fail(409, 'Un abonnement existe déjà. Utilisez le portail de facturation.');
+        const trial = !fresh.trial_used;
         const prior = repo.getCheckout(user.id);
         if (prior) {
           const existing = await stripe.checkout.sessions.retrieve(prior);
-          if (existing.status === 'open' && existing.url) return { url: existing.url };
+          if (existing.status === 'open' && existing.url) {
+            if (
+              existing.metadata?.plan === planId &&
+              existing.metadata?.trial === (trial ? '30' : '0')
+            )
+              return { url: existing.url };
+            await stripe.checkout.sessions.expire(prior);
+          }
         }
         const checkout = await stripe.checkout.sessions.create(
           {
             mode: 'subscription',
             customer,
-            line_items: [{ price: config.stripePrice, quantity: 1 }],
+            line_items: [{ price, quantity: 1 }],
+            payment_method_types: ['card'],
+            payment_method_collection: 'always',
+            locale: 'fr',
+            metadata: { plan: planId, userId: user.id, trial: trial ? '30' : '0' },
+            subscription_data: {
+              metadata: { plan: planId, userId: user.id },
+              ...(trial
+                ? {
+                    trial_period_days: 30,
+                    trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
+                  }
+                : {}),
+            },
             success_url: config.appUrl + '/?billing=success',
             cancel_url: config.appUrl + '/?billing=cancel',
             client_reference_id: user.id,
           },
-          { idempotencyKey: 'clair-checkout-' + user.id + '-' + (prior || 'first') },
+          { idempotencyKey: 'clair-checkout-' + user.id + '-' + planId + '-' + (prior || 'first') },
         );
         repo.setCheckout(user.id, checkout.id);
         return { url: checkout.url };

@@ -7,6 +7,7 @@ import { createSessions, securityHeaders, sameOrigin, createLimit } from './secu
 import { createCompiler } from './compiler.mjs';
 import { createBilling } from './billing.mjs';
 import { errorHandler } from './errors.mjs';
+import { registerAdminRoutes } from './routes/admin.mjs';
 import { registerAuthRoutes } from './routes/auth.mjs';
 import { registerBillingWebhook, registerBillingRoutes } from './routes/billing.mjs';
 import { registerWorkspaceRoutes } from './routes/workspace.mjs';
@@ -39,7 +40,7 @@ export function createApp(options = {}) {
     '/api',
     (req, res, next) => {
       res.set('Cache-Control', 'no-store');
-      res.set('X-Clair-Protocol', '4');
+      res.set('X-Clair-Protocol', '5');
       next();
     },
     createLimit(120),
@@ -49,6 +50,7 @@ export function createApp(options = {}) {
   app.use(express.json({ limit: '300kb' }));
   app.use('/api', sessions.attach);
   registerAuthRoutes(app, dependencies);
+  registerAdminRoutes(app, dependencies);
   registerBillingRoutes(app, dependencies);
   registerWorkspaceRoutes(app, dependencies);
   registerIssuerRoutes(app, dependencies);

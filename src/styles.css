@@ -1991,3 +1991,35 @@ pre {
 .source-preview small {
   color: inherit;
 }
+
+.auth-page {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+.auth-page .modal {
+  position: relative;
+  max-width: 480px;
+  width: 100%;
+}
+.plans-list {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.quota-row progress {
+  width: 100%;
+  height: 8px;
+  accent-color: #356954;
+}
+.account-id {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.usage-summary {
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.admin-stats {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}

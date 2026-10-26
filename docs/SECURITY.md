@@ -29,7 +29,7 @@ La validité d’une preuve sur des données déclarées ne certifie pas leur v�
 
 Garder .env, data/, les exports d’utilisateurs et les journaux hors du dépôt. Utiliser un volume persistant et des sauvegardes SQLite. Configurer le proxy explicitement ; l’application ne fait pas confiance à des en-têtes X-Forwarded-For arbitraires.
 
-Les limites sont en mémoire et conçues pour une instance. Le passage à plusieurs processus demande un stockage partagé pour les sessions, limites et verrous. La préparation Circom est isolée dans un sous-processus avec délai maximal ; la compilation Noir reste dans le processus serveur.
+Les limites de fréquence des requêtes et les verrous de facturation sont en mémoire et conçus pour une instance. Les quotas d’abonnement et les réservations de génération sont persistés dans SQLite avec des transactions ; ils ne dépendent pas des compteurs affichés par le navigateur. Le passage à plusieurs processus demande un stockage partagé pour les sessions, limites et verrous. La préparation Circom est isolée dans un sous-processus avec délai maximal ; la compilation Noir reste dans le processus serveur.
 
 Le JavaScript ne permet pas de garantir l’effacement physique de toutes les copies mémoire. Le calcul est local mais Noir charge des paramètres publics depuis crs.aztec.network. Circom nécessite un premier téléchargement des paramètres universels PSE par le serveur, avec empreinte épinglée. Le service web n’est pas entièrement hors ligne. Un [vérificateur portable distinct](OFFLINE.md) embarque ses paramètres et un instantané du registre pour fonctionner sans connexion. Voir [ENGINES.md](ENGINES.md) pour les frontières de confiance.
 

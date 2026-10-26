@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Badge, Button, Stat } from '../../components/ui.jsx';
 import { CircuitTable } from '../circuits/CircuitTable.jsx';
-export function Dashboard({ start, nav, circuits, proofs, edit, prove }) {
+export function Dashboard({ start, nav, circuits, proofs, edit, prove, usage }) {
   return (
     <>
       <div className="page-heading">
@@ -94,6 +94,20 @@ export function Dashboard({ start, nav, circuits, proofs, edit, prove }) {
           special
         />
       </section>
+      {usage && (
+        <section className="panel usage-summary" aria-label="Consommation de votre abonnement">
+          <strong>{usage.limits.name}</strong>
+          <p>
+            {usage.circuits} / {usage.limits.circuits} circuits enregistrés · {usage.proofs} /{' '}
+            {usage.limits.proofs} preuves archivées · {usage.generations} /{' '}
+            {usage.limits.generations} générations ce mois-ci
+            {usage.pending ? ' · ' + usage.pending + ' en cours' : ''}
+          </p>
+          <button className="text-link dark" onClick={() => nav('billing')}>
+            Gérer mon abonnement <ArrowRight size={15} />
+          </button>
+        </section>
+      )}
       <section>
         <div className="section-heading">
           <div>

@@ -34,6 +34,7 @@ import { Issuers } from './features/issuers/IssuersPage.jsx';
 import { IssueAttestation } from './features/issuers/IssueAttestation.jsx';
 import { Guide } from './features/guide/GuidePage.jsx';
 import { Dashboard } from './features/dashboard/Dashboard.jsx';
+import { AdminDashboard } from './features/admin/AdminDashboard.jsx';
 import { ProofLibrary } from './features/proofs/ProofLibrary.jsx';
 export function App() {
   const [session, setSession] = useState({
@@ -42,7 +43,13 @@ export function App() {
       paymentEnvironment: 'demo',
     }),
     [loading, setLoading] = useState(true),
-    [page, setPage] = useState('home'),
+    [page, setPage] = useState(() =>
+      location.pathname === '/connexion'
+        ? 'login'
+        : location.pathname === '/inscription'
+          ? 'register'
+          : 'home',
+    ),
     [auth, setAuth] = useState(null),
     [circuits, setCircuits] = useState([]),
     [proofs, setProofs] = useState([]),
@@ -89,9 +96,23 @@ export function App() {
     })();
     return () => clearTimeout(timer.current);
   }, []);
+  useEffect(() => {
+    const back = () =>
+      setPage(
+        location.pathname === '/connexion'
+          ? 'login'
+          : location.pathname === '/inscription'
+            ? 'register'
+            : 'home',
+      );
+    window.addEventListener('popstate', back);
+    return () => window.removeEventListener('popstate', back);
+  }, []);
   const user = session.user,
     nav = (p) => {
       setPage(p);
+      const path = p === 'login' ? '/connexion' : p === 'register' ? '/inscription' : '/';
+      if (location.pathname !== path) history.pushState({}, '', path);
       setMobile(false);
     };
   const needPaid = () => {
@@ -188,6 +209,15 @@ export function App() {
             <BadgeCheck size={19} />
             Sources de confiance
           </button>
+          {user?.admin && (
+            <button
+              className={'nav-item ' + (page === 'admin' ? 'active' : '')}
+              onClick={() => nav('admin')}
+            >
+              <Users size={19} />
+              Administration
+            </button>
+          )}
           <button
             className={'nav-item ' + (page === 'billing' ? 'active' : '')}
             onClick={() => nav('billing')}
@@ -205,7 +235,7 @@ export function App() {
               Comprendre le zero knowledge <ArrowUpRight size={14} />
             </button>
           </div>
-          <button className="account" onClick={() => (user ? nav('billing') : setAuth('login'))}>
+          <button className="account" onClick={() => (user ? nav('billing') : nav('login'))}>
             <span className="avatar">
               {user ? user.email[0].toUpperCase() : <Users size={18} />}
             </span>
@@ -247,6 +277,9 @@ export function App() {
                   issuers: 'Sources de confiance',
                   attestation: 'Créer une attestation',
                   guide: 'Guide',
+                  admin: 'Administration',
+                  login: 'Connexion',
+                  register: 'Inscription',
                 }[page]
               }
             </strong>
@@ -268,15 +301,24 @@ export function App() {
                 className="icon-button"
                 aria-label="Se déconnecter"
                 onClick={async () => {
-                  await api('/auth/logout', {});
-                  await refresh();
-                  nav('home');
+                  try {
+                    await api('/auth/logout', {});
+                    setSession((s) => ({ ...s, user: null, usage: null }));
+                    setCircuits([]);
+                    setProofs([]);
+                    setSelected(null);
+                    setVerifyFile(null);
+                    setAuth(null);
+                    nav('login');
+                  } catch (e) {
+                    notify(e.message, true);
+                  }
                 }}
               >
                 <LogOut size={18} />
               </button>
             ) : (
-              <Button variant="small secondary" onClick={() => setAuth('login')}>
+              <Button variant="small secondary" onClick={() => nav('login')}>
                 Connexion
               </Button>
             )}
@@ -290,7 +332,25 @@ export function App() {
             </div>
           ) : (
             <>
-              {page === 'home' && <Dashboard {...{ start, nav, circuits, proofs, edit, prove }} />}
+              {['login', 'register'].includes(page) && (
+                <Auth
+                  embedded
+                  mode={page}
+                  setMode={nav}
+                  onClose={() => nav('home')}
+                  onDone={async () => {
+                    const next = await refresh();
+                    nav(next.user?.admin ? 'admin' : page === 'register' ? 'billing' : 'home');
+                  }}
+                />
+              )}
+              {page === 'admin' && user?.admin && <AdminDashboard />}
+              {page === 'home' && (
+                <Dashboard
+                  {...{ start, nav, circuits, proofs, edit, prove }}
+                  usage={session.usage}
+                />
+              )}
               {page === 'circuits' && (
                 <>
                   <PageHeading

@@ -33,3 +33,12 @@ test('reject unsafe deployment and ambiguous origins', () => {
     ).adminIds,
   ).toEqual(['one', 'two']);
 });
+
+test('plan prices cannot collide and essential retains its existing environment variable', () => {
+  expect(
+    loadConfig({}, { STRIPE_PRICE_ID: 'legacy', STRIPE_PRICE_PRO: 'pro' }).stripePrices,
+  ).toEqual({ essential: 'legacy', pro: 'pro' });
+  expect(() =>
+    loadConfig({}, { STRIPE_PRICE_ESSENTIAL: 'same', STRIPE_PRICE_PRO: 'same' }),
+  ).toThrow('distinct');
+});

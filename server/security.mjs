@@ -2,6 +2,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { fail } from './errors.mjs';
+import { planFor } from './plans.mjs';
 const hash = (s) => createHash('sha256').update(s).digest('hex');
 export const createLimit = (limit, windowMs = 60000) =>
   rateLimit({
@@ -43,8 +44,15 @@ export function createSessions(repo, config, now = Date.now) {
           id: user.id,
           email: user.email,
           status: user.status,
+          plan: planFor(user.plan).id,
           expires: user.expires,
-          active: ['active', 'trialing'].includes(user.status) && user.expires > now(),
+          active:
+            Boolean(user.subscription) &&
+            ['active', 'trialing'].includes(user.status) &&
+            user.expires > now(),
+          trialActive:
+            Boolean(user.subscription) && user.status === 'trialing' && user.expires > now(),
+          trialEligible: !user.trial_used,
           admin: config.adminIds.includes(user.id),
         }
       : null;

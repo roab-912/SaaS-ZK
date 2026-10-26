@@ -13,7 +13,12 @@ export const credentials = z
     password: z.string().min(12).max(128),
   })
   .strict();
-export const demoAction = z.object({ action: z.enum(['activate', 'cancel']) }).strict();
+export const checkoutAction = z
+  .object({ plan: z.enum(['essential', 'pro']).default('essential') })
+  .strict();
+export const proofAction = z
+  .object({ token: z.string().regex(/^[a-f0-9]{32}$/), complete: z.boolean() })
+  .strict();
 const issuerSchema = z
   .object({
     id: z.string().regex(/^[a-z0-9-]{1,40}$/),

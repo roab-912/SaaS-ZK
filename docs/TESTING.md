@@ -56,3 +56,11 @@ Le parcours navigateur supplémentaire configure une entrée signée privée, é
 ## Distribution hors ligne
 
 Les tests de offline/ couvrent le registre public, les contrôles d’intégrité, les accès locaux, les erreurs expurgées et l’interface de vérification. La suite séparée `npm run test:offline` construit et télécharge le vrai logiciel, l’extrait hors du dépôt et utilise son Node embarqué pour vérifier les trois moteurs, une signature privée et une falsification. Voir [OFFLINE.md](OFFLINE.md).
+
+## Abonnements et administration
+
+Les tests contrôlent les plafonds de stockage, les réservations simultanées, l’expiration et la confirmation idempotente des générations, le changement de mois, l’isolation des comptes et les changements d’offre. Le tableau de bord administrateur exige un identifiant autorisé et n’expose que des agrégats. Le contrat Stripe couvre le choix du tarif, l’expiration d’une session Checkout d’une autre offre et la réconciliation des droits après changement de tarif. Les transactions externes et les portefeuilles Apple Pay/Google Pay doivent être vérifiés avec votre compte Stripe ; les tests automatisés utilisent un client simulé.
+
+Configuration : [BILLING.md](BILLING.md).
+
+Les tests Stripe couvrent les 30 jours sur les deux offres, le moyen de paiement obligatoire, la non-réutilisation après annulation et les tarifs chargés depuis Stripe. Les parcours ZK navigateur utilisent un serveur de fixture sous tests/helpers/browser-server.mjs, limité au port 3001 avec base en mémoire ; ses routes de préparation ne sont jamais importées par le serveur normal. Aucun endpoint de démonstration ne peut activer un compte dans le SaaS. Les transactions externes doivent ensuite être testées avec les valeurs du .env.

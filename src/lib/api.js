@@ -12,7 +12,7 @@ export async function api(path, body, method, { signal } = {}) {
   } catch {
     throw Error('Réponse du serveur invalide. Réessayez.');
   }
-  if (response.headers?.get('X-Clair-Protocol') !== '4')
+  if (response.headers?.get('X-Clair-Protocol') !== '5')
     throw Error(
       'Le serveur utilise une ancienne version de Clair. Arrêtez-le avec Ctrl+C, relancez demarrer.cmd, puis rechargez cette page.',
     );

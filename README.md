@@ -20,7 +20,7 @@ npm install
 npm run dev
 ```
 
-Ouvrir http://localhost:3000. Créer un compte avec un mot de passe d’au moins 12 caractères, puis activer les 30 jours de démonstration dans **Mon abonnement**. Aucun paiement ni compte externe n’est nécessaire pour ce parcours.
+Ouvrir http://localhost:3000. Créer un compte avec un mot de passe d’au moins 12 caractères. Le compte reste inactif jusqu’à la souscription via Stripe : les deux offres proposent 30 jours d’essai avec moyen de paiement obligatoire, une seule fois par compte. Sans Stripe configuré, la vérification publique reste disponible. Voir [la configuration guidée](docs/BILLING.md).
 
 Les comptes sont conservés dans **data/clair.sqlite**. Les tests utilisent une base en mémoire. Ne pas mettre data/ ou .env dans Git.
 
@@ -33,7 +33,7 @@ Après cette mise à jour, exécuter `installer.cmd` pour installer les nouvelle
 ## Parcours disponibles
 
 - Inscription, connexion, session HttpOnly de sept jours et déconnexion.
-- Abonnement de démonstration activable/désactivable ; accès contrôlés côté serveur.
+- Essai Stripe de 30 jours sur l’une des deux offres, unique par compte ; accès contrôlés côté serveur.
 - Stripe : Checkout, portail client, webhooks signés, synchronisation de l’état et réutilisation d’une session de paiement ouverte.
 - Entrées privées/publiques : entier positif, date ou booléen.
 - Comparaisons =, ≠, >, ≥, <, ≤ ; ET, OU, XOR, NON ; +, −, ×, division entière, modulo ; appartenance à une liste.
@@ -51,12 +51,13 @@ Copier .env.example vers .env, puis renseigner :
 APP_URL=http://localhost:3000
 BILLING_MODE=stripe
 STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PRICE_ID=price_...
+STRIPE_PRICE_ESSENTIAL=price_...
+STRIPE_PRICE_PRO=price_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 ALLOW_LIVE_PAYMENTS=false
 ```
 
-Créer un produit et un prix **récurrent** dans l’environnement de test Stripe. Activer le portail client dans ce même environnement. Le tarif au paiement provient du prix Stripe ; aucun montant n’est codé dans le client.
+Créer deux produits, chacun avec son prix **récurrent forfaitaire** dans le même environnement de test Stripe. Activer le portail client dans ce même environnement. Le tarif au paiement provient du prix Stripe ; aucun montant n’est codé dans le client.
 
 Avec la CLI Stripe authentifiée :
 
@@ -147,3 +148,5 @@ En développement, `demarrer.cmd` lance Node sans le mode `--watch`, pour évite
 ### Sources de confiance
 
 Le registre accepte des clés publiques P-256 approuvées par l’administrateur. Les émetteurs choisissent leur source depuis « Sources de confiance → Créer une attestation », puis un circuit qui la désigne comme autorité. Ils renseignent uniquement les champs attribués à cette source et les signent avec une seule clé privée. Une autorité externe peut importer le circuit public exporté depuis l’éditeur, sans compte ni preuve ZK. Un fichier signé est téléchargé pour chaque donnée. Le destinataire importe ce fichier dans la génération de sa preuve ; la signature manuelle y reste disponible dans un volet replié. La vérification affiche la source et contrôle les signatures, les valeurs, l’expiration et l’approbation actuelle. Les connecteurs FranceConnect, banque et facturation restent à développer. Voir [le parcours complet et le format de signature](docs/SOURCES.md).
+
+Comptes, offres, administration et configuration Stripe : [docs/BILLING.md](docs/BILLING.md).

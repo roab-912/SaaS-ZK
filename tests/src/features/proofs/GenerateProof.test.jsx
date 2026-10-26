@@ -8,7 +8,9 @@ import { proofFixture } from '../../../helpers/proof.mjs';
 import { api } from '../../../../src/lib/api.js';
 import { compileForEngine, launchProof } from '../../../../src/lib/zk-client.js';
 import { download } from '../../../../src/lib/files.js';
-vi.mock('../../../../src/lib/api.js', () => ({ api: vi.fn(async () => ({})) }));
+vi.mock('../../../../src/lib/api.js', () => ({
+  api: vi.fn(async (path) => (path === '/prover/authorize' ? { token: 'a'.repeat(32) } : {})),
+}));
 vi.mock('../../../../src/lib/zk-client.js', () => ({
   compileForEngine: vi.fn(),
   launchProof: vi.fn(),
@@ -41,6 +43,7 @@ test('generation keeps private inputs in worker, clears form and archives only e
   expect(screen.getByLabelText('Date de naissance', { exact: true })).toHaveValue('');
   expect(JSON.stringify(api.mock.calls)).not.toContain('1991');
   expect(compileForEngine).toHaveBeenCalledWith(envelope.circuit);
+  expect(api).toHaveBeenCalledWith('/prover/finish', { token: 'a'.repeat(32), complete: true });
   await userEvent.click(screen.getByRole('button', { name: 'Télécharger la preuve' }));
   expect(download).toHaveBeenCalledWith(envelope, envelope.circuit.name + '.preuve.clair');
   await userEvent.click(screen.getByRole('button', { name: 'Enregistrer dans mon espace' }));
@@ -178,4 +181,35 @@ test('inline signing is local and editing a signed value requires a new signatur
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+test('a failed local calculation releases its reservation without sending private values', async () => {
+  vi.clearAllMocks();
+  const envelope = await proofFixture(),
+    token = 'a'.repeat(32);
+  api.mockImplementation(async (path) => (path === '/prover/authorize' ? { token } : {}));
+  compileForEngine.mockResolvedValue({});
+  // Create the rejected promise only when the task is launched.
+  launchProof.mockImplementation(() => ({
+    promise: Promise.reject(Error('Calcul interrompu')),
+    cancel: vi.fn(),
+  }));
+  render(
+    <Generate
+      circuit={{ schema: envelope.circuit }}
+      notify={vi.fn()}
+      refresh={vi.fn()}
+      onVerify={vi.fn()}
+    />,
+  );
+  fireEvent.change(screen.getByLabelText('Date de naissance', { exact: true }), {
+    target: { value: '1991-07-14' },
+  });
+  fireEvent.change(screen.getByLabelText('Né au plus tard le', { exact: true }), {
+    target: { value: '2008-09-21' },
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'Générer ma preuve' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Calcul interrompu');
+  expect(api).toHaveBeenCalledWith('/prover/finish', { token, complete: false });
+  expect(JSON.stringify(api.mock.calls)).not.toContain('1991-07-14');
 });

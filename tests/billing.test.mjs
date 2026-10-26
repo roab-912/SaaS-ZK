@@ -25,6 +25,7 @@ test('Stripe contract: signed webhooks, authoritative status, checkout reuse, ca
           id: 'cs_local',
           url: 'https://checkout.stripe.com/local',
           status: 'open',
+          metadata: { plan: 'essential', trial: '30' },
         }),
       },
     },

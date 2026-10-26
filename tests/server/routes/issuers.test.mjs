@@ -64,7 +64,7 @@ test('approved registry keys bind public attestations and revocation removes tru
       (await verifyEvidence(signed.circuit, signed.values, signed.attestations, await list()))[0]
         .valid,
     ).toBe(true);
-    await f.request('/billing/demo', { cookie, body: { action: 'activate' } });
+    f.activate(cookie);
     expect((await f.request('/circuits', { cookie, body: signed.circuit })).status).toBe(201);
     const hash = await circuitHash(signed.circuit),
       envelope = buildProofEnvelope({

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { createRepository } from '../../server/repository.mjs';
 import { createApp } from '../../server/app.mjs';
 export async function serverFixture(options = {}) {
   const instance = createApp({
@@ -38,6 +40,20 @@ export async function serverFixture(options = {}) {
     ...instance,
     request,
     account,
+    activate(cookie, plan = 'essential') {
+      const repo = createRepository(instance.db);
+      const token = createHash('sha256').update(cookie.split('=')[1]).digest('hex');
+      const user = repo.userForSession(token, Date.now());
+      const customer = 'cus_fixture_' + user.id;
+      repo.setCustomer(user.id, customer);
+      repo.updateSubscription(
+        customer,
+        'active',
+        Date.now() + 86400000,
+        'sub_fixture_' + user.id,
+        plan,
+      );
+    },
     async close() {
       await new Promise((r) => server.close(r));
       instance.db.close();

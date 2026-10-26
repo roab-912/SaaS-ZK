@@ -1,16 +1,27 @@
+import { catalog, monthWindow, planFor } from '../plans.mjs';
 import { credentials } from '../schemas.mjs';
 import { hashPassword, verifyPassword, needsPasswordUpgrade } from '../passwords.mjs';
 import { createLimit } from '../security.mjs';
 import { fail } from '../errors.mjs';
 export function registerAuthRoutes(app, { repo, sessions, config }) {
   const limit = createLimit(20, 15 * 60000);
-  app.get('/api/session', (req, res) =>
+  app.get('/api/session', (req, res) => {
+    const now = Date.now(),
+      window = monthWindow(now);
     res.json({
       user: sessions.view(req.user),
       billingMode: config.mode,
       paymentEnvironment: config.paymentEnvironment,
-    }),
-  );
+      plans: catalog(config),
+      usage: req.user
+        ? {
+            ...repo.usage(req.user.id, window.period, now),
+            limits: planFor(sessions.view(req.user).plan),
+            ...window,
+          }
+        : null,
+    });
+  });
   app.post('/api/auth/register', limit, async (req, res) => {
     const { email, password } = credentials.parse(req.body);
     const digest = await hashPassword(password);

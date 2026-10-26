@@ -6,7 +6,7 @@ test('rejects proof smuggling and unknown engines; archives are isolated', async
   const f = await serverFixture();
   try {
     const { cookie } = await f.account();
-    await f.request('/billing/demo', { cookie, body: { action: 'activate' } });
+    f.activate(cookie);
     const envelope = await proofFixture();
     for (const body of [
       { ...envelope, values: { secret: 12 } },
@@ -34,7 +34,7 @@ test('circuit engine survives saving and reloading; versions and envelopes canno
   const f = await serverFixture();
   try {
     const { cookie } = await f.account();
-    await f.request('/billing/demo', { cookie, body: { action: 'activate' } });
+    f.activate(cookie);
     const ids = [];
     for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
       const response = await f.request('/circuits', { cookie, body: { ...template(), engine } });

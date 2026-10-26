@@ -25,7 +25,13 @@ export function loadConfig(overrides = {}, env = process.env) {
   )
     throw Error('Le mode demo est réservé au développement local.');
   if (production && origin.protocol !== 'https:') throw Error('HTTPS requis en production.');
-  if (mode === 'stripe' && (!stripeKey || !env.STRIPE_PRICE_ID || !env.STRIPE_WEBHOOK_SECRET))
+  const stripePrices = {
+    essential: env.STRIPE_PRICE_ESSENTIAL || env.STRIPE_PRICE_ID || '',
+    pro: env.STRIPE_PRICE_PRO || '',
+  };
+  if (stripePrices.pro && stripePrices.pro === stripePrices.essential)
+    throw Error('Chaque offre doit avoir un prix Stripe distinct.');
+  if (mode === 'stripe' && (!stripeKey || !stripePrices.essential || !env.STRIPE_WEBHOOK_SECRET))
     throw Error('Configuration Stripe incomplète.');
   if (stripeKey.startsWith('sk_live_') && env.ALLOW_LIVE_PAYMENTS !== 'true')
     throw Error('Paiement réel non autorisé.');
@@ -38,7 +44,8 @@ export function loadConfig(overrides = {}, env = process.env) {
     secure: origin.protocol === 'https:',
     dbPath: overrides.dbPath ?? env.DB_PATH ?? 'data/clair.sqlite',
     stripeKey,
-    stripePrice: env.STRIPE_PRICE_ID || '',
+    stripePrice: stripePrices.essential,
+    stripePrices: Object.freeze(stripePrices),
     stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
     adminIds: Object.freeze(
       (env.ADMIN_USER_IDS || '')

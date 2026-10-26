@@ -80,3 +80,5 @@ L’architecture reste volontairement celle d’un MVP à un processus : le regi
 ## Vérificateur portable
 
 `offline/` fournit une interface indépendante et un serveur limité à la boucle locale. La compilation et la vérification réutilisent les adaptateurs ZK du projet dans un processus isolé. `scripts/build-offline.mjs` assemble les modules explicitement autorisés, leurs dépendances, Node et les paramètres publics. `server/routes/offline.mjs` distribue cette archive avec un instantané `clair-trust/1` du registre, validé par `shared/trust-snapshot.mjs`. Aucun secret du serveur n’entre dans le paquet. Les détails d’utilisation, de confiance et de préparation sont dans [OFFLINE.md](OFFLINE.md).
+
+Les offres sont centralisées dans server/plans.mjs. La migration SQLite v2 ajoute le plan et les réservations de génération sans supprimer les données existantes. Le repository applique les quotas de stockage et de génération dans des transactions. Les routes administrateur ne renvoient que des statistiques agrégées aux identifiants autorisés. Voir [BILLING.md](BILLING.md) pour les règles de comptage et Stripe.

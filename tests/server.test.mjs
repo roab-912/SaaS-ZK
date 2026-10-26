@@ -29,8 +29,9 @@ test('accounts, paid access, isolation, expiry and CSRF', async () => {
       user = (await r.json()).user;
     assert.ok(r.headers.get('set-cookie').includes('HttpOnly'));
     assert.ok(r.headers.get('set-cookie').includes('SameSite=Strict'));
-    assert.equal((await call('/circuits', { body: template(), cookie })).status, 402);
+    assert.equal(user.active, false);
     assert.equal((await call('/prover/authorize', { body: {}, cookie })).status, 402);
+    assert.equal(user.plan, 'essential');
     assert.equal(
       (
         await call('/billing/demo', {
@@ -43,8 +44,11 @@ test('accounts, paid access, isolation, expiry and CSRF', async () => {
     );
     assert.equal(
       (await call('/billing/demo', { body: { action: 'activate' }, cookie })).status,
-      200,
+      404,
     );
+    db.prepare(
+      "UPDATE users SET subscription='sub_fixture',status='active',expires=? WHERE id=?",
+    ).run(Date.now() + 86400000, user.id);
     assert.equal((await call('/prover/authorize', { body: {}, cookie })).status, 200);
     r = await call('/circuits', { body: template(), cookie });
     assert.equal(r.status, 201);
