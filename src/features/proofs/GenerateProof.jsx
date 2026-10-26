@@ -23,7 +23,14 @@ import {
   signedInputs,
   verifyEvidence,
 } from '../../../shared/attestations.mjs';
-export function Generate({ circuit: record, notify, refresh, onVerify }) {
+export function Generate({
+  circuit: record,
+  initialValues = {},
+  onEdit,
+  notify,
+  refresh,
+  onVerify,
+}) {
   const c = record.schema;
   const signed = signedInputs(c);
   const [attestations, setAttestations] = useState([]),
@@ -38,7 +45,7 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
         if (d.getUTCMonth() !== month) d.setUTCDate(0);
         value = d.toISOString().slice(0, 10);
       }
-      return [i.id, value];
+      return [i.id, i.visibility === 'public' ? (initialValues[i.id] ?? value) : value];
     }),
   );
   const [values, setValues] = useState(initial),
@@ -158,6 +165,13 @@ export function Generate({ circuit: record, notify, refresh, onVerify }) {
     <>
       <PageHeading
         title="Générer une preuve"
+        action={
+          onEdit && (
+            <Button variant="secondary" onClick={onEdit} disabled={busy}>
+              Personnaliser ce circuit
+            </Button>
+          )
+        }
         desc="Vos données privées sont utilisées uniquement sur cet appareil."
       />
       <div className="generate-layout">

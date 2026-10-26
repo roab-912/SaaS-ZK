@@ -23,10 +23,12 @@ import {
 } from 'lucide-react';
 import { Button, Empty, PageHeading, AccountEmpty } from './components/ui.jsx';
 import { api } from './lib/api.js';
-import { template, validateCircuit } from '../shared/circuit.mjs';
+import { canonical, template, validateCircuit } from '../shared/circuit.mjs';
 import { Auth } from './features/auth/AuthDialog.jsx';
 import { Editor } from './features/circuits/CircuitEditor.jsx';
 import { CircuitTable } from './features/circuits/CircuitTable.jsx';
+import { CircuitCatalog } from './features/circuits/CircuitCatalog.jsx';
+import { readyCircuit, publicDefaults } from './features/circuits/catalog-model.js';
 import { Generate } from './features/proofs/GenerateProof.jsx';
 import { Verify } from './features/proofs/VerifyProof.jsx';
 import { Billing } from './features/billing/BillingPage.jsx';
@@ -57,7 +59,9 @@ export function App() {
     [draft, setDraft] = useState(() => ({ ...template('blank'), version: 2 })),
     [selected, setSelected] = useState(null),
     [verifyFile, setVerifyFile] = useState(null),
-    [mobile, setMobile] = useState(false);
+    [mobile, setMobile] = useState(false),
+    [startingTemplate, setStartingTemplate] = useState(null);
+  const starting = useRef(false);
   const timer = useRef();
   const notify = (message, error = false) => {
     setToast({ message, error });
@@ -127,10 +131,30 @@ export function App() {
     }
     return true;
   };
-  const start = (kind = 'blank') => {
-    if (needPaid()) {
-      setDraft({ ...template(kind), version: 2 });
-      nav('editor');
+  const start = async (kind = 'catalog', engine) => {
+    if (!needPaid()) return;
+    if (kind === 'catalog') return nav('circuits');
+    if (kind === 'blank') {
+      setDraft({ ...template('blank'), version: 2 });
+      return nav('editor');
+    }
+    if (starting.current) return;
+    starting.current = true;
+    setStartingTemplate(kind);
+    try {
+      const schema = readyCircuit(kind, engine);
+      const existing = circuits.find(
+        (c) => canonical(validateCircuit(c.schema)) === canonical(schema),
+      );
+      const record = existing ?? (await api('/circuits', schema));
+      if (!existing) await refresh();
+      setSelected({ ...record, schema, initialValues: publicDefaults(kind) });
+      nav('generate');
+    } catch (e) {
+      notify(e.message, true);
+    } finally {
+      starting.current = false;
+      setStartingTemplate(null);
     }
   };
   const edit = (c) => {
@@ -355,14 +379,21 @@ export function App() {
                 <>
                   <PageHeading
                     title="Mes circuits"
-                    desc="Construisez vos règles. Chaque enregistrement conserve une version immuable."
+                    desc="Un circuit prêt à utiliser ou votre propre règle : choisissez ce que vous souhaitez démontrer."
                     action={
-                      <Button onClick={() => start()}>
+                      <Button variant="secondary" onClick={() => start('blank')}>
                         <Plus size={17} />
-                        Créer un circuit
+                        Circuit personnalisé
                       </Button>
                     }
                   />
+                  <CircuitCatalog onChoose={start} pending={startingTemplate} />
+                  <div className="section-heading">
+                    <div>
+                      <h2>Vos circuits enregistrés</h2>
+                      <p>Réutilisez un circuit ou ouvrez-le dans l’éditeur pour l’adapter.</p>
+                    </div>
+                  </div>
                   {!user ? (
                     <AccountEmpty open={() => setAuth('login')} />
                   ) : circuits.length ? (
@@ -376,12 +407,8 @@ export function App() {
                       }}
                     />
                   ) : (
-                    <Empty
-                      icon={GitBranch}
-                      title="Votre atelier est prêt."
-                      action={<Button onClick={() => start()}>Créer un circuit</Button>}
-                    >
-                      Commencez par un modèle et ajustez ses conditions.
+                    <Empty icon={GitBranch} title="Votre atelier est prêt.">
+                      Choisissez un circuit ci-dessus pour commencer sans construire de règle.
                     </Empty>
                   )}
                 </>
@@ -402,7 +429,10 @@ export function App() {
               )}
               {page === 'generate' && selected && (
                 <Generate
+                  key={selected.id}
                   circuit={selected}
+                  initialValues={selected.initialValues}
+                  onEdit={() => edit(selected)}
                   notify={notify}
                   refresh={refresh}
                   onVerify={openVerify}

@@ -82,3 +82,11 @@ L’architecture reste volontairement celle d’un MVP à un processus : le regi
 `offline/` fournit une interface indépendante et un serveur limité à la boucle locale. La compilation et la vérification réutilisent les adaptateurs ZK du projet dans un processus isolé. `scripts/build-offline.mjs` assemble les modules explicitement autorisés, leurs dépendances, Node et les paramètres publics. `server/routes/offline.mjs` distribue cette archive avec un instantané `clair-trust/1` du registre, validé par `shared/trust-snapshot.mjs`. Aucun secret du serveur n’entre dans le paquet. Les détails d’utilisation, de confiance et de préparation sont dans [OFFLINE.md](OFFLINE.md).
 
 Les offres sont centralisées dans server/plans.mjs. La migration SQLite v2 ajoute le plan et les réservations de génération sans supprimer les données existantes. Le repository applique les quotas de stockage et de génération dans des transactions. Les routes administrateur ne renvoient que des statistiques agrégées aux identifiants autorisés. Voir [BILLING.md](BILLING.md) pour les règles de comptage et Stripe.
+
+## Circuits prêts à utiliser
+
+La page Mes circuits présente un catalogue : majorité, revenu strictement supérieur à un seuil, revenus couvrant trois fois un loyer et département francilien. La sélection enregistre un circuit public version 2 puis ouvre directement le formulaire de génération. Un circuit identique déjà présent est réutilisé, sans consommer de place supplémentaire. Les données privées ne sont jamais préremplies ni envoyées lors de cet enregistrement.
+
+Les modèles et leurs paramètres publics initiaux sont définis dans src/features/circuits/catalog-model.js. Le moteur par défaut est Noir ; les options avancées du catalogue permettent de choisir un autre moteur. Le bouton Circuit personnalisé ouvre l’éditeur existant. Depuis un modèle, Personnaliser ce circuit permet notamment de configurer des attestations : les modèles de départ utilisent des valeurs déclarées.
+
+Les seuils de revenus et les loyers sont exprimés en euros entiers par mois. Le seuil de majorité est une date publique, initialisée à la date d’il y a 18 ans, et ajustable dans le formulaire. Les seuils effectivement utilisés sont inclus dans la preuve ; le vérificateur doit les examiner.

@@ -213,3 +213,18 @@ test('a failed local calculation releases its reservation without sending privat
   expect(api).toHaveBeenCalledWith('/prover/finish', { token, complete: false });
   expect(JSON.stringify(api.mock.calls)).not.toContain('1991-07-14');
 });
+
+test('public template defaults never prefill private inputs', async () => {
+  const { readyCircuit } = await import('../../../../src/features/circuits/catalog-model.js');
+  render(
+    <Generate
+      circuit={{ schema: readyCircuit('revenue') }}
+      initialValues={{ income: '99999', threshold: '3000' }}
+      notify={vi.fn()}
+      refresh={vi.fn()}
+      onVerify={vi.fn()}
+    />,
+  );
+  expect(screen.getByLabelText('Revenus mensuels', { exact: true })).toHaveValue(null);
+  expect(screen.getByLabelText('Seuil mensuel en euros', { exact: true })).toHaveValue(3000);
+});

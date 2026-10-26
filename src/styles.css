@@ -2023,3 +2023,39 @@ pre {
 .admin-stats {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
+
+.circuit-catalog {
+  margin-bottom: 36px;
+}
+.catalog-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.catalog-grid .template-card {
+  display: flex;
+  flex-direction: column;
+}
+.catalog-grid .template-footer {
+  margin-top: auto;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.catalog-grid .template-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.catalog-grid .catalog-fields {
+  font-size: 12px;
+  margin-bottom: 24px;
+}
+.catalog-grid .template-card:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.catalog-options {
+  margin-top: 16px;
+}
+.catalog-options label {
+  max-width: 380px;
+  margin-top: 16px;
+}

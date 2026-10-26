@@ -45,12 +45,12 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
       page.getByRole('button', { name: 'Configurer Stripe pour souscrire' }).first(),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
-    await page.getByRole('button', { name: /Condition de majorité/ }).click();
-    await expect(page.getByText('Votre règle est prête')).toBeVisible();
+    await page.getByRole('button', { name: /^Mes circuits/ }).click();
+    await page.getByText('Options avancées', { exact: true }).click();
     await expect(page.getByLabel('Moteur de preuve')).toHaveValue(ENGINE);
     if (engine !== ENGINE) await page.getByLabel('Moteur de preuve').selectOption(engine);
-    await page.screenshot({ path: 'test-results/editor-desktop.png', fullPage: true });
-    await page.getByRole('button', { name: 'Enregistrer et prouver' }).click();
+    await page.getByRole('button', { name: 'Utiliser Condition de majorité', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Générer une preuve' })).toBeVisible();
     await page.getByLabel('Date de naissance', { exact: true }).fill(privateMarker);
     await page.getByLabel('Né au plus tard le', { exact: true }).fill('2008-09-21');
     await page.getByRole('button', { name: 'Générer ma preuve' }).click();
@@ -166,6 +166,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     ).toBeVisible();
     await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
     await page.getByRole('button', { name: /Condition de majorité/ }).click();
+    await page.getByRole('button', { name: 'Personnaliser ce circuit' }).click();
     await page.getByLabel('Nom du circuit').fill('Comparaison privée');
     await page.getByLabel('Moteur de preuve').selectOption(engine);
     await expect(page.getByLabel('Résultat à prouver')).toHaveValue('2');
@@ -291,6 +292,7 @@ for (const privateInput of [false, true]) {
       await expect(page.getByText('Banque de test — simulation', { exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
       await page.getByRole('button', { name: /Capacité financière Prouvez/ }).click();
+      await page.getByRole('button', { name: 'Personnaliser ce circuit' }).click();
       await expect(
         page
           .getByRole('option', {
@@ -503,6 +505,7 @@ test('new circuit and removal of birth both allow a single integer equals 18', a
   ).toBeVisible();
   await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
   await page.getByRole('button', { name: 'Créer un circuit', exact: true }).click();
+  await page.getByRole('button', { name: 'Circuit personnalisé', exact: true }).click();
   await expect(page.getByLabel('Nom du circuit')).toHaveValue('Nouveau circuit');
   await expect(page.getByLabel('Libellé', { exact: true })).toHaveCount(1);
   await expect(page.getByLabel('Bloc niveau 0')).toHaveValue('eq');
@@ -510,6 +513,7 @@ test('new circuit and removal of birth both allow a single integer equals 18', a
   await expect(page.getByText('Votre règle est prête')).toBeVisible();
   await page.getByRole('button', { name: 'Vue d’ensemble' }).click();
   await page.getByRole('button', { name: /Condition de majorité/ }).click();
+  await page.getByRole('button', { name: 'Personnaliser ce circuit' }).click();
   await page.getByRole('button', { name: 'Supprimer l’entrée Date de naissance' }).click();
   await expect(page.getByLabel('Entrée utilisée').nth(0)).toHaveValue('cutoff');
   await expect(page.getByLabel('Entrée utilisée').nth(1)).toHaveValue('cutoff');
