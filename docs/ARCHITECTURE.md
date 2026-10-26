@@ -85,7 +85,7 @@ Les offres sont centralisées dans server/plans.mjs. La migration SQLite v2 ajou
 
 ## Circuits prêts à utiliser
 
-La page Mes circuits présente un catalogue : majorité, revenu strictement supérieur à un seuil, revenus couvrant trois fois un loyer et département francilien. La sélection enregistre un circuit public version 2 puis ouvre directement le formulaire de génération. Un circuit identique déjà présent est réutilisé, sans consommer de place supplémentaire. Les données privées ne sont jamais préremplies ni envoyées lors de cet enregistrement.
+La page Mes circuits présente un catalogue : majorité, revenu strictement supérieur à un seuil, revenus couvrant trois fois un loyer et département francilien. La sélection ouvre directement le formulaire de génération sans enregistrer le modèle. Le circuit public version 2 est enregistré au lancement de la génération, après validation des données et des attestations, ou lors d’un enregistrement explicite dans l’éditeur. Personnaliser un modèle ne conserve donc pas une copie non modifiée dans l’espace utilisateur. Un circuit identique déjà présent est réutilisé, sans consommer de place supplémentaire. Les données privées ne sont jamais préremplies ni envoyées lors de cet enregistrement.
 
 Les modèles et leurs paramètres publics initiaux sont définis dans src/features/circuits/catalog-model.js. Le moteur par défaut est Noir ; les options avancées du catalogue permettent de choisir un autre moteur. Le bouton Circuit personnalisé ouvre l’éditeur existant. Depuis un modèle, Personnaliser ce circuit permet notamment de configurer des attestations : les modèles de départ utilisent des valeurs déclarées.
 

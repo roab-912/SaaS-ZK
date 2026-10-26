@@ -69,7 +69,7 @@ test('dedicated signup/login URLs are reachable and browser back follows navigat
   window.history.replaceState({}, '', '/');
 });
 
-test('ready model opens data entry directly, reuses the saved circuit, and custom creation stays available', async () => {
+test('browsing ready models opens data entry without saving and custom creation stays available', async () => {
   const records = [];
   api.mockImplementation(async (path, body) => {
     if (path === '/session') return { user: { id: 'u', email: 'u@example.test', active: true } };
@@ -98,23 +98,48 @@ test('ready model opens data entry directly, reuses the saved circuit, and custo
   );
   await screen.findByRole('heading', { name: 'Générer une preuve' });
   expect(screen.getByLabelText('Revenus mensuels', { exact: true })).toHaveValue(null);
-  expect(api.mock.calls.filter(([path, body]) => path === '/circuits' && body)).toHaveLength(1);
+  expect(api.mock.calls.filter(([path, body]) => path === '/circuits' && body)).toHaveLength(0);
   expect(JSON.stringify(api.mock.calls)).not.toContain('87654');
   await userEvent.click(screen.getByRole('button', { name: /^Mes circuits/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Circuit personnalisé', exact: true }));
   expect(await screen.findByLabelText('Nom du circuit')).toHaveValue('Nouveau circuit');
 });
-test('a refused ready-circuit save displays the server error and keeps the catalog accessible', async () => {
-  api.mockImplementation(async (path, body) => {
-    if (path === '/session') return { user: { id: 'u', email: 'u@example.test', active: true } };
-    if (path === '/circuits' && body) throw Error('Limite de circuits atteinte.');
-    return [];
-  });
-  render(<App />);
-  await screen.findByRole('heading', { name: 'Prouvez l’essentiel. Gardez le reste privé.' });
-  await userEvent.click(screen.getByRole('button', { name: 'Créer un circuit', exact: true }));
-  await userEvent.click(screen.getByRole('button', { name: 'Utiliser Condition de majorité' }));
-  expect(await screen.findByRole('status')).toHaveTextContent('Limite de circuits atteinte.');
-  expect(screen.getByRole('heading', { name: 'Que souhaitez-vous prouver ?' })).toBeVisible();
-  expect(screen.getByRole('button', { name: 'Utiliser Condition de majorité' })).toBeEnabled();
+
+test('personalizing a majority template with a signed input saves only the modified circuit', async () => {
+  const { webcrypto, generateKeyPairSync } = await import('node:crypto');
+  vi.stubGlobal('crypto', webcrypto);
+  try {
+    const pub = generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).publicKey.export({
+      format: 'jwk',
+    });
+    const records = [];
+    api.mockImplementation(async (path, body) => {
+      if (path === '/session') return { user: { id: 'u', email: 'u@example.test', active: true } };
+      if (path === '/issuers') return [{ id: 'source-1', name: 'Source approuvée', jwk: pub }];
+      if (path === '/circuits' && body) {
+        const r = { id: 'signed', hash: 'a'.repeat(64), schema: body };
+        records.push(r);
+        return r;
+      }
+      return path === '/circuits' ? [...records] : [];
+    });
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Prouvez l’essentiel. Gardez le reste privé.' });
+    await userEvent.click(screen.getByRole('button', { name: /Condition de majorité/ }));
+    await screen.findByRole('heading', { name: 'Générer une preuve' });
+    expect(api.mock.calls.filter(([p, b]) => p === '/circuits' && b)).toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Personnaliser ce circuit' }));
+    await screen.findAllByRole('option', { name: /Source approuvée/ });
+    await userEvent.selectOptions(
+      screen.getByLabelText('Source de Date de naissance', { exact: true }),
+      'issuer:source-1',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer', exact: true }));
+    await screen.findByRole('heading', { name: 'Mes circuits', exact: true });
+    expect(records).toHaveLength(1);
+    expect(records[0].schema.inputs.find((i) => i.id === 'birth').source).toBe('signed');
+    expect(api.mock.calls.filter(([p, b]) => p === '/circuits' && b)).toHaveLength(1);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

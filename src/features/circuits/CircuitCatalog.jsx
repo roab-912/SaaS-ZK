@@ -48,9 +48,9 @@ export function CircuitCatalog({ onChoose, pending }) {
         })}
       </div>
       <p className="help">
-        Les modèles utilisent des données déclarées. Le circuit est enregistré dans votre espace et
-        compte dans votre abonnement ; le réutiliser ne crée pas de doublon. Les valeurs privées
-        restent sur votre appareil.
+        Les modèles utilisent des données déclarées. Choisir un modèle ne l’enregistre pas. Le
+        circuit compte dans votre abonnement après enregistrement ou au lancement d’une preuve ; le
+        réutiliser ne crée pas de doublon. Les valeurs privées restent sur votre appareil.
       </p>
       <details className="catalog-options">
         <summary>Options avancées</summary>

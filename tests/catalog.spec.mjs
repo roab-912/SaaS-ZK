@@ -22,6 +22,7 @@ test('ready income circuit generates a false proof at equality without an editor
   await expect(page.getByRole('heading', { name: 'Générer une preuve' })).toBeVisible();
   await expect(page.getByLabel('Nom du circuit')).toHaveCount(0);
   await expect(page.getByLabel('Revenus mensuels', { exact: true })).toHaveValue('');
+  expect(await (await page.request.get('/api/circuits')).json()).toHaveLength(0);
   await page.getByLabel('Revenus mensuels', { exact: true }).fill('87654');
   await page.getByLabel('Seuil mensuel en euros', { exact: true }).fill('87654');
   await page.getByRole('button', { name: 'Générer ma preuve' }).click();

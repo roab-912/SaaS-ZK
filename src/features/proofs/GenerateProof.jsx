@@ -28,6 +28,7 @@ export function Generate({
   circuit: record,
   initialValues = {},
   onEdit,
+  onPrepare,
   notify,
   refresh,
   onVerify,
@@ -88,6 +89,8 @@ export function Generate({
         const failed = sources.find((s) => !s.valid);
         if (failed) throw Error(failed.issuerName + ' : ' + failed.reason);
       }
+      await onPrepare?.();
+      if (run !== generation.current) return;
       authorization = await api('/prover/authorize', {});
       setProgress('Préparation du circuit public…');
       const compiled = await compileForEngine(c);

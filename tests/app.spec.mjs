@@ -333,6 +333,8 @@ for (const privateInput of [false, true]) {
       );
       expect(exportedCircuit.inputs.every((i) => i.value === undefined)).toBe(true);
       await page.getByRole('button', { name: 'Enregistrer et prouver' }).click();
+      await expect(page.getByRole('heading', { name: 'Générer une preuve' })).toBeVisible();
+      expect(await (await page.request.get('/api/circuits')).json()).toHaveLength(1);
       const issuerContext = await browser.newContext();
       await registry(issuerContext);
       const issuerPage = await issuerContext.newPage(),

@@ -228,3 +228,31 @@ test('public template defaults never prefill private inputs', async () => {
   expect(screen.getByLabelText('Revenus mensuels', { exact: true })).toHaveValue(null);
   expect(screen.getByLabelText('Seuil mensuel en euros', { exact: true })).toHaveValue(3000);
 });
+
+test('saving a ready circuit fails visibly before consuming a proof reservation', async () => {
+  vi.clearAllMocks();
+  const envelope = await proofFixture();
+  const prepare = vi.fn(async () => {
+    throw Error('Limite de circuits atteinte.');
+  });
+  render(
+    <Generate
+      circuit={{ schema: envelope.circuit }}
+      onPrepare={prepare}
+      notify={vi.fn()}
+      refresh={vi.fn()}
+      onVerify={vi.fn()}
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Générer ma preuve' }));
+  expect(prepare).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Date de naissance', { exact: true }), {
+    target: { value: '14/07/1991' },
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'Générer ma preuve' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Limite de circuits atteinte.');
+  expect(prepare).toHaveBeenCalledOnce();
+  expect(api).not.toHaveBeenCalled();
+  expect(compileForEngine).not.toHaveBeenCalled();
+  expect(launchProof).not.toHaveBeenCalled();
+});

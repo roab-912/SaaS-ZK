@@ -146,9 +146,12 @@ export function App() {
       const existing = circuits.find(
         (c) => canonical(validateCircuit(c.schema)) === canonical(schema),
       );
-      const record = existing ?? (await api('/circuits', schema));
-      if (!existing) await refresh();
-      setSelected({ ...record, schema, initialValues: publicDefaults(kind) });
+      setSelected({
+        ...existing,
+        templateId: kind + '-' + schema.engine,
+        schema,
+        initialValues: publicDefaults(kind),
+      });
       nav('generate');
     } catch (e) {
       notify(e.message, true);
@@ -429,8 +432,19 @@ export function App() {
               )}
               {page === 'generate' && selected && (
                 <Generate
-                  key={selected.id}
+                  key={selected.id ?? selected.templateId}
                   circuit={selected}
+                  onPrepare={async () => {
+                    if (selected.id) return;
+                    const schema = validateCircuit(selected.schema);
+                    const existing = circuits.some(
+                      (c) => canonical(validateCircuit(c.schema)) === canonical(schema),
+                    );
+                    if (!existing) {
+                      await api('/circuits', schema);
+                      await refresh();
+                    }
+                  }}
                   initialValues={selected.initialValues}
                   onEdit={() => edit(selected)}
                   notify={notify}
