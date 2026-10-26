@@ -76,7 +76,7 @@ test.each([false, true])(
         target: { value: '3000' },
       });
       fireEvent.change(screen.getByLabelText('Valeur pour Champ 1 (field_1)'), {
-        target: { value: '2000-02-29' },
+        target: { value: '29/02/2000' },
       });
       await userEvent.selectOptions(screen.getByLabelText('Valeur pour Champ 2 (field_2)'), 'true');
       const key = screen.getByLabelText('Clé privée pour les données du circuit', { exact: true });

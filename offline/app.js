@@ -67,7 +67,13 @@ button.onclick = async () => {
     element('statement').textContent = r.statement;
     element('hash').textContent = r.circuitHash;
     element('values').replaceChildren();
-    for (const i of r.publicData) text(element('values'), 'p', i.label + ' : ' + String(i.value));
+    for (const i of r.publicData) {
+      const value =
+        i.type === 'date'
+          ? String(i.value).replace(/^(\d{4})-?(\d{2})-?(\d{2})$/, '$3/$2/$1')
+          : String(i.value);
+      text(element('values'), 'p', i.label + ' : ' + value);
+    }
     if (!r.publicData.length) text(element('values'), 'p', 'Aucune valeur d’entrée publique.');
     element('sources').replaceChildren();
     for (const source of r.sources ?? []) {

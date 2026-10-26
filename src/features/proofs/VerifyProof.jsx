@@ -1,3 +1,4 @@
+import { displayDate } from '../../lib/format.js';
 import React from 'react';
 import { engineName } from '../../../shared/engines.mjs';
 import { useState, useEffect, useRef } from 'react';
@@ -202,11 +203,7 @@ export function Verify({ initial, notify }) {
                 fields.map((i) => (
                   <div className="public-row" key={i.id}>
                     <span>{i.label}</span>
-                    <strong>
-                      {i.type === 'date'
-                        ? String(i.value).replace(/(\d{4})(\d{2})(\d{2})/, '$3/$2/$1')
-                        : String(i.value)}
-                    </strong>
+                    <strong>{i.type === 'date' ? displayDate(i.value) : String(i.value)}</strong>
                   </div>
                 ))
               ) : (

@@ -1,3 +1,4 @@
+import { DateInput } from '../../components/DateInput.jsx';
 import React from 'react';
 import { ENGINE, ZK_ENGINES } from '../../../shared/engines.mjs';
 import { useState, useEffect } from 'react';
@@ -485,17 +486,26 @@ function NodeEditor({ node: n, inputs, onChange, depth }) {
               <option value="true">Vrai</option>
               <option value="false">Faux</option>
             </select>
+          ) : n.type === 'date' ? (
+            <DateInput
+              aria-label="Valeur fixe"
+              value={n.value}
+              onChange={(value) =>
+                onChange({
+                  ...n,
+                  value: /^\d{4}-\d{2}-\d{2}$/.test(value)
+                    ? Number(value.replaceAll('-', ''))
+                    : value,
+                })
+              }
+            />
           ) : (
             <input
               aria-label="Valeur fixe"
-              type={n.type === 'date' ? 'date' : 'number'}
-              min={n.type === 'date' ? '1900-01-01' : 0}
-              max={n.type === 'date' ? '2199-12-31' : 4294967295}
-              value={
-                n.type === 'date'
-                  ? String(n.value).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')
-                  : n.value
-              }
+              type="number"
+              min={0}
+              max={4294967295}
+              value={n.value}
               onChange={(e) =>
                 onChange({ ...n, value: Number(e.target.value.replaceAll('-', '')) })
               }

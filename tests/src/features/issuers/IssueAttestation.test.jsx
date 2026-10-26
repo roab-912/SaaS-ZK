@@ -12,7 +12,7 @@ vi.mock('../../../../src/lib/api.js', () => ({ api: vi.fn() }));
 vi.mock('../../../../src/lib/files.js', () => ({ download: vi.fn() }));
 test.each([
   ['number', '3000', 3000],
-  ['date', '2000-02-29', '2000-02-29'],
+  ['date', '29/02/2000', '2000-02-29'],
   ['boolean', 'false', false],
 ])(
   'emits a %s attestation with no proof or private-key transmission',

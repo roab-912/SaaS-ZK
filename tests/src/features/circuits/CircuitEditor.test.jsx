@@ -124,3 +124,25 @@ test('missing input references are explicit in the selector and can be repaired'
   await userEvent.selectOptions(screen.getByLabelText('Entrée utilisée'), 'value_1');
   expect(screen.getByText('Votre règle est prête')).toBeVisible();
 });
+
+test('date constants use French notation and incomplete or impossible dates cannot be saved', async () => {
+  const save = vi.fn();
+  function Harness() {
+    const initial = template('age');
+    initial.inputs = initial.inputs.slice(0, 1);
+    initial.root.args[1] = { kind: 'constant', type: 'date', value: 20000229 };
+    const [c, set] = useState(initial);
+    return <Editor draft={c} setDraft={set} onSave={() => save(validateCircuit(c))} />;
+  }
+  render(<Harness />);
+  const field = screen.getByLabelText('Valeur fixe');
+  expect(field).toHaveValue('29/02/2000');
+  await userEvent.clear(field);
+  await userEvent.type(field, '31/02/2026');
+  expect(field).toHaveValue('31/02/2026');
+  expect(screen.getByRole('button', { name: 'Enregistrer', exact: true })).toBeDisabled();
+  await userEvent.clear(field);
+  await userEvent.type(field, '01/03/2026');
+  await userEvent.click(screen.getByRole('button', { name: 'Enregistrer', exact: true }));
+  expect(save.mock.lastCall[0].root.args[1].value).toBe(20260301);
+});

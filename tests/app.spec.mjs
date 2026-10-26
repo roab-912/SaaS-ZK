@@ -51,8 +51,9 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     if (engine !== ENGINE) await page.getByLabel('Moteur de preuve').selectOption(engine);
     await page.getByRole('button', { name: 'Utiliser Condition de majorité', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Générer une preuve' })).toBeVisible();
-    await page.getByLabel('Date de naissance', { exact: true }).fill(privateMarker);
-    await page.getByLabel('Né au plus tard le', { exact: true }).fill('2008-09-21');
+    await page.getByLabel('Date de naissance', { exact: true }).fill('14/07/1991');
+    await expect(page.getByLabel('Date de naissance', { exact: true })).toHaveValue('14/07/1991');
+    await page.getByLabel('Né au plus tard le', { exact: true }).fill('21/09/2008');
     await page.getByRole('button', { name: 'Générer ma preuve' }).click();
     await expect(page.getByText('Preuve prête', { exact: true })).toBeVisible({ timeout: 150000 });
     await expect(page.getByLabel('Date de naissance', { exact: true })).toHaveValue('');

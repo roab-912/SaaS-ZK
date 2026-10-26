@@ -224,14 +224,8 @@ export function Billing({ session, refresh, notify, login }) {
                 </div>
               ))}
               <p className="help">
-                Remise à zéro des générations le{' '}
-                {new Date(usage.resets).toLocaleDateString('fr-FR', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                  timeZone: 'UTC',
-                })}{' '}
-                (mois civil UTC). {usage.pending || 0} génération(s) en cours.
+                Remise à zéro des générations le {date(usage.resets, { timeZone: 'UTC' })} (mois
+                civil UTC). {usage.pending || 0} génération(s) en cours.
               </p>
             </>
           )}

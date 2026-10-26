@@ -32,10 +32,10 @@ test('generation keeps private inputs in worker, clears form and archives only e
     />,
   );
   fireEvent.change(screen.getByLabelText('Date de naissance', { exact: true }), {
-    target: { value: '1991-07-14' },
+    target: { value: '14/07/1991' },
   });
   fireEvent.change(screen.getByLabelText('Né au plus tard le', { exact: true }), {
-    target: { value: '2008-09-21' },
+    target: { value: '21/09/2008' },
   });
   await userEvent.click(screen.getByRole('button', { name: 'Générer ma preuve' }));
   expect(await screen.findByText('Preuve prête')).toBeVisible();
@@ -66,10 +66,10 @@ test('empty fields and legacy false results explain the failure before any reque
   await userEvent.click(screen.getByRole('button', { name: 'Générer ma preuve' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Date de naissance : valeur requise');
   fireEvent.change(screen.getByLabelText('Date de naissance', { exact: true }), {
-    target: { value: '2015-01-01' },
+    target: { value: '01/01/2015' },
   });
   fireEvent.change(screen.getByLabelText('Né au plus tard le', { exact: true }), {
-    target: { value: '2008-09-21' },
+    target: { value: '21/09/2008' },
   });
   await userEvent.click(screen.getByRole('button', { name: 'Générer ma preuve' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('La règle donne faux');
@@ -203,10 +203,10 @@ test('a failed local calculation releases its reservation without sending privat
     />,
   );
   fireEvent.change(screen.getByLabelText('Date de naissance', { exact: true }), {
-    target: { value: '1991-07-14' },
+    target: { value: '14/07/1991' },
   });
   fireEvent.change(screen.getByLabelText('Né au plus tard le', { exact: true }), {
-    target: { value: '2008-09-21' },
+    target: { value: '21/09/2008' },
   });
   await userEvent.click(screen.getByRole('button', { name: 'Générer ma preuve' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Calcul interrompu');

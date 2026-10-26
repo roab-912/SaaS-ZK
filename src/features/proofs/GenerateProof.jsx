@@ -1,3 +1,4 @@
+import { DateInput } from '../../components/DateInput.jsx';
 import React from 'react';
 import { ENGINE, engineName } from '../../../shared/engines.mjs';
 import { useState, useEffect, useRef } from 'react';
@@ -273,13 +274,21 @@ export function Generate({
                       <option value="false">Faux</option>
                       <option value="true">Vrai</option>
                     </select>
+                  ) : i.type === 'date' ? (
+                    <DateInput
+                      aria-label={i.label}
+                      required
+                      value={values[i.id]}
+                      disabled={busy}
+                      onChange={(value) => changeValue(i, value)}
+                    />
                   ) : (
                     <input
                       aria-label={i.label}
                       required
-                      type={i.type === 'date' ? 'date' : 'number'}
-                      min={i.type === 'date' ? '1900-01-01' : 0}
-                      max={i.type === 'date' ? '2199-12-31' : 4294967295}
+                      type="number"
+                      min={0}
+                      max={4294967295}
                       step={1}
                       autoComplete="off"
                       value={values[i.id]}

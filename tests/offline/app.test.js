@@ -20,7 +20,7 @@ test('offline interface distinguishes valid proof from true result and safely re
             circuitName: '<img src=x>',
             statement: 'A >= B',
             circuitHash: 'a'.repeat(64),
-            publicData: [],
+            publicData: [{ id: 'cutoff', label: 'Date limite', type: 'date', value: '2008-09-21' }],
             sources: [],
             checkedAt: new Date().toISOString(),
           },
@@ -41,6 +41,7 @@ test('offline interface distinguishes valid proof from true result and safely re
     fireEvent.click(document.getElementById('verify'));
     await waitFor(() => expect(document.getElementById('result').hidden).toBe(false));
     expect(document.getElementById('condition').textContent).toContain('Faux');
+    expect(document.getElementById('values').textContent).toContain('21/09/2008');
     expect(document.querySelector('#result img')).toBeNull();
     document.getElementById('expected').value = 'b'.repeat(64);
     fireEvent.click(document.getElementById('verify'));

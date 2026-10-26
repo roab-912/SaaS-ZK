@@ -1,3 +1,4 @@
+import { DateInput } from '../../components/DateInput.jsx';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Badge, Button, PageHeading } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
@@ -94,12 +95,14 @@ export function IssueAttestation({ onBack = () => {}, circuits = [] }) {
         <option value="false">Faux</option>
         <option value="true">Vrai</option>
       </select>
+    ) : input.type === 'date' ? (
+      <DateInput aria-label={label} value={current} onChange={onChange} />
     ) : (
       <input
         aria-label={label}
-        type={input.type === 'date' ? 'date' : 'number'}
-        min={input.type === 'date' ? '1900-01-01' : 0}
-        max={input.type === 'date' ? '2199-12-31' : 4294967295}
+        type="number"
+        min={0}
+        max={4294967295}
         step="1"
         autoComplete="off"
         value={current}
