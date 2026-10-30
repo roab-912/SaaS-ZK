@@ -28,9 +28,11 @@ export function ProofLibrary({ user, nav, setAuth, proofs, openVerify, refresh }
                   <FileCheck2 size={22} />
                 </span>
                 <Badge>
-                  {p.envelope.attestations?.length
-                    ? 'Attestations jointes · À vérifier'
-                    : 'Données déclarées'}
+                  {p.envelope.vatManifest
+                    ? 'Relevé TVA signé · À vérifier'
+                    : p.envelope.attestations?.length
+                      ? 'Attestations jointes · À vérifier'
+                      : 'Données déclarées'}
                 </Badge>
               </div>
               <h3>{p.envelope.circuit.name}</h3>

@@ -1,3 +1,4 @@
+import { VatStatement } from '../vat/VatStatement.jsx';
 import { displayDate } from '../../lib/format.js';
 import React from 'react';
 import { engineName } from '../../../shared/engines.mjs';
@@ -71,7 +72,10 @@ export function Verify({ initial, notify }) {
       setProgress('Reconstruction du circuit public…');
       const compiled = await compileForEngine(envelope.circuit, envelope.engine);
       if (run !== generation.current) return;
-      const issuers = signedInputs(envelope.circuit).length ? await api('/issuers') : undefined;
+      const issuers =
+        envelope.circuit.vat || signedInputs(envelope.circuit).length
+          ? await api('/issuers')
+          : undefined;
       if (run !== generation.current) return;
       task.current = launchProof(
         { mode: 'verify', envelope, compiled, ...(issuers ? { issuers } : {}) },
@@ -186,11 +190,13 @@ export function Verify({ initial, notify }) {
           {envelope ? (
             <>
               <Badge>
-                {signedInputs(envelope.circuit).length
-                  ? envelope.privateAttestations?.length
-                    ? 'Signatures privées prouvées · Noir'
-                    : 'Attestations publiques jointes'
-                  : 'Données déclarées · Non certifiées'}
+                {envelope.circuit.vat
+                  ? 'Relevé de factures signé · TVA'
+                  : signedInputs(envelope.circuit).length
+                    ? envelope.privateAttestations?.length
+                      ? 'Signatures privées prouvées · Noir'
+                      : 'Attestations publiques jointes'
+                    : 'Données déclarées · Non certifiées'}
               </Badge>
               <h3>{envelope.circuit.name}</h3>
               <p className="help">Moteur : {engineName(envelope.engine)}</p>
@@ -198,6 +204,15 @@ export function Verify({ initial, notify }) {
               <div className="statement">{describe(envelope.circuit)}</div>
               <h4>{status === 'valid' ? 'Résultat prouvé' : 'Résultat annoncé — à vérifier'}</h4>
               <p>{outcome === null ? 'Indéterminé' : outcome ? 'Vrai' : 'Faux'}</p>
+              {envelope.circuit.vat && (
+                <VatStatement
+                  manifest={envelope.vatManifest}
+                  sales={fields.find((i) => i.id === 'sales_vat')?.value ?? 0}
+                  credits={fields.find((i) => i.id === 'credit_vat')?.value ?? 0}
+                  source={sources[0]}
+                  proved={status === 'valid'}
+                />
+              )}
               <h4>Valeurs publiques</h4>
               {fields.length ? (
                 fields.map((i) => (

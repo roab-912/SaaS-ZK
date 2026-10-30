@@ -90,3 +90,11 @@ La page Mes circuits présente un catalogue : majorité, revenu strictement sup�
 Les modèles et leurs paramètres publics initiaux sont définis dans src/features/circuits/catalog-model.js. Le moteur par défaut est Noir ; les options avancées du catalogue permettent de choisir un autre moteur. Le bouton Circuit personnalisé ouvre l’éditeur existant. Depuis un modèle, Personnaliser ce circuit permet notamment de configurer des attestations : les modèles de départ utilisent des valeurs déclarées.
 
 Les seuils de revenus et les loyers sont exprimés en euros entiers par mois. Le seuil de majorité est une date publique, initialisée à la date d’il y a 18 ans, et ajustable dans le formulaire. Les seuils effectivement utilisés sont inclus dans la preuve ; le vérificateur doit les examiner.
+
+## Programme TVA spécialisé
+
+Le modèle TVA utilise un programme Noir fixe, une matrice privée bornée à 500 pièces et un relevé exhaustif signé. Le contrat de données est dans shared/vat.mjs ; zk/noir/vat-source.mjs émet le programme et zk/noir/vat-runtime.mjs construit les engagements et témoins privés. L’interface est dans src/features/vat/. Les routes, quotas, archives, registre d’émetteurs et vérificateur portable existants sont réutilisés. Voir [TVA.md](TVA.md) pour le périmètre, les formats et la limite de confiance sur l’exhaustivité.
+
+## Adaptateur UBL
+
+shared/ubl.mjs normalise les factures après contrôles ; shared/vat-documents.mjs définit la traçabilité privée et son engagement signé. src/lib/ubl-validation.js exécute les XSD et Schematron embarqués, et src/features/vat/ubl-import.js gère le lot local. scripts/build-ubl-assets.mjs reconstruit les ressources officielles épinglées sans téléchargement. Aucun endpoint serveur n’accepte les factures XML. Le programme Noir TVA reste indépendant de la syntaxe UBL. Voir [UBL.md](UBL.md).

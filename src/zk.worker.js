@@ -1,3 +1,4 @@
+import { prepareVatDraft } from '../zk/noir/vat-runtime.mjs';
 import { createEngineRegistry } from '../zk/registry.mjs';
 import { executeZkOperation } from '../zk/operations.mjs';
 import { noirBrowser } from '../zk/noir/browser.mjs';
@@ -11,9 +12,12 @@ self.onmessage = async ({ data }) => {
   }
   running = true;
   try {
-    const result = await executeZkOperation(data, registry, (message) =>
-      self.postMessage({ type: 'progress', message }),
-    );
+    const result =
+      data?.mode === 'vat-commit'
+        ? await prepareVatDraft(data.draft)
+        : await executeZkOperation(data, registry, (message) =>
+            self.postMessage({ type: 'progress', message }),
+          );
     self.postMessage({ type: 'result', result });
   } catch {
     // Do not propagate provider errors: some contain private inputs or witnesses.

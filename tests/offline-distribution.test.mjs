@@ -20,16 +20,21 @@ import { createEngineRegistry } from '../zk/registry.mjs';
 import { executeZkOperation } from '../zk/operations.mjs';
 import { signAttestation } from '../shared/attestations.mjs';
 import { ENGINE, PLONK_ENGINE, FFLONK_ENGINE } from '../shared/engines.mjs';
-test('downloaded Windows application verifies all engines and private signatures outside the repo without network', async () => {
+test('downloaded Windows application verifies all engines, private signatures and 500 invoices without network', async () => {
   const temp = await offlineFixture(),
     online = await serverFixture();
   let child, browser;
   try {
     const f = await privateFixture();
+    const { ublFixture } = await import('./helpers/ubl.mjs');
+    const v = await ublFixture(500, true);
     online.db
       .prepare('INSERT INTO issuers(id,name,jwk,approved) VALUES(?,?,?,1)')
       .run('source-1', 'Source de test', JSON.stringify(f.keys.publicKey));
-    const response = await online.request('/offline-verifier?issuer=source-1');
+    online.db
+      .prepare('INSERT INTO issuers(id,name,jwk,approved) VALUES(?,?,?,1)')
+      .run('vat-demo', 'Autorit? TVA test', JSON.stringify(v.pub));
+    const response = await online.request('/offline-verifier');
     expect(response.status).toBe(200);
     const download = join(temp.dir, 'download.zip');
     await pipeline(Readable.fromWeb(response.body), createWriteStream(download));
@@ -56,7 +61,7 @@ test('downloaded Windows application verifies all engines and private signatures
       { windowsHide: true, timeout: 120000 },
     );
     expect(JSON.parse(await readFile(join(outer, 'sources.clair'), 'utf8')).issuers).toHaveLength(
-      1,
+      2,
     );
     child = spawn(
       join(app, 'node.exe'),
@@ -202,6 +207,38 @@ test('downloaded Windows application verifies all engines and private signatures
         expect((await tampered.json()).valid).toBe(false);
       }
     }
+
+    const vatBatch = v.batch,
+      compiled = await compileCircuit(v.circuit);
+    const vatProof = await executeZkOperation(
+      {
+        mode: 'prove',
+        circuit: v.circuit,
+        compiled,
+        values: v.values,
+        vatBatch,
+        issuers: v.issuers,
+      },
+      registry,
+    );
+    const vatResponse = await fetch(address + '/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Clair-Local-Token': token },
+      body: JSON.stringify(vatProof),
+    });
+    const vatResult = await vatResponse.json();
+    expect(vatResult).toMatchObject({
+      valid: true,
+      vatManifest: {
+        format: 'clair-vat-manifest/2',
+        companyId: 'FR00000000000',
+        count: 500,
+        documentsRoot: v.batch.manifest.documentsRoot,
+      },
+      sources: [{ valid: true }],
+    });
+    expect(JSON.stringify(vatResult)).not.toContain('netCents');
+
     expect(errors).not.toContain('Downloading CRS');
   } finally {
     await browser?.close();

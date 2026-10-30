@@ -25,6 +25,7 @@ export const ZK_ENGINES = Object.freeze([
   }),
 ]);
 export function assertEngineCapabilities(circuit, engine = circuit.engine ?? ENGINE) {
+  if (circuit.vat && engine !== ENGINE) throw Error('Le circuit TVA nécessite Noir / UltraHonk.');
   if (
     circuit.inputs.some((i) => i.source === 'signed' && i.visibility === 'private') &&
     engine !== ENGINE

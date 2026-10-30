@@ -64,3 +64,33 @@ test('circuit engine survives saving and reloading; versions and envelopes canno
     await f.close();
   }
 });
+
+test('VAT circuits require a paid account, count once and accept only the approved Noir structure', async () => {
+  const { vatCircuit } = await import('../../../shared/vat.mjs');
+  const f = await serverFixture();
+  try {
+    const { cookie } = await f.account();
+    const c = vatCircuit();
+    expect((await f.request('/circuits', { cookie, body: c })).status).toBe(402);
+    f.activate(cookie);
+    expect((await f.request('/circuits', { cookie, body: c })).status).toBe(201);
+    expect((await f.request('/circuits', { cookie, body: c })).status).toBe(200);
+    expect(await (await f.request('/circuits', { cookie })).json()).toHaveLength(1);
+    expect(
+      (await f.request('/circuits', { cookie, body: { ...c, vat: { capacity: 501 } } })).status,
+    ).toBe(400);
+    expect(
+      (
+        await f.request('/circuits', {
+          cookie,
+          body: { ...c, engine: 'circom223-snarkjs076-plonk-v1' },
+        })
+      ).status,
+    ).toBe(400);
+    expect((await f.request('/circuits', { cookie, body: { ...c, invoices: [] } })).status).toBe(
+      400,
+    );
+  } finally {
+    await f.close();
+  }
+});

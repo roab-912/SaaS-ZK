@@ -64,3 +64,13 @@ Les tests contrôlent les plafonds de stockage, les réservations simultanées, 
 Configuration : [BILLING.md](BILLING.md).
 
 Les tests Stripe couvrent les 30 jours sur les deux offres, le moyen de paiement obligatoire, la non-réutilisation après annulation et les tarifs chargés depuis Stripe. Les parcours ZK navigateur utilisent un serveur de fixture sous tests/helpers/browser-server.mjs, limité au port 3001 avec base en mémoire ; ses routes de préparation ne sont jamais importées par le serveur normal. Aucun endpoint de démonstration ne peut activer un compte dans le SaaS. Les transactions externes doivent ensuite être testées avec les valeurs du .env.
+
+## TVA certifiée
+
+Les tests tests/shared/vat.test.mjs et tests/zk/noir/vat-*.test.mjs vérifient les règles et les contraintes réelles. tests/vat-crypto.test.mjs ajoute un calcul UltraHonk sur 500 pièces et peut prendre plusieurs minutes selon la machine. tests/vat.spec.mjs réalise le parcours UBL complet avec archivage et quotas dans un navigateur, vérifie l’absence de détails privés dans les requêtes et rejette une source révoquée. Ces tests utilisent des clés, factures et comptes de démonstration isolés. Voir [TVA.md](TVA.md).
+
+## UBL
+
+Les tests de shared/ubl, shared/vat-documents et src/lib/ubl-validation contrôlent les espaces de noms, montants, références, profils, erreurs XSD et règles Schematron officielles. tests/ubl.spec.mjs exerce la validation, la certification, les originaux privés et la preuve TVA dans le navigateur, puis la vérification anonyme et la révocation. Le parcours principal utilise 500 documents. Le parcours court télécharge les exemples ZIP depuis l’interface, extrait leurs XML et les réimporte, puis vérifie les erreurs visibles et l’affichage mobile. Il s’exécute avec Vite et avec la version compilée pour couvrir les réponses HTTP gzip déjà décompressées par le navigateur. Les tests refusent aussi les anciens lots sans originaux UBL. Le test de distribution portable vérifie un relevé UBL version 2 sur 500 documents sans réseau. La génération des ressources est contrôlée par les empreintes des sources dans tests/scripts/build-ubl-assets.test.mjs.
+
+Les exemples UBL anonymisés de tests/fixtures/ubl couvrent une vente avec acompte, une autoliquidation AE et un export G avec fournisseur étranger. Les règles officielles sont exécutées sur ces documents, puis sur des variantes non conformes : Note mal ordonnée, code VATEX invalide, mauvais schéma d’adresse et catégorie contradictoire. Le parcours navigateur prouve aussi leur total de TVA sans exposer les détails. Aucune correction automatique n’est appliquée à l’import.

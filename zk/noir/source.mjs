@@ -1,3 +1,4 @@
+import { vatNoirSource } from './vat-source.mjs';
 import { validateCircuit } from '../../shared/circuit-schema.mjs';
 import { contextField } from '../../shared/proof.mjs';
 import { privateSignatureSource } from './private-signatures.mjs';
@@ -19,6 +20,7 @@ const operators = {
 };
 export function noirSource(raw, hash) {
   const c = validateCircuit(raw);
+  if (c.vat) return vatNoirSource(c, hash);
   function emit(n) {
     if (n.kind === 'input') return 'in_' + c.inputs.findIndex((i) => i.id === n.id);
     if (n.kind === 'constant')

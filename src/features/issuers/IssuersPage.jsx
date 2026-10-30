@@ -3,7 +3,12 @@ import { BadgeCheck } from 'lucide-react';
 import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
 import { keyFingerprint } from '../../../shared/attestations.mjs';
-export function Issuers({ user, notify, onCreateAttestation = () => {} }) {
+export function Issuers({
+  user,
+  notify,
+  onCreateAttestation = () => {},
+  onVatAuthority = () => {},
+}) {
   const [issuers, setIssuers] = useState([]),
     [name, setName] = useState(''),
     [id, setId] = useState(''),
@@ -37,7 +42,14 @@ export function Issuers({ user, notify, onCreateAttestation = () => {} }) {
       <PageHeading
         title="Sources de confiance"
         desc="Les sources approuvées disponibles pour signer les entrées de vos circuits."
-        action={<Button onClick={onCreateAttestation}>Créer une attestation</Button>}
+        action={
+          <div className="row-actions">
+            <Button variant="secondary" onClick={onVatAuthority}>
+              Certifier des factures
+            </Button>
+            <Button onClick={onCreateAttestation}>Créer une attestation</Button>
+          </div>
+        }
       />
       {error && (
         <div className="validation invalid" role="alert">

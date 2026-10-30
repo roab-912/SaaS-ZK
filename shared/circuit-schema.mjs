@@ -1,3 +1,4 @@
+import { vatConfigSchema, validateVatCircuit } from './vat.mjs';
 import { z } from 'zod';
 import { ZK_ENGINES, assertEngineCapabilities } from './engines.mjs';
 import { policySchema } from './attestations.mjs';
@@ -68,6 +69,7 @@ export const circuitSchema = z
       .min(1)
       .max(LIMITS.inputs),
     root: expr,
+    vat: vatConfigSchema.optional(),
   })
   .strict();
 
@@ -90,6 +92,7 @@ export function validateCircuit(raw) {
   bound(raw?.root);
   const c = circuitSchema.parse(raw);
   assertEngineCapabilities(c);
+  if (c.vat) return validateVatCircuit(c);
   if (new Set(c.inputs.map((i) => i.id)).size !== c.inputs.length)
     throw Error('Les identifiants des entrées doivent être uniques.');
   for (const input of c.inputs) {

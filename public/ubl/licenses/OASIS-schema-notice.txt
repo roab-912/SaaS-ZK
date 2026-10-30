@@ -1,0 +1,1 @@
+OASIS UBL 2.1 schemas are reproduced unmodified from https://docs.oasis-open.org/ubl/os-UBL-2.1/xsd/. Copyright and licence notices are embedded in each schema.

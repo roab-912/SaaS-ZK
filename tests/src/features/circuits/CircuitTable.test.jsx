@@ -16,3 +16,15 @@ test('table routes edit/prove/delete actions to the selected version', async () 
   await userEvent.click(screen.getByRole('button', { name: /Supprimer/ }));
   for (const fn of [edit, prove, del]) expect(fn).toHaveBeenCalledWith(c);
 });
+
+test('VAT circuits are labeled as signed exhaustive batches', async () => {
+  const { vatCircuit } = await import('../../../../shared/vat.mjs');
+  render(
+    <CircuitTable
+      circuits={[{ id: 'vat', hash: 'a'.repeat(64), schema: vatCircuit(), created: '2026-09-21' }]}
+      onEdit={vi.fn()}
+      onProve={vi.fn()}
+    />,
+  );
+  expect(screen.getByText(/Relevé exhaustif signé · TVA/)).toBeVisible();
+});

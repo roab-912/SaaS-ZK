@@ -2059,3 +2059,50 @@ pre {
   max-width: 380px;
   margin-top: 16px;
 }
+
+.vat-authority {
+  max-width: 960px;
+}
+.vat-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 16px;
+}
+.vat-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 20px;
+}
+.vat-confirm input {
+  width: auto;
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+.vat-statement .public-row {
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.vat-statement .public-row strong {
+  overflow-wrap: anywhere;
+}
+.vat-authority pre {
+  max-height: 360px;
+  overflow: auto;
+}
+
+.ubl-documents {
+  overflow-wrap: anywhere;
+}
+.ubl-documents button,
+.vat-authority details .text-link {
+  max-width: 100%;
+  text-align: left;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  display: block;
+  margin-top: 8px;
+}
+.vat-authority .progress span {
+  overflow-wrap: anywhere;
+}

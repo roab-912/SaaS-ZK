@@ -22,3 +22,14 @@ test('offline verifier reconstructs the circuit and returns the proof result ind
     verifyOffline({ ...proof, circuitHash: '0'.repeat(64) }, snapshot),
   ).rejects.toThrow();
 });
+
+test('offline VAT verification exposes the signed public manifest without any private invoices', async () => {
+  const { vatFixture } = await import('../helpers/vat.mjs');
+  const f = await vatFixture();
+  const snapshot = await createTrustSnapshot(f.issuers, 'https://clair.example');
+  const result = await verifyOffline(f.envelope, snapshot);
+  expect(result.vatManifest.companyId).toBe('DEMO-VAT');
+  expect(result.publicData.find((i) => i.id === 'invoice_count').value).toBe(2);
+  expect(JSON.stringify(result)).not.toContain('netCents');
+  expect(JSON.stringify(result)).not.toContain(f.batch.blinding);
+});

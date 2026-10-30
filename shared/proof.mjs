@@ -1,3 +1,4 @@
+import { VAT_PROOF_FORMAT, vatManifestSchema, vatConfigSchema } from './vat.mjs';
 import { z } from 'zod';
 import { assertEngineCapabilities } from './engines.mjs';
 import { circuitSchema, validateCircuit, isDate } from './circuit-schema.mjs';
@@ -46,6 +47,17 @@ const readableSchema = z
   )
   .max(12);
 export const proofSchema = z.discriminatedUnion('format', [
+  z
+    .object({
+      ...base,
+      format: z.literal(VAT_PROOF_FORMAT),
+      circuit: circuitSchema.extend({ version: z.literal(2), vat: vatConfigSchema }),
+      publicInputs: fields(9),
+      result: z.literal(true),
+      publicData: readableSchema,
+      vatManifest: vatManifestSchema,
+    })
+    .strict(),
   z
     .object({
       ...base,
@@ -102,13 +114,27 @@ export function publicValues(envelope) {
   if (!/^[a-f0-9]{64}$/.test(envelope.circuitHash)) throw Error('Empreinte invalide.');
   if (
     !Array.isArray(envelope.publicInputs) ||
-    envelope.publicInputs.length !== fields.length + offset + privateSignedInputs(c).length * 2 ||
+    envelope.publicInputs.length !==
+      fields.length + offset + privateSignedInputs(c).length * 2 + (c.vat ? 2 : 0) ||
     envelope.publicInputs.some((v) => typeof v !== 'string' || !/^0x[0-9a-fA-F]{1,64}$/.test(v))
   )
     throw Error('Paramètres publics incorrects.');
   if (BigInt(envelope.publicInputs[0]) !== BigInt(contextField(envelope.circuitHash)))
     throw Error('Empreinte publique incorrecte.');
   if (c.version === 2) proofResult(envelope);
+  if (c.vat) {
+    const m = vatManifestSchema.parse(envelope.vatManifest);
+    if (
+      envelope.publicInputs.length !== 9 ||
+      BigInt(envelope.publicInputs[7]) !== BigInt(m.commitment) ||
+      BigInt(envelope.publicInputs[8]) !== BigInt(m.companyHash) ||
+      BigInt(envelope.publicInputs[2]) !== BigInt(m.periodStart.replaceAll('-', '')) ||
+      BigInt(envelope.publicInputs[3]) !== BigInt(m.periodEnd.replaceAll('-', '')) ||
+      BigInt(envelope.publicInputs[4]) !== BigInt(m.count) ||
+      m.count > c.vat.capacity
+    )
+      throw Error('Le relevé signé ne correspond pas aux paramètres prouvés.');
+  }
   return fields.map((i, n) => {
     const v = BigInt(envelope.publicInputs[n + offset]);
     if (
@@ -145,13 +171,15 @@ export function parseProof(raw) {
   }
   const privateInputs = privateSignedInputs(envelope.circuit);
   const publicSigned = signedInputs(envelope.circuit).filter((i) => i.visibility === 'public');
-  const expected = privateInputs.length
-    ? PRIVATE_SIGNED_PROOF_FORMAT
-    : publicSigned.length
-      ? SIGNED_PROOF_FORMAT
-      : envelope.circuit.version === 2
-        ? RESULT_PROOF_FORMAT
-        : PROOF_FORMAT;
+  const expected = envelope.circuit.vat
+    ? VAT_PROOF_FORMAT
+    : privateInputs.length
+      ? PRIVATE_SIGNED_PROOF_FORMAT
+      : publicSigned.length
+        ? SIGNED_PROOF_FORMAT
+        : envelope.circuit.version === 2
+          ? RESULT_PROOF_FORMAT
+          : PROOF_FORMAT;
   if (envelope.format !== expected)
     throw Error('Format de preuve incompatible avec les entrées signées.');
   if (publicSigned.length || privateInputs.length)
@@ -167,13 +195,15 @@ export function buildProofEnvelope(raw) {
   const hasPrivate = privateSignedInputs(raw.circuit).length > 0;
   const envelope = {
     ...raw,
-    format: hasPrivate
-      ? PRIVATE_SIGNED_PROOF_FORMAT
-      : signedInputs(raw.circuit).length
-        ? SIGNED_PROOF_FORMAT
-        : raw.circuit.version === 2
-          ? RESULT_PROOF_FORMAT
-          : PROOF_FORMAT,
+    format: raw.circuit.vat
+      ? VAT_PROOF_FORMAT
+      : hasPrivate
+        ? PRIVATE_SIGNED_PROOF_FORMAT
+        : signedInputs(raw.circuit).length
+          ? SIGNED_PROOF_FORMAT
+          : raw.circuit.version === 2
+            ? RESULT_PROOF_FORMAT
+            : PROOF_FORMAT,
   };
   if (hasPrivate) {
     envelope.privateAttestations = privateDisclosures(raw.circuit, raw.attestations ?? []);

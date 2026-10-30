@@ -1,3 +1,5 @@
+import { VatPage } from './features/vat/VatPage.jsx';
+import { VatAuthority } from './features/vat/VatAuthority.jsx';
 import React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -134,6 +136,7 @@ export function App() {
   const start = async (kind = 'catalog', engine) => {
     if (!needPaid()) return;
     if (kind === 'catalog') return nav('circuits');
+    if (kind === 'vat') return nav('vat');
     if (kind === 'blank') {
       setDraft({ ...template('blank'), version: 2 });
       return nav('editor');
@@ -161,12 +164,20 @@ export function App() {
     }
   };
   const edit = (c) => {
+    if (c.schema.vat) {
+      if (needPaid()) nav('vat');
+      return;
+    }
     if (needPaid()) {
       setDraft(structuredClone(c.schema));
       nav('editor');
     }
   };
   const prove = (c) => {
+    if (c.schema.vat) {
+      if (needPaid()) nav('vat');
+      return;
+    }
     if (needPaid()) {
       setSelected(c);
       nav('generate');
@@ -213,7 +224,7 @@ export function App() {
               key={id}
               className={
                 'nav-item ' +
-                (page === id || (id === 'circuits' && ['editor', 'generate'].includes(page))
+                (page === id || (id === 'circuits' && ['editor', 'generate', 'vat'].includes(page))
                   ? 'active'
                   : '')
               }
@@ -230,7 +241,10 @@ export function App() {
         <div className="nav-label second">PARAMÈTRES</div>
         <nav>
           <button
-            className={'nav-item ' + (['issuers', 'attestation'].includes(page) ? 'active' : '')}
+            className={
+              'nav-item ' +
+              (['issuers', 'attestation', 'vat-authority'].includes(page) ? 'active' : '')
+            }
             onClick={() => nav('issuers')}
           >
             <BadgeCheck size={19} />
@@ -303,6 +317,8 @@ export function App() {
                   billing: 'Abonnement',
                   issuers: 'Sources de confiance',
                   attestation: 'Créer une attestation',
+                  vat: 'TVA collectée',
+                  'vat-authority': 'Certifier des factures',
                   guide: 'Guide',
                   admin: 'Administration',
                   login: 'Connexion',
@@ -469,11 +485,21 @@ export function App() {
                   user={user}
                   notify={notify}
                   onCreateAttestation={() => nav('attestation')}
+                  onVatAuthority={() => nav('vat-authority')}
                 />
               )}
               {page === 'attestation' && (
                 <IssueAttestation circuits={circuits} onBack={() => nav('issuers')} />
               )}
+              {page === 'vat' && (
+                <VatPage
+                  notify={notify}
+                  refresh={refresh}
+                  onVerify={openVerify}
+                  onAuthority={() => nav('vat-authority')}
+                />
+              )}
+              {page === 'vat-authority' && <VatAuthority onBack={() => nav('issuers')} />}
               {page === 'guide' && <Guide />}
             </>
           )}

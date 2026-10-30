@@ -1,3 +1,4 @@
+import { vatWitness } from './vat-runtime.mjs';
 import { validateInputs } from '../../shared/circuit-model.mjs';
 import { contextField, ENGINE, buildProofEnvelope } from '../../shared/proof.mjs';
 import { evaluateCircuit } from '../../shared/evaluate.mjs';
@@ -13,7 +14,7 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
   const options = Object.freeze({ keccakZK: true });
   return {
     id: ENGINE,
-    async prove({ circuit, compiled, values, attestations = [], onProgress = () => {} }) {
+    async prove({ circuit, compiled, values, attestations = [], vatBatch, onProgress = () => {} }) {
       await initialize();
       let backend, witness;
       try {
@@ -22,6 +23,7 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
         ({ witness } = await noir.execute({
           context: contextField(compiled.hash),
           ...normalizeInputs(circuit, values),
+          ...(circuit.vat ? await vatWitness(vatBatch, circuit.vat.capacity) : {}),
           ...privateSignatureWitness(circuit, attestations),
           ...(circuit.version === 2 ? { result: evaluateCircuit(circuit, values) } : {}),
         }));
@@ -36,6 +38,7 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
           engine: ENGINE,
           circuit,
           circuitHash: compiled.hash,
+          ...(circuit.vat ? { vatManifest: vatBatch.manifest } : {}),
           publicInputs: proof.publicInputs,
           proof: encode(proof.proof),
         });

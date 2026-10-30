@@ -27,9 +27,11 @@ export function CircuitTable({ circuits, onEdit, onProve, onDelete }) {
                   <span>
                     <strong>{c.schema.name}</strong>
                     <small>
-                      {c.schema.inputs.some((i) => i.source === 'signed')
-                        ? 'Attestations requises'
-                        : 'Données déclarées'}{' '}
+                      {c.schema.vat
+                        ? 'Relevé exhaustif signé · TVA'
+                        : c.schema.inputs.some((i) => i.source === 'signed')
+                          ? 'Attestations requises'
+                          : 'Données déclarées'}{' '}
                       · {engineName(c.schema.engine)}
                     </small>
                   </span>

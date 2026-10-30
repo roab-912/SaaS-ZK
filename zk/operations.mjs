@@ -1,3 +1,5 @@
+import { verifyVatDocuments } from '../shared/vat-documents.mjs';
+import { parseVatBatch, verifyVatManifest } from '../shared/vat.mjs';
 import { validateCircuit } from '../shared/circuit-schema.mjs';
 import { circuitHash } from '../shared/circuit-model.mjs';
 import { ENGINE, parseProof, readablePublicValues } from '../shared/proof.mjs';
@@ -20,6 +22,10 @@ export async function executeZkOperation(payload, registry, onProgress = () => {
   if (envelope && envelope.circuitHash !== hash) throw Error('Le circuit a été modifié.');
   if (envelope) {
     const proof = await adapter.verify({ envelope, compiled: payload.compiled, onProgress });
+    if (circuit.vat) {
+      const source = await verifyVatManifest(envelope.vatManifest, payload.issuers);
+      return { valid: proof.valid && source.valid, proofValid: proof.valid, sources: [source] };
+    }
     if (!signedInputs(circuit).length) return proof;
     const values = Object.fromEntries(readablePublicValues(envelope).map((i) => [i.id, i.value]));
     const publicCircuit = {
@@ -41,6 +47,12 @@ export async function executeZkOperation(payload, registry, onProgress = () => {
       proofValid: proof.valid,
       sources,
     };
+  }
+  if (circuit.vat) {
+    const batch = parseVatBatch(payload.vatBatch);
+    const source = await verifyVatManifest(batch.manifest, payload.issuers);
+    if (!source.valid) throw Error(source.reason);
+    await verifyVatDocuments(batch);
   }
   if (signedInputs(circuit).length) {
     const normalized = validateInputs(circuit, payload.values);
@@ -72,6 +84,7 @@ export async function executeZkOperation(payload, registry, onProgress = () => {
     circuit,
     values: payload.values,
     attestations: payload.attestations,
+    ...(circuit.vat ? { vatBatch: payload.vatBatch } : {}),
     compiled: payload.compiled,
     onProgress,
   });

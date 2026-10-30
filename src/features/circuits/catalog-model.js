@@ -1,6 +1,16 @@
+import { vatCircuit } from '../../../shared/vat.mjs';
 import { template, validateCircuit } from '../../../shared/circuit.mjs';
 import { ENGINE } from '../../../shared/engines.mjs';
 export const CIRCUIT_CATALOG = [
+  {
+    id: 'vat',
+    title: 'TVA collectée certifiée',
+    description:
+      'Additionnez la TVA de 500 factures et avoirs certifiés, sans dévoiler leurs détails.',
+    category: 'Finance · Relevé exhaustif · Noir',
+    color: 'sage',
+    fields: 'Lot privé signé · Entreprise, période et TVA publiques',
+  },
   {
     id: 'age',
     title: 'Condition de majorité',
@@ -37,6 +47,10 @@ export const CIRCUIT_CATALOG = [
 ];
 export function readyCircuit(id, engine = ENGINE) {
   if (!CIRCUIT_CATALOG.some((item) => item.id === id)) throw Error('Modèle inconnu.');
+  if (id === 'vat') {
+    if (engine !== ENGINE) throw Error('Le circuit TVA nécessite Noir / UltraHonk.');
+    return validateCircuit(vatCircuit());
+  }
   const circuit = template(id === 'revenue' ? 'income' : id);
   if (id === 'revenue') {
     circuit.name = 'Revenu supérieur à un seuil';

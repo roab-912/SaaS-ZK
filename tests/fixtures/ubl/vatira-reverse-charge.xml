@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
+  <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</cbc:CustomizationID>
+  <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>
+  <cbc:ID>INV-2026-0088-RC</cbc:ID>
+  <cbc:IssueDate>2026-08-23</cbc:IssueDate>
+  <cbc:DueDate>2026-09-22</cbc:DueDate>
+  <cbc:InvoiceTypeCode listID="UNCL1001">380</cbc:InvoiceTypeCode>
+
+  <cbc:Note>Reverse charge: VAT payable by the customer pursuant to Article 196 of Council Directive 2006/112/EC.</cbc:Note>
+  <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+  <cbc:BuyerReference>04011000-88992-01</cbc:BuyerReference>
+  <cac:OrderReference>
+    <cbc:ID>PO-2026-9044</cbc:ID>
+  </cac:OrderReference>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cbc:EndpointID schemeID="9930">DE123456789</cbc:EndpointID>
+      <cac:PartyName>
+        <cbc:Name>Example Supplier GmbH</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>1 Example Street</cbc:StreetName>
+        <cbc:CityName>Berlin</cbc:CityName>
+        <cbc:PostalZone>10178</cbc:PostalZone>
+        <cbc:CountrySubentity>Berlin</cbc:CountrySubentity>
+        <cac:Country>
+          <cbc:IdentificationCode>DE</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>DE123456789</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Example Supplier GmbH (Demo)</cbc:RegistrationName>
+        <cbc:CompanyID>HRB 123456 B</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:Name>Demo Contact</cbc:Name>
+        <cbc:Telephone>+49 30 1234567</cbc:Telephone>
+        <cbc:ElectronicMail>billing@nordlicht.example</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cbc:EndpointID schemeID="9957">FR12345678901</cbc:EndpointID>
+      <cac:PartyName>
+        <cbc:Name>Example Customer SAS</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>2 Example Street</cbc:StreetName>
+        <cbc:CityName>Paris</cbc:CityName>
+        <cbc:PostalZone>75001</cbc:PostalZone>
+        <cbc:CountrySubentity>Île-de-France</cbc:CountrySubentity>
+        <cac:Country>
+          <cbc:IdentificationCode>FR</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>FR12345678901</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Example Customer SAS (Demo)</cbc:RegistrationName>
+      </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:Name>Demo Contact</cbc:Name>
+        <cbc:Telephone>+33 1 42685500</cbc:Telephone>
+        <cbc:ElectronicMail>accounts@hexagon.example</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode listID="UNCL4461">30</cbc:PaymentMeansCode>
+    <cac:PayeeFinancialAccount>
+      <cbc:ID>DE89370400440532013000</cbc:ID>
+      <cac:FinancialInstitutionBranch>
+        <cbc:ID>COBADEFFXXX</cbc:ID>
+      </cac:FinancialInstitutionBranch>
+    </cac:PayeeFinancialAccount>
+  </cac:PaymentMeans>
+  <cac:PaymentTerms>
+    <cbc:Note>Net 30 days</cbc:Note>
+  </cac:PaymentTerms>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="EUR">0.00</cbc:TaxAmount>
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="EUR">955.00</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="EUR">0.00</cbc:TaxAmount>
+      <cac:TaxCategory>
+        <cbc:ID>AE</cbc:ID>
+        <cbc:Percent>0</cbc:Percent>
+      <cbc:TaxExemptionReasonCode>VATEX-EU-AE</cbc:TaxExemptionReasonCode>
+      <cbc:TaxExemptionReason>Reverse charge</cbc:TaxExemptionReason>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:TaxCategory>
+    </cac:TaxSubtotal>
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="EUR">955.00</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="EUR">955.00</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="EUR">955.00</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount currencyID="EUR">955.00</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+  <cac:InvoiceLine>
+    <cbc:ID>1</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="MON">1</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="EUR">120.00</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Name>Cloud Software Subscription (Enterprise)</cbc:Name>
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID>AE</cbc:ID>
+        <cbc:Percent>0</cbc:Percent>
+      <cbc:TaxExemptionReasonCode>VATEX-EU-AE</cbc:TaxExemptionReasonCode>
+      <cbc:TaxExemptionReason>Reverse charge: VAT payable by the customer pursuant to Article 196 of Council Directive 2006/112/EC</cbc:TaxExemptionReason>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="EUR">120.00</cbc:PriceAmount>
+      <cbc:BaseQuantity unitCode="MON">1</cbc:BaseQuantity>
+    </cac:Price>
+  </cac:InvoiceLine>
+  <cac:InvoiceLine>
+    <cbc:ID>2</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="HUR">8</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="EUR">760.00</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Name>Software Consulting &amp; Architecture</cbc:Name>
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID>AE</cbc:ID>
+        <cbc:Percent>0</cbc:Percent>
+      <cbc:TaxExemptionReasonCode>VATEX-EU-AE</cbc:TaxExemptionReasonCode>
+      <cbc:TaxExemptionReason>Reverse charge: VAT payable by the customer pursuant to Article 196 of Council Directive 2006/112/EC</cbc:TaxExemptionReason>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="EUR">95.00</cbc:PriceAmount>
+      <cbc:BaseQuantity unitCode="HUR">1</cbc:BaseQuantity>
+    </cac:Price>
+  </cac:InvoiceLine>
+  <cac:InvoiceLine>
+    <cbc:ID>3</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="C62">3</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="EUR">75.00</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Name>Technical Documentation &amp; Design Spec</cbc:Name>
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID>AE</cbc:ID>
+        <cbc:Percent>0</cbc:Percent>
+      <cbc:TaxExemptionReasonCode>VATEX-EU-AE</cbc:TaxExemptionReasonCode>
+      <cbc:TaxExemptionReason>Reverse charge: VAT payable by the customer pursuant to Article 196 of Council Directive 2006/112/EC</cbc:TaxExemptionReason>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="EUR">25.00</cbc:PriceAmount>
+      <cbc:BaseQuantity unitCode="C62">1</cbc:BaseQuantity>
+    </cac:Price>
+  </cac:InvoiceLine>
+</Invoice>

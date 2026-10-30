@@ -8,7 +8,7 @@ import { ENGINE, PLONK_ENGINE } from '../../../../shared/engines.mjs';
 test('catalog offers direct selection and keeps engine choice in advanced options', async () => {
   const choose = vi.fn();
   render(<CircuitCatalog onChoose={choose} />);
-  expect(screen.getAllByRole('button', { name: /^Utiliser / })).toHaveLength(4);
+  expect(screen.getAllByRole('button', { name: /^Utiliser / })).toHaveLength(5);
   await userEvent.click(
     screen.getByRole('button', { name: 'Utiliser Revenu supérieur à un seuil' }),
   );
@@ -17,6 +17,7 @@ test('catalog offers direct selection and keeps engine choice in advanced option
   await userEvent.selectOptions(screen.getByLabelText('Moteur de preuve'), PLONK_ENGINE);
   await userEvent.click(screen.getByRole('button', { name: 'Utiliser Condition de majorité' }));
   expect(choose).toHaveBeenLastCalledWith('age', PLONK_ENGINE);
+  expect(screen.getByRole('button', { name: 'Utiliser TVA collectée certifiée' })).toBeDisabled();
 });
 test('pending selection prevents multiple submissions and engine changes', () => {
   render(<CircuitCatalog onChoose={vi.fn()} pending="age" />);

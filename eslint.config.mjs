@@ -10,6 +10,8 @@ export default [
       'test-results/**',
       'playwright-report/**',
       'coverage/**',
+      'public/ubl/**',
+      'vendor/ubl/**',
     ],
   },
   js.configs.recommended,

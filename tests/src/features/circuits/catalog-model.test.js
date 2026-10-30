@@ -10,6 +10,10 @@ import { ZK_ENGINES } from '../../../../shared/engines.mjs';
 test('all ready circuits validate for every supported engine without changing historical templates', () => {
   for (const engine of ZK_ENGINES)
     for (const { id } of CIRCUIT_CATALOG) {
+      if (id === 'vat' && engine.id !== ZK_ENGINES[0].id) {
+        expect(() => readyCircuit(id, engine.id)).toThrow(/Noir/);
+        continue;
+      }
       const c = readyCircuit(id, engine.id);
       expect(validateCircuit(c)).toEqual(c);
       expect(c.version).toBe(2);

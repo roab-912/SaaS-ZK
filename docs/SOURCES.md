@@ -89,3 +89,11 @@ ECDSA P-256 signe le SHA-256 de ces octets. Le circuit reconstruit le message et
 L’enveloppe `clair-proof/4` conserve le circuit, la preuve, le résultat, les données publiques et les attestations des champs publics. Elle n’inclut ni valeur privée, ni signature privée, ni UUID privé. `privateAttestations` expose uniquement `inputId`, `issuedAt` et `expiresAt`. Les paramètres publics sont : contexte, résultat, valeurs publiques dans l’ordre du circuit, puis dates d’émission/expiration pour chaque champ signé privé dans l’ordre du circuit. L’import vérifie la concordance exacte des dates lisibles avec ces paramètres.
 
 La vérification contrôle la preuve ZK, l’approbation courante de la clé et la période de validité. Révocation, remplacement de clé ou expiration rendent la provenance invalide. Les dates publiques peuvent permettre une corrélation ; la valeur et la signature restent cachées. La certification désigne une déclaration signée de la source, pas l’identité du porteur ni la vérité de sa déclaration. Un calcul intégrant une signature peut être plus long qu’un circuit de comparaison seul.
+
+## Relevés de factures
+
+Le module TVA accepte un relevé exhaustif signé par une source P-256 approuvée, qui engage toutes les pièces privées d’une entreprise et d’une période. La signature porte sur un engagement du lot complet ; elle ne publie pas les factures. La source certifie l’exhaustivité et la qualification fiscale, et le circuit vérifie l’engagement, les dates et les calculs. Voir [TVA.md](TVA.md).
+
+## Données UBL
+
+Une facture UBL valide ne constitue pas une source de confiance à elle seule. L’autorité approuvée valide les documents et certifie le relevé complet, dont la version 2 lie les originaux UBL aux données normalisées. Les connexions aux API des plateformes et leurs procédures de clôture restent distinctes de cet import local. Voir [UBL.md](UBL.md).

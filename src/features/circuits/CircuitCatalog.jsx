@@ -4,7 +4,13 @@ import { ENGINE, ZK_ENGINES } from '../../../shared/engines.mjs';
 import { CIRCUIT_CATALOG } from './catalog-model.js';
 export function CircuitCatalog({ onChoose, pending }) {
   const [engine, setEngine] = useState(ENGINE);
-  const icons = { age: Fingerprint, revenue: Braces, income: Braces, list: ListFilter };
+  const icons = {
+    age: Fingerprint,
+    revenue: Braces,
+    income: Braces,
+    list: ListFilter,
+    vat: Braces,
+  };
   return (
     <section aria-label="Circuits prêts à utiliser" className="circuit-catalog">
       <div className="section-heading">
@@ -21,7 +27,12 @@ export function CircuitCatalog({ onChoose, pending }) {
               key={item.id}
               className="template-card"
               aria-label={'Utiliser ' + item.title}
-              disabled={!!pending}
+              disabled={!!pending || (item.id === 'vat' && engine !== ENGINE)}
+              title={
+                item.id === 'vat' && engine !== ENGINE
+                  ? 'Sélectionnez Noir dans les options avancées'
+                  : undefined
+              }
               onClick={() => onChoose(item.id, engine)}
             >
               <div className="template-top">
@@ -48,9 +59,10 @@ export function CircuitCatalog({ onChoose, pending }) {
         })}
       </div>
       <p className="help">
-        Les modèles utilisent des données déclarées. Choisir un modèle ne l’enregistre pas. Le
-        circuit compte dans votre abonnement après enregistrement ou au lancement d’une preuve ; le
-        réutiliser ne crée pas de doublon. Les valeurs privées restent sur votre appareil.
+        Les modèles classiques utilisent des données déclarées ; le modèle TVA exige un relevé
+        exhaustif signé. Choisir un modèle ne l’enregistre pas. Le circuit compte dans votre
+        abonnement après enregistrement ou au lancement d’une preuve ; le réutiliser ne crée pas de
+        doublon. Les valeurs privées restent sur votre appareil.
       </p>
       <details className="catalog-options">
         <summary>Options avancées</summary>

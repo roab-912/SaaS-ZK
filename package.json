@@ -19,7 +19,8 @@
     "format:check": "prettier --check .",
     "test:e2e:built": "playwright test --config playwright.built.config.mjs",
     "build:offline": "node scripts/build-offline.mjs",
-    "test:offline": "npm run build:offline && vitest run --config vitest.offline.config.mjs"
+    "test:offline": "npm run build:offline && vitest run --config vitest.offline.config.mjs",
+    "build:ubl": "node scripts/build-ubl-assets.mjs"
   },
   "dependencies": {
     "@aztec/bb.js": "0.87.0",
@@ -33,9 +34,11 @@
     "express-rate-limit": "^8.0.0",
     "fflate": "0.8.3",
     "helmet": "^8.1.0",
+    "libxml2-wasm": "0.7.2",
     "lucide-react": "^0.468.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "saxes": "6.0.0",
     "snarkjs": "0.7.6",
     "stripe": "^18.5.0",
     "zod": "^3.25.0"
@@ -55,7 +58,8 @@
     "prettier": "^3.9.8",
     "vite": "^7.1.0",
     "vite-plugin-node-polyfills": "^0.24.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "xslt3": "2.7.0"
   },
   "overrides": {
     "underscore": "1.13.8"

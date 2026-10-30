@@ -74,6 +74,24 @@ button.onclick = async () => {
           : String(i.value);
       text(element('values'), 'p', i.label + ' : ' + value);
     }
+    if (r.vatManifest) {
+      text(element('values'), 'p', 'Entreprise : ' + r.vatManifest.companyId);
+      const values = Object.fromEntries(r.publicData.map((i) => [i.id, i.value]));
+      text(
+        element('values'),
+        'p',
+        'TVA collectée après avoirs : ' +
+          ((values.sales_vat - values.credit_vat) / 100).toLocaleString('fr-FR', {
+            style: 'currency',
+            currency: 'EUR',
+          }),
+      );
+      text(
+        element('values'),
+        'p',
+        'Exhaustivité certifiée par la source pour ce relevé. Rattachement à la date de facture ; prototype hors déclaration fiscale.',
+      );
+    }
     if (!r.publicData.length) text(element('values'), 'p', 'Aucune valeur d’entrée publique.');
     element('sources').replaceChildren();
     for (const source of r.sources ?? []) {

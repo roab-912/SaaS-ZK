@@ -60,6 +60,8 @@ export function validateInputs(raw, values) {
   return result;
 }
 export function describe(c, n = c.root) {
+  if (c.vat)
+    return 'TVA des ventes moins TVA des avoirs : toutes les pièces du relevé exhaustif signé sont dans la période et leurs taxes sont recalculées.';
   if (n.kind === 'input') return c.inputs.find((i) => i.id === n.id)?.label || n.id;
   if (n.kind === 'constant')
     return n.type === 'boolean'

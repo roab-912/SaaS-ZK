@@ -1,0 +1,3 @@
+# Preserve pinned third-party artifact bytes, including their original line endings.
+public/ubl/** -text
+vendor/ubl/** -text
