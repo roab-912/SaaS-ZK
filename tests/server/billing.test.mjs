@@ -23,7 +23,11 @@ test('subscription pagination uses only the subscribed product expiry', async ()
           }),
       },
     };
-  const billing = createBilling({ stripe, repo, config: { stripePrice: 'price' } });
+  const billing = createBilling({
+    stripe,
+    repo,
+    config: { stripePrice: 'price', stripePublishableKey: 'pk_test_fixture' },
+  });
   await billing.syncCustomer('cus');
   expect(stripe.subscriptions.list.mock.calls[1][0].starting_after).toBe('old');
   expect(repo.updateSubscription).toHaveBeenCalledWith('cus', 'active', 20000, 'sub', 'essential');
@@ -34,20 +38,21 @@ test('checkout errors release the lock and unavailable billing fails explicitly'
   const billing = createBilling({
     stripe,
     repo,
-    config: { stripePrice: 'price' },
+    config: { stripePrice: 'price', stripePublishableKey: 'pk_test_fixture' },
     isActive: () => false,
   });
   await expect(billing.checkout({ id: 'u' })).rejects.toThrow('offline');
   await expect(billing.checkout({ id: 'u' })).rejects.toThrow('offline');
   const disabled = createBilling({ stripe: null, repo, config: {} });
   await expect(disabled.checkout({ id: 'u' })).rejects.toMatchObject({ status: 400 });
-  await expect(disabled.portal({ id: 'u' })).rejects.toMatchObject({ status: 400 });
+  await expect(disabled.setupPaymentMethod({ id: 'u' })).rejects.toMatchObject({ status: 400 });
 });
 
 test('checkout selects configured plans, expires an open checkout for another plan and reconciles upgrades', async () => {
   const config = {
     stripePrices: { essential: 'price_e', pro: 'price_p' },
     appUrl: 'https://clair.test',
+    stripePublishableKey: 'pk_test_fixture',
   };
   let user = { id: 'u', customer: 'cus', status: 'inactive' };
   let subscriptions = [];
@@ -69,14 +74,24 @@ test('checkout selects configured plans, expires an open checkout for another pl
           metadata: { plan: 'essential' },
         })),
         expire: vi.fn(async () => ({})),
-        create: vi.fn(async () => ({ id: 'new', url: 'https://checkout.stripe.com/new' })),
+        create: vi.fn(async () => ({
+          id: 'new',
+          mode: 'subscription',
+          client_secret: 'fixture_secret',
+        })),
       },
     },
   };
   const billing = createBilling({ stripe, repo, config, isActive: (u) => u.status === 'active' });
   await expect(billing.checkout(user, 'unlimited')).rejects.toMatchObject({ status: 400 });
   expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
-  expect(await billing.checkout(user, 'pro')).toEqual({ url: 'https://checkout.stripe.com/new' });
+  expect(await billing.checkout(user, 'pro')).toEqual({
+    sessionId: 'new',
+    mode: 'subscription',
+    clientSecret: 'fixture_secret',
+    plan: 'pro',
+    trialDays: 30,
+  });
   expect(stripe.checkout.sessions.expire).toHaveBeenCalledWith('old');
   expect(stripe.checkout.sessions.create.mock.lastCall[0]).toMatchObject({
     line_items: [{ price: 'price_p', quantity: 1 }],
@@ -113,7 +128,11 @@ test('both offers get one Stripe trial per account, require a payment method, an
       const user = repo.createUser(firstPlan + '@test.fr', 'hash');
       repo.setCustomer(user.id, 'cus');
       let subscriptions = [];
-      const create = vi.fn(async () => ({ id: 'cs', url: 'https://checkout.stripe.com/test' }));
+      const create = vi.fn(async () => ({
+        id: 'cs',
+        mode: 'subscription',
+        client_secret: 'fixture_secret',
+      }));
       const stripe = {
         subscriptions: { list: async () => ({ data: subscriptions }) },
         checkout: { sessions: { create, retrieve: async () => ({ status: 'complete' }) } },
@@ -125,6 +144,7 @@ test('both offers get one Stripe trial per account, require a payment method, an
         config: {
           stripePrices: { essential: 'price_e', pro: 'price_p' },
           appUrl: 'https://clair.test',
+          stripePublishableKey: 'pk_test_fixture',
         },
         isActive: (u) => ['active', 'trialing'].includes(u.status) && u.expires > Date.now(),
       });

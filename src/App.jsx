@@ -1,6 +1,8 @@
 import { VatPage } from './features/vat/VatPage.jsx';
 import { VatAuthority } from './features/vat/VatAuthority.jsx';
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
+import { billingPath } from './features/billing/billing-model.js';
+const PaymentPage = lazy(() => import('./features/billing/PaymentPage.jsx'));
 import { useState, useEffect, useRef } from 'react';
 import {
   ArrowUpRight,
@@ -40,6 +42,17 @@ import { Guide } from './features/guide/GuidePage.jsx';
 import { Dashboard } from './features/dashboard/Dashboard.jsx';
 import { AdminDashboard } from './features/admin/AdminDashboard.jsx';
 import { ProofLibrary } from './features/proofs/ProofLibrary.jsx';
+function pageForLocation() {
+  if (location.pathname.startsWith('/abonnement/')) return 'payment';
+  if (location.pathname === '/connexion') return 'login';
+  if (location.pathname === '/inscription') return 'register';
+  const view = new URLSearchParams(location.search).get('view');
+  return ['home', 'billing', 'circuits', 'proofs', 'verify', 'issuers', 'guide', 'admin'].includes(
+    view,
+  )
+    ? view
+    : 'home';
+}
 export function App() {
   const [session, setSession] = useState({
       user: null,
@@ -47,13 +60,7 @@ export function App() {
       paymentEnvironment: 'demo',
     }),
     [loading, setLoading] = useState(true),
-    [page, setPage] = useState(() =>
-      location.pathname === '/connexion'
-        ? 'login'
-        : location.pathname === '/inscription'
-          ? 'register'
-          : 'home',
-    ),
+    [page, setPage] = useState(pageForLocation),
     [auth, setAuth] = useState(null),
     [circuits, setCircuits] = useState([]),
     [proofs, setProofs] = useState([]),
@@ -103,22 +110,25 @@ export function App() {
     return () => clearTimeout(timer.current);
   }, []);
   useEffect(() => {
-    const back = () =>
-      setPage(
-        location.pathname === '/connexion'
-          ? 'login'
-          : location.pathname === '/inscription'
-            ? 'register'
-            : 'home',
-      );
+    const back = () => setPage(pageForLocation());
     window.addEventListener('popstate', back);
     return () => window.removeEventListener('popstate', back);
   }, []);
   const user = session.user,
     nav = (p) => {
+      if (location.pathname.startsWith('/abonnement/')) {
+        location.assign(
+          p === 'login'
+            ? '/connexion'
+            : p === 'register'
+              ? '/inscription'
+              : '/?view=' + encodeURIComponent(p),
+        );
+        return;
+      }
       setPage(p);
       const path = p === 'login' ? '/connexion' : p === 'register' ? '/inscription' : '/';
-      if (location.pathname !== path) history.pushState({}, '', path);
+      if (location.pathname !== path || location.search) history.pushState({}, '', path);
       setMobile(false);
     };
   const needPaid = () => {
@@ -315,6 +325,7 @@ export function App() {
                   proofs: 'Mes preuves',
                   verify: 'Vérification',
                   billing: 'Abonnement',
+                  payment: 'Facturation',
                   issuers: 'Sources de confiance',
                   attestation: 'Créer une attestation',
                   vat: 'TVA collectée',
@@ -478,7 +489,20 @@ export function App() {
                   refresh={refresh}
                   notify={notify}
                   login={() => setAuth('register')}
+                  onOpen={(action, plan) => location.assign(billingPath(action, plan))}
                 />
+              )}
+              {page === 'payment' && (
+                <Suspense
+                  fallback={<p role="status">Chargement de votre espace de facturation…</p>}
+                >
+                  <PaymentPage
+                    session={session}
+                    refresh={refresh}
+                    login={() => nav('login')}
+                    onExit={() => location.assign('/?billing=return')}
+                  />
+                </Suspense>
               )}
               {page === 'issuers' && (
                 <Issuers

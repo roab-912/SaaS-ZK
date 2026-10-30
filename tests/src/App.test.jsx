@@ -143,3 +143,21 @@ test('personalizing a majority template with a signed input saves only the modif
     vi.unstubAllGlobals();
   }
 });
+
+test('returning from billing restores the requested workspace and clears its query on navigation', async () => {
+  history.replaceState({}, '', '/?view=circuits');
+  api.mockImplementation(async (path) =>
+    path === '/session' ? { user: { id: 'u', email: 'u@example.test', active: true } } : [],
+  );
+  render(<App />);
+  expect(
+    await screen.findByRole('heading', { name: 'Que souhaitez-vous prouver ?' }),
+  ).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'Vue d’ensemble', exact: true }));
+  expect(location.search).toBe('');
+  history.replaceState({}, '', '/?view=circuits');
+  window.dispatchEvent(new PopStateEvent('popstate'));
+  expect(
+    await screen.findByRole('heading', { name: 'Que souhaitez-vous prouver ?' }),
+  ).toBeVisible();
+});

@@ -1,9 +1,24 @@
 import { fail } from './errors.mjs';
 import { createPricing } from './pricing.mjs';
-import { PLANS, planFor, priceFor } from './plans.mjs';
+import { createBillingCheckout } from './billing-checkout.mjs';
+import { createBillingManagement } from './billing-management.mjs';
+import { PLANS, priceFor } from './plans.mjs';
 export function createBilling({ stripe, repo, config, isActive }) {
   const checkoutLocks = new Set(),
     syncQueues = new Map();
+  async function withLock(userId, work) {
+    if (checkoutLocks.has(userId))
+      throw fail(
+        409,
+        'Une mise à jour de facturation est déjà en cours. Réessayez dans un instant.',
+      );
+    checkoutLocks.add(userId);
+    try {
+      return await work();
+    } finally {
+      checkoutLocks.delete(userId);
+    }
+  }
   function syncCustomer(customer) {
     const previous = syncQueues.get(customer) || Promise.resolve();
     const current = previous
@@ -56,91 +71,19 @@ export function createBilling({ stripe, repo, config, isActive }) {
           sub?.id || null,
           plan?.id || 'essential',
         );
+        return sub ?? null;
       });
     syncQueues.set(customer, current);
     return current.finally(() => {
       if (syncQueues.get(customer) === current) syncQueues.delete(customer);
     });
   }
+  const plans = createPricing({ stripe, config });
+  const dependencies = { stripe, repo, config, isActive, withLock, syncCustomer, plans };
   return {
     syncCustomer,
-    plans: createPricing({ stripe, config }),
-    async checkout(user, planId = 'essential') {
-      planFor(planId);
-      if (!stripe) throw fail(400, 'Activez l’abonnement de démonstration.');
-      const price = priceFor(config, planId);
-      if (!price) throw fail(400, 'Cette offre n’est pas encore disponible au paiement.');
-      if (checkoutLocks.has(user.id)) throw fail(409, 'Paiement en cours de préparation.');
-      checkoutLocks.add(user.id);
-      try {
-        let customer = repo.userById(user.id).customer;
-        if (!customer) {
-          customer = (
-            await stripe.customers.create(
-              { email: user.email, metadata: { userId: user.id } },
-              { idempotencyKey: 'clair-customer-' + user.id },
-            )
-          ).id;
-          repo.setCustomer(user.id, customer);
-        }
-        await syncCustomer(customer);
-        const fresh = repo.userById(user.id);
-        if (
-          isActive(fresh) ||
-          (fresh.subscription &&
-            !['canceled', 'incomplete_expired', 'inactive'].includes(fresh.status))
-        )
-          throw fail(409, 'Un abonnement existe déjà. Utilisez le portail de facturation.');
-        const trial = !fresh.trial_used;
-        const prior = repo.getCheckout(user.id);
-        if (prior) {
-          const existing = await stripe.checkout.sessions.retrieve(prior);
-          if (existing.status === 'open' && existing.url) {
-            if (
-              existing.metadata?.plan === planId &&
-              existing.metadata?.trial === (trial ? '30' : '0')
-            )
-              return { url: existing.url };
-            await stripe.checkout.sessions.expire(prior);
-          }
-        }
-        const checkout = await stripe.checkout.sessions.create(
-          {
-            mode: 'subscription',
-            customer,
-            line_items: [{ price, quantity: 1 }],
-            payment_method_types: ['card'],
-            payment_method_collection: 'always',
-            locale: 'fr',
-            metadata: { plan: planId, userId: user.id, trial: trial ? '30' : '0' },
-            subscription_data: {
-              metadata: { plan: planId, userId: user.id },
-              ...(trial
-                ? {
-                    trial_period_days: 30,
-                    trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
-                  }
-                : {}),
-            },
-            success_url: config.appUrl + '/?billing=success',
-            cancel_url: config.appUrl + '/?billing=cancel',
-            client_reference_id: user.id,
-          },
-          { idempotencyKey: 'clair-checkout-' + user.id + '-' + planId + '-' + (prior || 'first') },
-        );
-        repo.setCheckout(user.id, checkout.id);
-        return { url: checkout.url };
-      } finally {
-        checkoutLocks.delete(user.id);
-      }
-    },
-    async portal(user) {
-      if (!stripe || !user.customer) throw fail(400, 'Aucun compte de facturation.');
-      const session = await stripe.billingPortal.sessions.create({
-        customer: user.customer,
-        return_url: config.appUrl + '/?billing=return',
-      });
-      return { url: session.url };
-    },
+    plans,
+    ...createBillingCheckout(dependencies),
+    ...createBillingManagement(dependencies),
   };
 }

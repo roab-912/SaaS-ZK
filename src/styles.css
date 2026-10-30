@@ -2240,3 +2240,47 @@ pre {
 .page-heading h1:focus {
   outline: none;
 }
+
+.billing-payment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.payment-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  min-width: 0;
+}
+.payment-form form {
+  display: grid;
+  gap: 16px;
+}
+.payment-price {
+  font-size: 1.5rem;
+  font-weight: 650;
+  color: var(--ink, #253b34);
+}
+.payment-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 12px;
+  border-block: 1px solid var(--line, #e2e8e4);
+}
+@media (max-width: 850px) {
+  .billing-payment-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.payment-form > div {
+  min-width: 0;
+  width: 100%;
+}
+.billing-payment-layout .explanation .payment-price {
+  font-size: 1.5rem;
+  color: var(--ink, #253b34);
+  margin: 16px 0;
+}

@@ -57,3 +57,27 @@ test('mutations require the exact trusted origin, reads remain public', () => {
   check({ method: 'GET', headers: {} }, {}, next);
   expect(next.mock.lastCall).toEqual([]);
 });
+
+test('only billing documents allow Stripe frames; ZK documents retain cross-origin isolation', async () => {
+  const express = (await import('express')).default;
+  const { securityHeaders } = await import('../../server/security.mjs');
+  const app = express();
+  app.use(securityHeaders({ production: true, secure: true }));
+  app.use((req, res) => res.send('ok'));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise((r) => server.once('listening', r));
+  try {
+    const base = 'http://127.0.0.1:' + server.address().port;
+    for (const path of ['/', '/connexion', '/api/billing/state']) {
+      const r = await fetch(base + path);
+      expect(r.headers.get('cross-origin-embedder-policy')).toBe('require-corp');
+      expect(r.headers.get('content-security-policy')).not.toContain('stripe.com');
+    }
+    const payment = await fetch(base + '/abonnement/paiement');
+    expect(payment.headers.get('cross-origin-embedder-policy')).toBeNull();
+    expect(payment.headers.get('cross-origin-opener-policy')).toBe('same-origin-allow-popups');
+    expect(payment.headers.get('content-security-policy')).toContain('https://js.stripe.com');
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
+});

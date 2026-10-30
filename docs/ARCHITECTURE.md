@@ -102,3 +102,9 @@ shared/ubl.mjs normalise les factures après contrôles ; shared/vat-documents.m
 ## Parcours guidés
 
 JourneySteps fournit les repères d’étapes accessibles. VatPage conserve le lot privé en mémoire pendant l’import, la signature et la preuve. VatAuthority est affiché dans ce même parcours ; son callback onReady transmet le lot signé au parent, qui revérifie le registre, la signature et les empreintes avant de poursuivre. Le lot ne rejoint ni l’état global de l’application, ni le stockage du navigateur, ni une nouvelle route serveur. Quitter la page arrête les opérations en cours. Le téléchargement du lot reste possible pour une remise à une autre personne. Les réglages cryptographiques et le collage JSON/JWK sont des options avancées. Voir [UX.md](UX.md).
+
+## Facturation intégrée
+
+server/billing.mjs coordonne la synchronisation Stripe et les verrous par compte. server/billing-checkout.mjs gère les sessions Elements de souscription et de remplacement de carte, puis leur confirmation autoritative. server/billing-management.mjs gère le statut masqué, les prévisualisations, changements d’offre et le renouvellement. Les routes restent dans server/routes/billing.mjs et les tarifs dans server/pricing.mjs.
+
+src/features/billing/PaymentPage.jsx assemble les pages Clair. CheckoutPayment et InvoicePayment isolent les deux parcours du SDK navigateur ; src/lib/stripe-client.js charge Stripe à la demande. Ces pages sont chargées paresseusement et naviguées dans des documents distincts pour conserver l’isolation des pages ZK. Voir [BILLING.md](BILLING.md).

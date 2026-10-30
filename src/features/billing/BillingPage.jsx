@@ -2,10 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, Check, LoaderCircle, Sparkles } from 'lucide-react';
 import { Badge, Button, PageHeading } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
+import { billingPath } from './billing-model.js';
 import { date } from '../../lib/format.js';
-export function Billing({ session, refresh, notify, login }) {
+export function Billing({
+  session,
+  refresh,
+  notify,
+  login,
+  onOpen = (action, plan) => location.assign(billingPath(action, plan)),
+}) {
   const [busy, setBusy] = useState(false);
   const { user, billingMode: mode, paymentEnvironment, usage } = session;
+  const hasExisting = Boolean(
+    user?.active ||
+    (user?.status && !['inactive', 'canceled', 'incomplete_expired'].includes(user.status)),
+  );
   const [loadedPlans, setLoadedPlans] = useState(null),
     [priceError, setPriceError] = useState('');
   useEffect(() => {
@@ -36,14 +47,12 @@ export function Billing({ session, refresh, notify, login }) {
     ];
   const run = async (action, plan = user?.plan || 'essential') => {
     if (!user) return login();
+    if (action !== 'sync') return onOpen(action, plan);
     setBusy(true);
     try {
-      const r = await api('/billing/' + action, action === 'checkout' ? { plan } : {});
-      if (r.url) location.assign(r.url);
-      else {
-        await refresh();
-        notify('Abonnement mis à jour.');
-      }
+      await api('/billing/sync', {});
+      await refresh();
+      notify('Abonnement mis à jour.');
     } catch (e) {
       notify(e.message, true);
     } finally {
@@ -70,7 +79,7 @@ export function Billing({ session, refresh, notify, login }) {
       {user?.trialActive && (
         <p className="notice" role="status">
           Votre essai Stripe est actif jusqu’au {date(user.expires)}. Vous pouvez gérer son
-          renouvellement et l’annuler dans le portail de facturation.
+          renouvellement et l’annuler depuis Clair.
         </p>
       )}
       <div className="billing-layout">
@@ -150,7 +159,7 @@ export function Billing({ session, refresh, notify, login }) {
                 <Button
                   variant="full"
                   disabled={busy || mode !== 'stripe' || !loadedPlans || !plan.available}
-                  onClick={() => run(user?.active ? 'portal' : 'checkout', plan.id)}
+                  onClick={() => run(hasExisting ? 'manage' : 'checkout', plan.id)}
                 >
                   {busy && <LoaderCircle className="spin" size={17} />}
                   {mode !== 'stripe'
@@ -159,10 +168,10 @@ export function Billing({ session, refresh, notify, login }) {
                       ? 'Chargement…'
                       : !plan.available
                         ? 'Bientôt disponible'
-                        : user?.active
+                        : hasExisting
                           ? current
                             ? 'Gérer mon abonnement'
-                            : 'Changer d’offre dans Stripe'
+                            : 'Changer d’offre'
                           : user?.trialEligible === false
                             ? 'Choisir ' + plan.name
                             : 'Essayer ' + plan.name + ' pendant 30 jours'}
@@ -172,7 +181,7 @@ export function Billing({ session, refresh, notify, login }) {
                   {mode !== 'stripe'
                     ? 'Aucun accès payant ne sera activé avant la validation dans Stripe.'
                     : user?.trialEligible === false
-                      ? 'Essai déjà utilisé sur ce compte. Le montant sera confirmé dans Stripe.'
+                      ? 'Essai déjà utilisé sur ce compte. Le montant sera confirmé avant validation.'
                       : '30 jours d’essai avec un moyen de paiement requis. Un seul essai par compte, toutes offres confondues. Ensuite, facturation automatique sauf annulation.'}
                   {paymentEnvironment === 'test' &&
                     ' Paiements Stripe de test : aucun prélèvement réel.'}
@@ -237,13 +246,13 @@ export function Billing({ session, refresh, notify, login }) {
           {mode === 'stripe' && (
             <>
               <p>
-                Carte bancaire, Apple Pay et Google Pay via la page sécurisée Stripe, selon votre
-                appareil et les moyens de paiement activés.
+                Carte bancaire, Apple Pay et Google Pay directement dans Clair, selon les moyens
+                disponibles sur votre appareil. Les données bancaires sont gérées par Stripe.
               </p>
               {user && (
                 <div className="row-actions">
-                  <Button variant="secondary" disabled={busy} onClick={() => run('portal')}>
-                    Portail de facturation
+                  <Button variant="secondary" disabled={busy} onClick={() => run('manage')}>
+                    Gérer la facturation
                   </Button>
                   <Button variant="secondary" disabled={busy} onClick={() => run('sync')}>
                     Actualiser le statut

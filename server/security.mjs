@@ -13,22 +13,40 @@ export const createLimit = (limit, windowMs = 60000) =>
     message: { error: 'Trop de requêtes. Réessayez plus tard.' },
   });
 export function securityHeaders(config) {
-  return helmet({
+  const directives = {
+    'default-src': ["'self'"],
+    'script-src': ["'self'", "'wasm-unsafe-eval'"],
+    'worker-src': ["'self'", 'blob:'],
+    'connect-src': ["'self'", 'https://crs.aztec.network'],
+    'img-src': ["'self'", 'data:'],
+    'style-src': ["'self'", "'unsafe-inline'"],
+    'upgrade-insecure-requests': config.secure ? [] : null,
+  };
+  const workspace = helmet({
+    contentSecurityPolicy: config.production ? { directives } : false,
+    crossOriginEmbedderPolicy: true,
+  });
+  const payment = helmet({
     contentSecurityPolicy: config.production
       ? {
           directives: {
-            'default-src': ["'self'"],
-            'script-src': ["'self'", "'wasm-unsafe-eval'"],
-            'worker-src': ["'self'", 'blob:'],
-            'connect-src': ["'self'", 'https://crs.aztec.network'],
-            'img-src': ["'self'", 'data:'],
-            'style-src': ["'self'", "'unsafe-inline'"],
-            'upgrade-insecure-requests': config.secure ? [] : null,
+            ...directives,
+            'script-src': ["'self'", 'https://js.stripe.com', 'https://*.js.stripe.com'],
+            'connect-src': ["'self'", 'https://api.stripe.com', 'https://*.stripe.com'],
+            'frame-src': [
+              'https://js.stripe.com',
+              'https://*.js.stripe.com',
+              'https://hooks.stripe.com',
+            ],
+            'img-src': ["'self'", 'data:', 'https://*.stripe.com'],
           },
         }
       : false,
-    crossOriginEmbedderPolicy: true,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   });
+  return (req, res, next) =>
+    (req.path.startsWith('/abonnement/') ? payment : workspace)(req, res, next);
 }
 export function sameOrigin(config) {
   return (req, res, next) => {

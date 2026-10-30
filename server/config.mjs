@@ -6,6 +6,15 @@ export function loadConfig(overrides = {}, env = process.env) {
   const mode = overrides.mode ?? env.BILLING_MODE ?? 'demo';
   const host = overrides.host ?? env.HOST ?? '127.0.0.1';
   const stripeKey = env.STRIPE_SECRET_KEY || '';
+  const stripePublishableKey = env.STRIPE_PUBLISHABLE_KEY || '';
+  if (stripePublishableKey && !/^pk_(test|live)_[A-Za-z0-9_]+$/.test(stripePublishableKey))
+    throw Error('Clé publique Stripe invalide.');
+  if (
+    mode === 'stripe' &&
+    stripePublishableKey &&
+    stripePublishableKey.startsWith('pk_live_') !== /^(sk|rk)_live_/.test(stripeKey)
+  )
+    throw Error('Les clés Stripe publique et secrète doivent utiliser le même environnement.');
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('PORT invalide.');
   if (
     !['http:', 'https:'].includes(origin.protocol) ||
@@ -33,7 +42,7 @@ export function loadConfig(overrides = {}, env = process.env) {
     throw Error('Chaque offre doit avoir un prix Stripe distinct.');
   if (mode === 'stripe' && (!stripeKey || !stripePrices.essential || !env.STRIPE_WEBHOOK_SECRET))
     throw Error('Configuration Stripe incomplète.');
-  if (stripeKey.startsWith('sk_live_') && env.ALLOW_LIVE_PAYMENTS !== 'true')
+  if (/^(sk|rk)_live_/.test(stripeKey) && env.ALLOW_LIVE_PAYMENTS !== 'true')
     throw Error('Paiement réel non autorisé.');
   return Object.freeze({
     production,
@@ -44,6 +53,7 @@ export function loadConfig(overrides = {}, env = process.env) {
     secure: origin.protocol === 'https:',
     dbPath: overrides.dbPath ?? env.DB_PATH ?? 'data/clair.sqlite',
     stripeKey,
+    stripePublishableKey,
     stripePrice: stripePrices.essential,
     stripePrices: Object.freeze(stripePrices),
     stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
@@ -54,6 +64,6 @@ export function loadConfig(overrides = {}, env = process.env) {
         .filter(Boolean),
     ),
     paymentEnvironment:
-      mode === 'demo' ? 'demo' : stripeKey.startsWith('sk_live_') ? 'live' : 'test',
+      mode === 'demo' ? 'demo' : /^(sk|rk)_live_/.test(stripeKey) ? 'live' : 'test',
   });
 }

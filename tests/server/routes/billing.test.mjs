@@ -61,3 +61,43 @@ test('expired trials block creation and finalization while archives and public v
     await f.close();
   }
 });
+
+test('all embedded billing operations require authentication, exact origin and strict inputs', async () => {
+  const f = await serverFixture();
+  try {
+    for (const path of ['/billing/config', '/billing/state'])
+      expect((await f.request(path)).status).toBe(401);
+    for (const path of [
+      '/billing/checkout',
+      '/billing/payment-method',
+      '/billing/complete',
+      '/billing/change/preview',
+      '/billing/change',
+      '/billing/renewal',
+    ])
+      expect((await f.request(path, { body: {} })).status).toBe(401);
+    const { cookie } = await f.account();
+    expect(
+      (
+        await f.request('/billing/change', {
+          cookie,
+          origin: 'https://evil.test',
+          body: { plan: 'pro', token: 'a'.repeat(48) },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (await f.request('/billing/change', { cookie, body: { plan: 'other', token: 'invalid' } }))
+        .status,
+    ).toBe(400);
+    expect((await f.request('/billing/renewal', { cookie, body: { cancel: 'true' } })).status).toBe(
+      400,
+    );
+    expect((await f.request('/billing/portal', { cookie, body: {} })).status).toBe(404);
+    expect(await (await f.request('/billing/config', { cookie })).json()).toMatchObject({
+      publishableKey: null,
+    });
+  } finally {
+    await f.close();
+  }
+});

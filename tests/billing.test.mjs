@@ -3,13 +3,20 @@ import assert from 'node:assert/strict';
 import Stripe from 'stripe';
 import { createApp } from '../server/app.mjs';
 test('Stripe contract: signed webhooks, authoritative status, checkout reuse, cancellation', async () => {
-  const vars = ['STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET'];
+  const vars = [
+    'STRIPE_SECRET_KEY',
+    'STRIPE_PUBLISHABLE_KEY',
+    'STRIPE_PRICE_ID',
+    'STRIPE_WEBHOOK_SECRET',
+  ];
   const prior = Object.fromEntries(vars.map((k) => [k, process.env[k]]));
+  process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_local_contract';
   process.env.STRIPE_SECRET_KEY = 'sk_test_local_contract';
   process.env.STRIPE_PRICE_ID = 'price_local';
   process.env.STRIPE_WEBHOOK_SECRET = 'whsec_local_contract';
   let subscriptions = [],
-    created = 0;
+    created = 0,
+    checkout;
   const real = new Stripe(process.env.STRIPE_SECRET_KEY);
   const fake = {
     webhooks: real.webhooks,
@@ -17,20 +24,18 @@ test('Stripe contract: signed webhooks, authoritative status, checkout reuse, ca
     customers: { create: async () => ({ id: 'cus_local' }) },
     checkout: {
       sessions: {
-        create: async () => {
+        create: async (options) => {
           created++;
-          return { id: 'cs_local', url: 'https://checkout.stripe.com/local', status: 'open' };
+          checkout = {
+            ...options,
+            id: 'cs_local',
+            client_secret: 'fixture_secret',
+            status: 'open',
+          };
+          return checkout;
         },
-        retrieve: async () => ({
-          id: 'cs_local',
-          url: 'https://checkout.stripe.com/local',
-          status: 'open',
-          metadata: { plan: 'essential', trial: '30' },
-        }),
+        retrieve: async () => checkout,
       },
-    },
-    billingPortal: {
-      sessions: { create: async () => ({ url: 'https://billing.stripe.com/local' }) },
     },
   };
   const { app, db } = createApp({
@@ -67,6 +72,8 @@ test('Stripe contract: signed webhooks, authoritative status, checkout reuse, ca
     assert.equal((await post('/billing/checkout', {})).status, 200);
     assert.equal((await post('/billing/checkout', {})).status, 200);
     assert.equal(created, 1);
+    assert.equal(checkout.ui_mode, 'custom');
+    assert.equal(checkout.url, undefined);
     assert.equal((await current()).active, false);
     const event = JSON.stringify({
       id: 'evt_local',

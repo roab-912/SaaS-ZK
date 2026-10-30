@@ -36,3 +36,18 @@ export function parseIssuer(raw) {
   }
   return issuer;
 }
+
+export const billingCompletionAction = z
+  .object({
+    sessionId: z
+      .string()
+      .min(3)
+      .max(255)
+      .regex(/^cs_[A-Za-z0-9_]+$/)
+      .optional(),
+  })
+  .strict();
+export const billingChangeAction = z
+  .object({ plan: z.enum(['essential', 'pro']), token: z.string().regex(/^[a-f0-9]{48}$/) })
+  .strict();
+export const billingRenewalAction = z.object({ cancel: z.boolean() }).strict();

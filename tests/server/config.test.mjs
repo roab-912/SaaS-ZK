@@ -42,3 +42,35 @@ test('plan prices cannot collide and essential retains its existing environment 
     loadConfig({}, { STRIPE_PRICE_ESSENTIAL: 'same', STRIPE_PRICE_PRO: 'same' }),
   ).toThrow('distinct');
 });
+
+test('embedded Stripe requires matching publishable and secret environments', () => {
+  const env = {
+    STRIPE_SECRET_KEY: 'sk_test_fixture',
+    STRIPE_PRICE_ESSENTIAL: 'price_e',
+    STRIPE_WEBHOOK_SECRET: 'whsec_fixture',
+  };
+  expect(loadConfig({ mode: 'stripe' }, env).stripePublishableKey).toBe('');
+  expect(
+    loadConfig({ mode: 'stripe' }, { ...env, STRIPE_PUBLISHABLE_KEY: 'pk_test_fixture' })
+      .stripePublishableKey,
+  ).toBe('pk_test_fixture');
+  expect(() =>
+    loadConfig({ mode: 'stripe' }, { ...env, STRIPE_PUBLISHABLE_KEY: 'pk_live_fixture' }),
+  ).toThrow(/environnement/);
+  expect(() => loadConfig({}, { STRIPE_PUBLISHABLE_KEY: 'sk_test_not_public' })).toThrow(
+    /publique/,
+  );
+});
+
+test('restricted live keys require the same live-payment opt-in', () => {
+  const env = {
+    STRIPE_SECRET_KEY: 'rk_live_fixture',
+    STRIPE_PRICE_ESSENTIAL: 'price_e',
+    STRIPE_WEBHOOK_SECRET: 'whsec_fixture',
+    STRIPE_PUBLISHABLE_KEY: 'pk_live_fixture',
+  };
+  expect(() => loadConfig({ mode: 'stripe' }, env)).toThrow(/autorisé/);
+  expect(
+    loadConfig({ mode: 'stripe' }, { ...env, ALLOW_LIVE_PAYMENTS: 'true' }).paymentEnvironment,
+  ).toBe('live');
+});

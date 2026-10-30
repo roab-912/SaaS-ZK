@@ -78,3 +78,9 @@ Les exemples UBL anonymisés de tests/fixtures/ubl couvrent une vente avec acomp
 ## Parcours accessibles aux non spécialistes
 
 Les tests de JourneySteps vérifient l’étape courante accessible. Le parcours TVA teste la transmission locale du lot signé vers la preuve sans téléchargement intermédiaire, et l’import d’un lot reçu. Le scénario navigateur étranger vérifie cette continuité sur mobile, l’absence de factures et de clé privée dans les requêtes et les quotas. Les tests génériques vérifient toujours les trois moteurs, les résultats faux et les signatures privées, avec les réglages techniques repliés.
+
+## Formulaire Stripe intégré
+
+Les fichiers billing-checkout.test.mjs et billing-management.test.mjs couvrent les sessions propres au compte, l’essai unique, les cartes, les récapitulatifs expirés ou modifiés, les paiements en attente, l’idempotence et le renouvellement. Chaque composant de paiement possède son fichier de test avec SDK simulé. Les tests security.test.mjs vérifient les CSP et l’isolation distinctes des documents ZK et de paiement. tests/billing.spec.mjs vérifie les navigations et le retour à un espace ZK isolé, avec un compte et une base de test.
+
+Ces suites automatisées ordinaires ne débitent pas Stripe. Pour tester le formulaire réel, utiliser les clés de test du même compte et un compte Clair de test. Vérifier la carte 4242, le refus de carte, l’authentification bancaire, le changement d’offre qui termine l’essai, la mise à jour de carte, puis le renouvellement et les droits. Les portefeuilles demandent un appareil compatible et un domaine HTTPS enregistré ; leur présence dans les tests de composants ne constitue pas un paiement Apple Pay ou Google Pay réel.

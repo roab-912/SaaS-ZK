@@ -67,13 +67,14 @@ test('Stripe prices and one-trial eligibility drive the checkout buttons for bot
     login: vi.fn(),
     refresh: vi.fn(),
     notify: vi.fn(),
+    onOpen: vi.fn(),
   };
   const view = render(<Billing {...props} />);
   const pro = await screen.findByRole('button', { name: 'Essayer Clair Pro pendant 30 jours' });
   expect(screen.getByText('19,00 €')).toBeVisible();
   expect(screen.getByText('49,00 €')).toBeVisible();
   await userEvent.click(pro);
-  expect(api).toHaveBeenCalledWith('/billing/checkout', { plan: 'pro' });
+  expect(props.onOpen).toHaveBeenCalledWith('checkout', 'pro');
   view.rerender(
     <Billing
       {...props}

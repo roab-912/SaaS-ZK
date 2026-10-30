@@ -19,10 +19,4 @@ export default defineConfig({
     exclude: ['@aztec/bb.js', '@noir-lang/noir_js', '@noir-lang/acvm_js', '@noir-lang/noirc_abi'],
   },
   build: { target: 'esnext', chunkSizeWarningLimit: 1200 },
-  server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-    },
-  },
 });

@@ -56,3 +56,9 @@ Les factures et le masque d’engagement restent dans le navigateur. Le lot cert
 ## Import UBL
 
 Les factures XML sont lues et validées localement, avec des limites avant construction du DOM, refus des DTD et entités, validation XSD sur un graphe de schémas embarqués et règles Schematron précompilées. Les données XML ne sont jamais rendues comme du HTML et ne déterminent pas les URL de chargement des ressources. Les originaux restent privés dans les lots version 2 ; leurs empreintes et les données normalisées sont liés par le relevé signé de l’autorité. Le circuit prouve les calculs normalisés, pas l’analyse du XML ou la validation d’une éventuelle signature XML. Voir [UBL.md](UBL.md).
+
+## Paiement dans Clair
+
+Les pages /abonnement/ utilisent des iframes Stripe et une CSP dédiée en production. Elles ne sont pas cross-origin isolated, conformément aux contraintes Stripe. Le reste du site conserve son isolation COOP/COEP et sa CSP sans Stripe. Les liens de paiement chargent un nouveau document ; revenir aux circuits charge à nouveau le document isolé. Le chargeur Stripe utilise son entrée pure et n’injecte aucun script à l’import.
+
+Les données bancaires sont transmises directement à Stripe. Les réponses sensibles de facturation sont authentifiées et non mises en cache. Une session de retour ou un résultat du SDK ne donne pas de droits : le serveur relit Stripe. Le changement d’offre utilise un récapitulatif limité à cinq minutes, lié au compte, vérifié à nouveau avant mutation et protégé par une clé d’idempotence. Une carte de remplacement doit provenir d’un SetupIntent réussi, avec le même client que l’abonnement. Les mutations restent protégées par l’origine exacte. Les règles d’essai et de prorata sont définies dans [BILLING.md](BILLING.md).
