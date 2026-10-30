@@ -21,10 +21,14 @@ test('VAT circuits are labeled as signed exhaustive batches', async () => {
   const { vatCircuit } = await import('../../../../shared/vat.mjs');
   render(
     <CircuitTable
-      circuits={[{ id: 'vat', hash: 'a'.repeat(64), schema: vatCircuit(), created: '2026-09-21' }]}
+      circuits={[
+        { id: 'vat', hash: 'a'.repeat(64), schema: vatCircuit(10), created: '2026-09-21' },
+      ]}
       onEdit={vi.fn()}
       onProve={vi.fn()}
     />,
   );
+  expect(screen.getByText('TVA collectée', { exact: true })).toBeVisible();
+  expect(screen.queryByText('TVA collectée · 10 factures')).toBeNull();
   expect(screen.getByText(/Relevé exhaustif signé · TVA/)).toBeVisible();
 });

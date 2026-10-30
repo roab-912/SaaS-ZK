@@ -76,7 +76,7 @@ export function Editor({ draft: c, setDraft, onSave }) {
     <>
       <PageHeading
         title="Construire une règle"
-        desc="Construisez une règle et prouvez son résultat sans révéler vos données privées."
+        desc="Nommez votre règle, ajoutez les informations à comparer, puis choisissez les conditions à vérifier."
         action={
           <div className="row-actions">
             <Button
@@ -122,46 +122,49 @@ export function Editor({ draft: c, setDraft, onSave }) {
         </label>
       </div>
       <section className="panel form-panel" style={{ marginBottom: 20 }}>
-        <label>
-          Résultat à prouver
-          <select
-            value={String(c.version)}
-            onChange={(e) => update('version', Number(e.target.value))}
-          >
-            <option value="2">Vrai ou faux — publier le résultat</option>
-            <option value="1">Vrai uniquement — condition obligatoire</option>
-          </select>
-        </label>
-        <p className="help">
-          {c.version === 2
-            ? 'Une preuve valide peut démontrer que la règle est vraie ou fausse. Ce résultat sera public, même si toutes les entrées sont privées.'
-            : 'Ce mode historique refuse une preuve lorsque la règle est fausse. Choisissez « Vrai ou faux » pour prouver les deux résultats.'}
-        </p>
-        <label>
-          Moteur de preuve
-          <select value={c.engine ?? ENGINE} onChange={(e) => update('engine', e.target.value)}>
-            {ZK_ENGINES.map((engine) => (
-              <option
-                key={engine.id}
-                value={engine.id}
-                disabled={
-                  !engine.privateSignedInputs &&
-                  c.inputs.some((i) => i.source === 'signed' && i.visibility === 'private')
-                }
-              >
-                {engine.name}
-                {engine.experimental ? ' · Expérimental' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="help">
-          {ZK_ENGINES.find((engine) => engine.id === (c.engine ?? ENGINE))?.description}
-        </p>
-        <p className="help">
-          Le moteur est conservé avec cette version du circuit. Vos données privées restent sur
-          votre appareil.
-        </p>
+        <details>
+          <summary>Options avancées de la preuve</summary>
+          <label>
+            Résultat à prouver
+            <select
+              value={String(c.version)}
+              onChange={(e) => update('version', Number(e.target.value))}
+            >
+              <option value="2">Vrai ou faux — publier le résultat</option>
+              <option value="1">Vrai uniquement — condition obligatoire</option>
+            </select>
+          </label>
+          <p className="help">
+            {c.version === 2
+              ? 'Une preuve valide peut démontrer que la règle est vraie ou fausse. Ce résultat sera public, même si toutes les entrées sont privées.'
+              : 'Ce mode historique refuse une preuve lorsque la règle est fausse. Choisissez « Vrai ou faux » pour prouver les deux résultats.'}
+          </p>
+          <label>
+            Moteur de preuve
+            <select value={c.engine ?? ENGINE} onChange={(e) => update('engine', e.target.value)}>
+              {ZK_ENGINES.map((engine) => (
+                <option
+                  key={engine.id}
+                  value={engine.id}
+                  disabled={
+                    !engine.privateSignedInputs &&
+                    c.inputs.some((i) => i.source === 'signed' && i.visibility === 'private')
+                  }
+                >
+                  {engine.name}
+                  {engine.experimental ? ' · Expérimental' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="help">
+            {ZK_ENGINES.find((engine) => engine.id === (c.engine ?? ENGINE))?.description}
+          </p>
+          <p className="help">
+            Le moteur est conservé avec cette version du circuit. Vos données privées restent sur
+            votre appareil.
+          </p>
+        </details>
       </section>
       <div className="editor-layout">
         <aside className="panel input-panel">
@@ -172,7 +175,8 @@ export function Editor({ draft: c, setDraft, onSave }) {
             <Badge>{c.inputs.length}/12</Badge>
           </div>
           <p className="help">
-            Choisissez ce qui restera privé et ce qui sera partagé avec la preuve.
+            Les entrées sont les informations utilisées par la règle : âge, revenu, date… Choisissez
+            celles qui resteront privées et celles que le destinataire pourra lire.
           </p>
           {c.inputs.map((i, n) => (
             <div className="input-block" key={n}>

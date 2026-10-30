@@ -16,7 +16,7 @@ test('verifier displays actual statement and checks requested fingerprint before
   render(<Verify initial={envelope} notify={notify} />);
   expect(screen.getByText('21/09/2008')).toBeVisible();
   await userEvent.click(screen.getByRole('button', { name: 'Vérifier la preuve', exact: true }));
-  expect(await screen.findByText('Preuve cryptographiquement valide')).toBeVisible();
+  expect(await screen.findByText('Preuve valide')).toBeVisible();
   expect(compileForEngine).toHaveBeenCalledWith(envelope.circuit, envelope.engine);
   await userEvent.type(screen.getByPlaceholderText(/SHA-256/), '0'.repeat(64));
   await userEvent.click(screen.getByRole('button', { name: 'Vérifier la preuve', exact: true }));

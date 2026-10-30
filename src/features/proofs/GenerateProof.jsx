@@ -1,3 +1,4 @@
+import { circuitName } from '../../lib/format.js';
 import { DateInput } from '../../components/DateInput.jsx';
 import React from 'react';
 import { ENGINE, engineName } from '../../../shared/engines.mjs';
@@ -12,6 +13,7 @@ import {
   Save,
   ShieldCheck,
 } from 'lucide-react';
+import { JourneySteps } from '../../components/JourneySteps.jsx';
 import { Badge, Button, PageHeading } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
 import { download } from '../../lib/files.js';
@@ -178,14 +180,21 @@ export function Generate({
         }
         desc="Vos données privées sont utilisées uniquement sur cet appareil."
       />
+      <JourneySteps
+        steps={['Ma règle', 'Mes informations', 'Ma preuve']}
+        current={result ? 2 : 1}
+      />
       <div className="generate-layout">
         <section className="panel form-panel">
           <div className="panel-title">
-            <h2>{c.name}</h2>
+            <h2>{circuitName(c)}</h2>
             <Badge>{signed.length ? 'Attestations requises' : 'Données déclarées'}</Badge>
           </div>
           <p className="help">{c.description}</p>
-          <p className="help">Moteur : {engineName(c.engine)}</p>
+          <details className="journey-details">
+            <summary>Détails techniques</summary>
+            <p className="help">Moteur : {engineName(c.engine)}</p>
+          </details>
           <p className="help">
             {c.version === 2
               ? 'Le résultat vrai ou faux sera public. Les valeurs marquées privées ne seront pas partagées.'
@@ -209,14 +218,14 @@ export function Generate({
                         · {i.attestation.issuerId}
                       </strong>
                       <p>
-                        Importez le fichier fourni par cette source pour {i.label}. Vous n’avez pas
-                        besoin de sa clé privée.
+                        Une attestation est une information signée par une source de confiance.
+                        Importez le fichier reçu pour {i.label} : la valeur sera remplie
+                        automatiquement.
                       </p>
                       <p className="help">
-                        Champ attendu : {i.attestation.claim}. La valeur sera remplie
-                        automatiquement.
+                        Vous n’avez pas besoin de la clé privée de la source.
                         {i.visibility === 'private'
-                          ? ' La valeur et la signature resteront privées et seront vérifiées dans le circuit Noir. La source et les dates seront publiques.'
+                          ? ' La valeur et la signature resteront privées et seront vérifiées sans être révélées. La source et les dates seront publiques.'
                           : ' La signature et la source seront vérifiées avant la génération.'}
                       </p>
                       <label>
@@ -382,7 +391,10 @@ export function Generate({
                 La preuve est valide : elle atteste ce résultat, sans révéler les entrées privées.
               </p>
               <p>Les champs privés du formulaire ont été effacés.</p>
-              <Button variant="full" onClick={() => download(result, c.name + '.preuve.clair')}>
+              <Button
+                variant="full"
+                onClick={() => download(result, circuitName(c) + '.preuve.clair')}
+              >
                 <Download size={16} />
                 Télécharger la preuve
               </Button>

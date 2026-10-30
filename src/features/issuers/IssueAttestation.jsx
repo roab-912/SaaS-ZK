@@ -114,7 +114,7 @@ export function IssueAttestation({ onBack = () => {}, circuits = [] }) {
     <>
       <PageHeading
         title="Créer une attestation"
-        desc="Choisissez votre autorité, puis un circuit qui la désigne pour signer les données attendues sans créer de preuve ZK."
+        desc="Pour les personnes autorisées à signer : choisissez la source, sélectionnez la règle puis renseignez les informations à certifier."
         action={
           <Button variant="secondary" onClick={onBack}>
             Retour aux sources
@@ -122,7 +122,11 @@ export function IssueAttestation({ onBack = () => {}, circuits = [] }) {
         }
       />
       <section className="panel form-panel issuer-form">
-        <h2>Les données à attester</h2>
+        <h2>Les informations à certifier</h2>
+        <p className="help">
+          Une attestation est un justificatif signé. Le destinataire pourra l’importer pour créer sa
+          preuve, sans recevoir votre clé privée.
+        </p>
         {source && (
           <label>
             Source émettrice

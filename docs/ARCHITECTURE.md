@@ -98,3 +98,7 @@ Le modèle TVA utilise un programme Noir fixe, une matrice privée bornée à 50
 ## Adaptateur UBL
 
 shared/ubl.mjs normalise les factures après contrôles ; shared/vat-documents.mjs définit la traçabilité privée et son engagement signé. src/lib/ubl-validation.js exécute les XSD et Schematron embarqués, et src/features/vat/ubl-import.js gère le lot local. scripts/build-ubl-assets.mjs reconstruit les ressources officielles épinglées sans téléchargement. Aucun endpoint serveur n’accepte les factures XML. Le programme Noir TVA reste indépendant de la syntaxe UBL. Voir [UBL.md](UBL.md).
+
+## Parcours guidés
+
+JourneySteps fournit les repères d’étapes accessibles. VatPage conserve le lot privé en mémoire pendant l’import, la signature et la preuve. VatAuthority est affiché dans ce même parcours ; son callback onReady transmet le lot signé au parent, qui revérifie le registre, la signature et les empreintes avant de poursuivre. Le lot ne rejoint ni l’état global de l’application, ni le stockage du navigateur, ni une nouvelle route serveur. Quitter la page arrête les opérations en cours. Le téléchargement du lot reste possible pour une remise à une autre personne. Les réglages cryptographiques et le collage JSON/JWK sont des options avancées. Voir [UX.md](UX.md).

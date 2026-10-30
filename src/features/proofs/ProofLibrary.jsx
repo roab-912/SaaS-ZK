@@ -3,7 +3,7 @@ import { Download, FileCheck2, Trash2, Upload } from 'lucide-react';
 import { Badge, Button, Empty, PageHeading, AccountEmpty } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
 import { download } from '../../lib/files.js';
-import { date } from '../../lib/format.js';
+import { date, circuitName } from '../../lib/format.js';
 export function ProofLibrary({ user, nav, setAuth, proofs, openVerify, refresh }) {
   return (
     <>
@@ -35,13 +35,15 @@ export function ProofLibrary({ user, nav, setAuth, proofs, openVerify, refresh }
                       : 'Données déclarées'}
                 </Badge>
               </div>
-              <h3>{p.envelope.circuit.name}</h3>
+              <h3>{circuitName(p.envelope.circuit)}</h3>
               <p className="muted">Enregistrée le {date(p.created)}</p>
               <code>{p.envelope.circuitHash.slice(0, 16)}…</code>
               <div className="proof-actions">
                 <Button
                   variant="secondary small"
-                  onClick={() => download(p.envelope, p.envelope.circuit.name + '.preuve.clair')}
+                  onClick={() =>
+                    download(p.envelope, circuitName(p.envelope.circuit) + '.preuve.clair')
+                  }
                 >
                   <Download size={15} />
                   Télécharger

@@ -13,3 +13,5 @@ export function displayDate(value) {
 export function isoDate(value) {
   return value.replace(/^(\d{2})\/(\d{2})\/(\d{4})$/, '$3-$2-$1');
 }
+
+export const circuitName = (circuit) => (circuit.vat ? 'TVA collectée' : circuit.name);

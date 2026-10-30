@@ -1,9 +1,10 @@
 import { VatStatement } from '../vat/VatStatement.jsx';
-import { displayDate } from '../../lib/format.js';
+import { displayDate, circuitName } from '../../lib/format.js';
 import React from 'react';
 import { engineName } from '../../../shared/engines.mjs';
 import { useState, useEffect, useRef } from 'react';
 import { LoaderCircle, Search, ShieldCheck, Upload, X } from 'lucide-react';
+import { JourneySteps } from '../../components/JourneySteps.jsx';
 import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
 import { launchProof, compileForEngine } from '../../lib/zk-client.js';
 import { api } from '../../lib/api.js';
@@ -114,6 +115,10 @@ export function Verify({ initial, notify }) {
         title="Vérifier une preuve"
         desc="Une vérification ouverte à tous, sans compte ni abonnement."
       />
+      <JourneySteps
+        steps={['Mon fichier', 'Vérification', 'Résultat']}
+        current={status ? 2 : envelope ? 1 : 0}
+      />
       <div className="verify-layout">
         <section className="panel form-panel">
           <div
@@ -128,7 +133,9 @@ export function Verify({ initial, notify }) {
               <Upload size={27} />
             </span>
             <h3>{envelope ? 'Fichier chargé' : 'Déposez votre preuve ici'}</h3>
-            <p>{envelope ? envelope.circuit.name : 'Un fichier .clair généré avec Clair'}</p>
+            <p>
+              {envelope ? circuitName(envelope.circuit) : 'Un fichier .clair généré avec Clair'}
+            </p>
             <Button disabled={busy} variant="secondary" onClick={() => input.current.click()}>
               {envelope ? 'Choisir un autre fichier' : 'Parcourir les fichiers'}
             </Button>
@@ -141,18 +148,21 @@ export function Verify({ initial, notify }) {
               onChange={(e) => load(e.target.files[0])}
             />
           </div>
-          <label>
-            Empreinte du circuit attendu <small>(facultatif)</small>
-            <input
-              disabled={busy}
-              placeholder="Empreinte SHA-256 fournie par le demandeur"
-              value={expected}
-              onChange={(e) => {
-                setExpected(e.target.value);
-                setStatus(null);
-              }}
-            />
-          </label>
+          <details className="journey-details">
+            <summary>Vérifier une règle précise (avancé)</summary>
+            <label>
+              Empreinte du circuit attendu <small>(facultatif)</small>
+              <input
+                disabled={busy}
+                placeholder="Empreinte SHA-256 fournie par le demandeur"
+                value={expected}
+                onChange={(e) => {
+                  setExpected(e.target.value);
+                  setStatus(null);
+                }}
+              />
+            </label>
+          </details>
           <p className="help">
             Comparez la règle et ses paramètres à votre demande. Le titre d’un circuit ne garantit
             pas sa signification.
@@ -170,9 +180,7 @@ export function Verify({ initial, notify }) {
             <div className={'validation ' + (status === 'invalid' ? 'invalid' : '')} role="status">
               {status === 'valid' ? <ShieldCheck size={22} /> : <X size={22} />}
               <div>
-                <strong>
-                  {status === 'valid' ? 'Preuve cryptographiquement valide' : 'Preuve invalide'}
-                </strong>
+                <strong>{status === 'valid' ? 'Preuve valide' : 'Preuve invalide'}</strong>
                 <p>
                   {status === 'valid'
                     ? outcome
@@ -198,8 +206,11 @@ export function Verify({ initial, notify }) {
                       : 'Attestations publiques jointes'
                     : 'Données déclarées · Non certifiées'}
               </Badge>
-              <h3>{envelope.circuit.name}</h3>
-              <p className="help">Moteur : {engineName(envelope.engine)}</p>
+              <h3>{circuitName(envelope.circuit)}</h3>
+              <details className="journey-details">
+                <summary>Détails du moteur de preuve</summary>
+                <p className="help">Moteur : {engineName(envelope.engine)}</p>
+              </details>
               <p>{envelope.circuit.description}</p>
               <div className="statement">{describe(envelope.circuit)}</div>
               <h4>{status === 'valid' ? 'Résultat prouvé' : 'Résultat annoncé — à vérifier'}</h4>
@@ -263,7 +274,10 @@ export function Verify({ initial, notify }) {
                             Champ signé : {input.attestation.claim}
                             {input.visibility === 'private' ? ' · Valeur et signature privées' : ''}
                           </small>
-                          <code className="hash">{input.attestation.keyHash}</code>
+                          <details className="journey-details">
+                            <summary>Identifiant de la clé (avancé)</summary>
+                            <code className="hash">{input.attestation.keyHash}</code>
+                          </details>
                           {source && (
                             <p>Expiration : {new Date(source.expiresAt).toLocaleString('fr-FR')}</p>
                           )}
@@ -273,10 +287,10 @@ export function Verify({ initial, notify }) {
                   })}
                 </>
               )}
-              <h4>Empreinte du circuit</h4>
-              <code className="hash">{envelope.circuitHash}</code>
-              <details>
+              <details className="journey-details">
                 <summary>Consulter le circuit complet</summary>
+                <h4>Empreinte du circuit</h4>
+                <code className="hash">{envelope.circuitHash}</code>
                 <pre>{JSON.stringify(envelope.circuit, null, 2)}</pre>
               </details>
               <div className="notice">

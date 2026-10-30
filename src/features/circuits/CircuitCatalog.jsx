@@ -16,7 +16,10 @@ export function CircuitCatalog({ onChoose, pending }) {
       <div className="section-heading">
         <div>
           <h2>Que souhaitez-vous prouver ?</h2>
-          <p>Choisissez un circuit, renseignez vos données et générez votre preuve.</p>
+          <p>
+            Choisissez un modèle, ajoutez vos informations et créez votre preuve. Aucune
+            connaissance technique n’est nécessaire.
+          </p>
         </div>
       </div>
       <div className="templates catalog-grid">
@@ -59,13 +62,19 @@ export function CircuitCatalog({ onChoose, pending }) {
         })}
       </div>
       <p className="help">
-        Les modèles classiques utilisent des données déclarées ; le modèle TVA exige un relevé
-        exhaustif signé. Choisir un modèle ne l’enregistre pas. Le circuit compte dans votre
-        abonnement après enregistrement ou au lancement d’une preuve ; le réutiliser ne crée pas de
-        doublon. Les valeurs privées restent sur votre appareil.
+        Un circuit est une règle à vérifier. Les modèles ci-dessus sont prêts à l’emploi. Pour la
+        TVA, un parcours vous guide de l’import des factures jusqu’à la preuve. Vos informations
+        privées restent sur votre appareil.
       </p>
       <details className="catalog-options">
         <summary>Options avancées</summary>
+        <p className="help">
+          Le moteur recommandé est déjà sélectionné. Vous pouvez conserver ce choix pour commencer.
+        </p>
+        <p className="help">
+          Le circuit compte dans votre abonnement à son enregistrement ou à la première preuve. Le
+          réutiliser ne crée pas de doublon.
+        </p>
         <label>
           Moteur de preuve
           <select

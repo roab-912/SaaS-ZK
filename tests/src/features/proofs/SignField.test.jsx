@@ -2,7 +2,7 @@
 import React from 'react';
 import { webcrypto, generateKeyPairSync } from 'node:crypto';
 import { test, expect, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SignField } from '../../../../src/features/proofs/SignField.jsx';
 import { keyFingerprint, verifySignature } from '../../../../shared/attestations.mjs';
@@ -52,6 +52,18 @@ test('field signing uses the expected key locally, clears it, and only returns a
     expect(a.value).toBe(3000);
     expect(await verifySignature(a)).toBe(true);
     expect(JSON.stringify(a)).not.toContain(privateJwk.d);
+    let finish;
+    const delayed = new File(['x'], 'delayed.clair');
+    delayed.text = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    await userEvent.upload(screen.getByLabelText('Importer une clé privée pour Revenu'), delayed);
+    fireEvent.change(field, { target: { value: JSON.stringify(privateJwk) } });
+    await userEvent.click(screen.getByRole('button', { name: 'Signer Revenu' }));
+    await waitFor(() => expect(onSigned).toHaveBeenCalledTimes(2));
+    await act(async () => finish(JSON.stringify(privateJwk)));
+    expect(field).toHaveValue('');
   } finally {
     vi.unstubAllGlobals();
   }

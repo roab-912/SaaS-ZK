@@ -26,15 +26,18 @@ function SignInputs({ items, label, disabled, onSigned }) {
     [signing, setSigning] = useState(false),
     [error, setError] = useState('');
   const latest = useRef(''),
-    mounted = useRef(true);
+    mounted = useRef(true),
+    keyRead = useRef(0);
   latest.current = JSON.stringify(items);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      keyRead.current++;
     };
   }, []);
   async function sign() {
+    keyRead.current++;
     setError('');
     setSigning(true);
     const snapshot = latest.current,
@@ -65,23 +68,8 @@ function SignInputs({ items, label, disabled, onSigned }) {
   }
   return (
     <div>
-      <label>
-        Clé privée pour {label}
-        <textarea
-          aria-label={'Clé privée pour ' + label}
-          value={key}
-          onChange={(e) => {
-            setKey(e.target.value);
-            setError('');
-          }}
-          autoComplete="off"
-          spellCheck={false}
-          disabled={disabled || signing}
-          placeholder="Collez la clé privée JWK de cette source"
-        />
-      </label>
-      <label className="help">
-        Importer une clé privée pour {label}
+      <label className="signature-file">
+        Clé de signature pour {label} (.clair)
         <input
           aria-label={'Importer une clé privée pour ' + label}
           type="file"
@@ -90,15 +78,18 @@ function SignInputs({ items, label, disabled, onSigned }) {
           onChange={async (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            const token = ++keyRead.current,
+              snapshot = latest.current;
             setKey('');
             setError('');
             const element = e.target;
             try {
               if (file.size > 4096) throw Error();
               const text = await file.text();
-              if (mounted.current) setKey(text);
+              if (mounted.current && token === keyRead.current && snapshot === latest.current)
+                setKey(text);
             } catch {
-              if (mounted.current)
+              if (mounted.current && token === keyRead.current)
                 setError('Fichier de clé invalide ou trop volumineux (4 Ko maximum).');
             } finally {
               element.value = '';
@@ -106,6 +97,30 @@ function SignInputs({ items, label, disabled, onSigned }) {
           }}
         />
       </label>
+      {key && (
+        <p className="help" role="status">
+          Clé de signature chargée ; elle sera vérifiée avant de signer.
+        </p>
+      )}
+      <details className="journey-details">
+        <summary>Coller une clé de signature (avancé)</summary>
+        <label>
+          Clé privée pour {label}
+          <textarea
+            aria-label={'Clé privée pour ' + label}
+            value={key}
+            onChange={(e) => {
+              keyRead.current++;
+              setKey(e.target.value);
+              setError('');
+            }}
+            autoComplete="off"
+            spellCheck={false}
+            disabled={disabled || signing}
+            placeholder="Collez la clé privée JWK de cette source"
+          />
+        </label>
+      </details>
       <p className="help">
         La clé privée reste sur cet appareil et est effacée de ce champ après la signature. Les
         attestations sont valables 7 jours.

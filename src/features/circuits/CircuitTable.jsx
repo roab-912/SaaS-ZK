@@ -2,7 +2,7 @@ import React from 'react';
 import { engineName } from '../../../shared/engines.mjs';
 import { ArrowRight, GitBranch, Trash2 } from 'lucide-react';
 import { Badge, Button } from '../../components/ui.jsx';
-import { date } from '../../lib/format.js';
+import { date, circuitName } from '../../lib/format.js';
 export function CircuitTable({ circuits, onEdit, onProve, onDelete }) {
   return (
     <div className="table-wrap">
@@ -25,7 +25,7 @@ export function CircuitTable({ circuits, onEdit, onProve, onDelete }) {
                     <GitBranch size={18} />
                   </span>
                   <span>
-                    <strong>{c.schema.name}</strong>
+                    <strong>{circuitName(c.schema)}</strong>
                     <small>
                       {c.schema.vat
                         ? 'Relevé exhaustif signé · TVA'
@@ -52,7 +52,7 @@ export function CircuitTable({ circuits, onEdit, onProve, onDelete }) {
                   {onDelete && (
                     <button
                       className="icon-button"
-                      aria-label={'Supprimer ' + c.schema.name}
+                      aria-label={'Supprimer ' + circuitName(c.schema)}
                       onClick={() => onDelete(c)}
                     >
                       <Trash2 size={15} />

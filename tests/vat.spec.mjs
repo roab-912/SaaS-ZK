@@ -38,7 +38,9 @@ for (const scenario of [
       );
     await registry(page.context());
     const errors = [],
-      bodies = [];
+      bodies = [],
+      downloads = [];
+    page.on('download', (d) => downloads.push(d.suggestedFilename()));
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('request', (r) => {
       if (r.url().includes('/api/')) bodies.push(r.postData() ?? '');
@@ -54,8 +56,8 @@ for (const scenario of [
     });
     await page.reload();
     await page.getByRole('button', { name: /^Mes circuits/ }).click();
-    await page.getByRole('button', { name: 'Utiliser TVA collectée certifiée' }).click();
-    await page.getByRole('button', { name: 'Créer un lot de démonstration' }).click();
+    await page.getByRole('button', { name: 'Utiliser TVA collectée' }).click();
+    await page.getByRole('button', { name: 'Importer mes factures XML' }).click();
     await page.getByLabel('Début de période', { exact: true }).fill(scenario.start);
     await page.getByLabel('Fin de période', { exact: true }).fill(scenario.end);
     const files =
@@ -74,41 +76,68 @@ for (const scenario of [
       })),
     );
     await expect(
-      page.getByText(scenario.count + ' documents UBL validés localement', { exact: true }),
+      page.getByText(scenario.count + ' factures et avoirs prêts', { exact: true }),
     ).toBeVisible();
 
+    await page.getByRole('button', { name: 'Continuer vers la signature' }).click();
     await page.getByRole('checkbox').check();
-    await page
-      .getByLabel('Clé privée de l’émetteur TVA', { exact: true })
-      .fill(JSON.stringify(priv));
+    await page.getByLabel('Importer la clé privée TVA').setInputFiles({
+      name: 'private.clair',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(priv)),
+    });
     await page.getByRole('button', { name: 'Signer le relevé complet' }).click();
     await expect(page.getByRole('heading', { name: 'Lot certifié prêt' })).toBeVisible({
       timeout: 30000,
     });
-    await expect(page.getByLabel('Clé privée de l’émetteur TVA', { exact: true })).toHaveValue('');
+    await expect(page.getByLabel('Clé privée de l’émetteur TVA', { exact: true })).toHaveCount(0);
     expect(await (await page.request.get('/api/circuits')).json()).toHaveLength(0);
-    let next = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Télécharger le lot certifié' }).click();
-    const batchDownload = await next;
-    expect(batchDownload.suggestedFilename()).toMatch(/\.clair$/);
-    let batchText = '';
-    for await (const c of await batchDownload.createReadStream()) batchText += c;
-    const batch = JSON.parse(batchText);
-    expect(batch.invoices).toHaveLength(scenario.count);
-    await page.getByRole('button', { name: /^Mes circuits/ }).click();
-    await page.getByRole('button', { name: 'Utiliser TVA collectée certifiée' }).click();
-    const omitted = { ...batch, invoices: batch.invoices.slice(1) };
-    await page.getByLabel('Lot de factures certifié', { exact: true }).setInputFiles({
-      name: 'incomplet.clair',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(omitted)),
-    });
-    await expect(page.getByRole('alert')).toContainText('nombre de documents UBL');
-    await page.getByLabel('Lot de factures certifié', { exact: true }).setInputFiles({
-      name: 'factures.clair',
-      mimeType: 'application/json',
-      buffer: Buffer.from(batchText),
-    });
+    let next, batch;
+    if (scenario.id === 'de') {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(page.locator('.sidebar')).not.toBeInViewport();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+        390,
+      );
+      await page.screenshot({
+        path: 'test-results/vat-journey-signed-mobile.png',
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.getByRole('button', { name: 'Continuer vers ma preuve' }).click();
+      await expect(page.getByRole('heading', { name: 'Prouver la TVA collectée' })).toBeVisible();
+      expect(downloads).toHaveLength(0);
+      await page.screenshot({
+        path: 'test-results/vat-journey-proof-mobile.png',
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.setViewportSize({ width: 1440, height: 1050 });
+    } else {
+      next = page.waitForEvent('download');
+      await page.getByRole('button', { name: 'Télécharger le lot certifié' }).click();
+      const batchDownload = await next;
+      expect(batchDownload.suggestedFilename()).toMatch(/\.clair$/);
+      let batchText = '';
+      for await (const c of await batchDownload.createReadStream()) batchText += c;
+      batch = JSON.parse(batchText);
+      expect(batch.invoices).toHaveLength(scenario.count);
+      await page.getByRole('button', { name: /^Mes circuits/ }).click();
+      await page.getByRole('button', { name: 'Utiliser TVA collectée' }).click();
+      await page.getByText('J’ai déjà un lot signé', { exact: true }).click();
+      const omitted = { ...batch, invoices: batch.invoices.slice(1) };
+      await page.getByLabel('Lot de factures certifié', { exact: true }).setInputFiles({
+        name: 'incomplet.clair',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify(omitted)),
+      });
+      await expect(page.getByRole('alert')).toContainText('nombre de documents UBL');
+      await page.getByLabel('Lot de factures certifié', { exact: true }).setInputFiles({
+        name: 'factures.clair',
+        mimeType: 'application/json',
+        buffer: Buffer.from(batchText),
+      });
+    }
     const amount = page.getByLabel('TVA collectée en euros', { exact: true });
     await expect(amount).toBeVisible();
     const actual = await amount.inputValue();
@@ -132,7 +161,9 @@ for (const scenario of [
     expect(proof.vatManifest.count).toBe(scenario.count);
     expect(proofText).not.toContain('netCents');
     expect(proofText).not.toContain('FA-000001');
-    expect(proofText).not.toContain(batch.blinding);
+    if (batch) expect(proofText).not.toContain(batch.blinding);
+    expect(proofText).not.toContain('INV-2026-0042');
+    expect(bodies.join('\n')).not.toContain('<?xml');
     await page.getByRole('button', { name: 'Enregistrer dans mon espace' }).click();
     await expect(page.getByRole('button', { name: 'Enregistrée', exact: true })).toBeVisible();
     const session = await (await page.request.get('/api/session')).json();
@@ -153,7 +184,7 @@ for (const scenario of [
       buffer: Buffer.from(proofText),
     });
     await verifier.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
-    await expect(verifier.getByText('Preuve cryptographiquement valide')).toBeVisible({
+    await expect(verifier.getByText('Preuve valide')).toBeVisible({
       timeout: 60000,
     });
     await expect(verifier.getByText('Calcul et source vérifiés')).toBeVisible();

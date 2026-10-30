@@ -4,7 +4,7 @@ import { ENGINE } from '../../../shared/engines.mjs';
 export const CIRCUIT_CATALOG = [
   {
     id: 'vat',
-    title: 'TVA collectée certifiée',
+    title: 'TVA collectée',
     description:
       'Additionnez la TVA de 500 factures et avoirs certifiés, sans dévoiler leurs détails.',
     category: 'Finance · Relevé exhaustif · Noir',

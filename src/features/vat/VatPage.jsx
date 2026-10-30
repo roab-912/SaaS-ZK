@@ -1,3 +1,5 @@
+import { VatAuthority } from './VatAuthority.jsx';
+import { JourneySteps } from '../../components/JourneySteps.jsx';
 import { downloadOriginalUbl } from '../../lib/ubl-files.js';
 import { verifyVatDocuments, VAT_DOCUMENT_LIMITS } from '../../../shared/vat-documents.mjs';
 import React, { useEffect, useRef, useState } from 'react';
@@ -17,8 +19,9 @@ import {
   parseEuroCents,
 } from '../../../shared/vat.mjs';
 import { VatStatement } from './VatStatement.jsx';
-export function VatPage({ notify, refresh, onVerify, onAuthority }) {
-  const [batch, setBatch] = useState(null),
+export function VatPage({ notify, refresh, onVerify, onManageSources }) {
+  const [preparing, setPreparing] = useState(false),
+    [batch, setBatch] = useState(null),
     [claim, setClaim] = useState(''),
     [source, setSource] = useState(null),
     [busy, setBusy] = useState(false),
@@ -35,6 +38,53 @@ export function VatPage({ notify, refresh, onVerify, onAuthority }) {
     },
     [],
   );
+  async function acceptBatch(raw, run) {
+    let parsed;
+    try {
+      parsed = parseVatBatch(raw);
+    } catch (cause) {
+      if (cause.name === 'ZodError')
+        throw Error(
+          'Ce fichier n’est pas un lot de factures signé. Utilisez le fichier .clair transmis par votre source de confiance.',
+          { cause },
+        );
+      throw cause;
+    }
+    if (parsed.format !== 'clair-vat-batch/2')
+      throw Error(
+        'Ce lot ne contient pas de factures UBL. Faites certifier les XML UBL par votre source de confiance.',
+      );
+    const issuers = await api('/issuers'),
+      verified = await verifyVatManifest(parsed.manifest, issuers);
+    if (!verified.valid) throw Error(verified.reason);
+    await verifyVatDocuments(parsed);
+    if (run !== generation.current) return;
+    const totals = vatSummary(vatDraftFromBatch(parsed));
+    setBatch(parsed);
+    setSource(verified);
+    setClaim((totals.net / 100).toFixed(2).replace('.', ','));
+  }
+  function startPreparation() {
+    generation.current++;
+    task.current?.cancel();
+    setBatch(null);
+    setSource(null);
+    setClaim('');
+    setResult(null);
+    setError('');
+    setSaved(false);
+    setPreparing(true);
+  }
+  async function receiveSignedBatch(raw) {
+    const run = ++generation.current;
+    setBusy(true);
+    try {
+      await acceptBatch(raw, run);
+      if (run === generation.current) setPreparing(false);
+    } finally {
+      if (run === generation.current) setBusy(false);
+    }
+  }
   async function load(file) {
     if (!file) return;
     const run = ++generation.current;
@@ -47,20 +97,16 @@ export function VatPage({ notify, refresh, onVerify, onAuthority }) {
     try {
       if (file.size > VAT_DOCUMENT_LIMITS.certifiedBytes)
         throw Error('Lot trop volumineux (40 Mo maximum).');
-      const parsed = parseVatBatch(JSON.parse(await file.text()));
-      if (parsed.format !== 'clair-vat-batch/2')
+      let raw;
+      try {
+        raw = JSON.parse(await file.text());
+      } catch (cause) {
         throw Error(
-          'Ce lot ne contient pas de factures UBL. Faites certifier les XML UBL par votre source de confiance.',
+          'Ce fichier ne peut pas être lu. Choisissez le lot signé .clair transmis par votre source de confiance.',
+          { cause },
         );
-      const issuers = await api('/issuers'),
-        verified = await verifyVatManifest(parsed.manifest, issuers);
-      if (!verified.valid) throw Error(verified.reason);
-      await verifyVatDocuments(parsed);
-      if (run !== generation.current) return;
-      const totals = vatSummary(vatDraftFromBatch(parsed));
-      setBatch(parsed);
-      setSource(verified);
-      setClaim((totals.net / 100).toFixed(2).replace('.', ','));
+      }
+      await acceptBatch(raw, run);
     } catch (e) {
       if (run === generation.current) setError(e.message);
     } finally {
@@ -136,37 +182,58 @@ export function VatPage({ notify, refresh, onVerify, onAuthority }) {
           credits: result.publicData.find((i) => i.id === 'credit_vat').value,
         }
       : null;
+  if (preparing)
+    return (
+      <VatAuthority
+        onBack={() => setPreparing(false)}
+        onReady={receiveSignedBatch}
+        onManageSources={onManageSources}
+      />
+    );
   return (
     <>
       <PageHeading
         title="Prouver la TVA collectée"
-        desc="Un relevé exhaustif certifié, jusqu’à 500 factures et avoirs. Les détails restent sur votre appareil."
-        action={
-          <Button variant="secondary" onClick={onAuthority} disabled={busy}>
-            Créer un lot de démonstration
-          </Button>
-        }
+        desc="Ajoutez vos factures, faites signer le lot, puis créez une preuve du montant de TVA. Le détail des factures reste privé."
+      />
+      <JourneySteps
+        steps={['Mes factures', 'Signature', 'Ma preuve']}
+        current={batch || result ? 2 : 0}
       />
       <div className="generate-layout">
         <section className="panel form-panel">
-          <h2>1. Importer les factures certifiées</h2>
-          <p className="help">
-            La source de confiance fournit un lot .clair contenant les factures XML UBL privées et
-            le relevé complet signé pour l’entreprise et la période.
-          </p>
-          <label>
-            Lot de factures certifié
-            <input
-              aria-label="Lot de factures certifié"
-              type="file"
-              accept=".clair"
-              disabled={busy}
-              onChange={(e) => {
-                load(e.target.files[0]);
-                e.target.value = '';
-              }}
-            />
-          </label>
+          {!batch && !result && (
+            <div className="journey-start">
+              <h2>Commencez avec vos factures</h2>
+              <p>
+                Importez les fichiers XML de votre logiciel de facturation. Nous vous guiderons
+                ensuite pour la signature et la preuve.
+              </p>
+              <Button variant="full" onClick={startPreparation} disabled={busy}>
+                Importer mes factures XML
+              </Button>
+              <details className="journey-details">
+                <summary>J’ai déjà un lot signé</summary>
+                <p className="help">
+                  Votre source de confiance vous a transmis un fichier .clair avec les factures et
+                  leur signature ? Ajoutez-le ici pour passer directement à la preuve.
+                </p>
+                <label>
+                  Lot de factures certifié
+                  <input
+                    aria-label="Lot de factures certifié"
+                    type="file"
+                    accept=".clair"
+                    disabled={busy}
+                    onChange={(e) => {
+                      load(e.target.files[0]);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </details>
+            </div>
+          )}
           {error && (
             <div className="validation invalid" role="alert">
               {error}
@@ -189,7 +256,7 @@ export function VatPage({ notify, refresh, onVerify, onAuthority }) {
                   ))}
                 </details>
               )}
-              <h2>2. Confirmer le montant à prouver</h2>
+              <h2>3. Confirmer le montant et créer ma preuve</h2>
               <label>
                 TVA collectée en euros
                 <input
@@ -204,9 +271,9 @@ export function VatPage({ notify, refresh, onVerify, onAuthority }) {
                 />
               </label>
               <p className="help">
-                Ventes moins avoirs, en euros. Les factures, leurs dates, bases et taxes sont
-                vérifiées dans Noir ; seuls le total, les sous-totaux et le relevé public sont
-                partagés.
+                Ce montant correspond à la TVA des ventes moins celle des avoirs. Le destinataire
+                verra le total, les sous-totaux et la source signataire, sans le détail des
+                factures.
               </p>
               <Button variant="full" disabled={busy}>
                 {busy ? <LoaderCircle className="spin" size={18} /> : <Fingerprint size={18} />}
@@ -233,6 +300,9 @@ export function VatPage({ notify, refresh, onVerify, onAuthority }) {
           {result && (
             <div className="result-panel">
               <h2>Preuve TVA prête</h2>
+              <p>
+                Vous pouvez maintenant télécharger la preuve et la transmettre à votre destinataire.
+              </p>
               <p>
                 Les factures privées ont été retirées du formulaire. Conservez le lot d’origine pour
                 un éventuel contrôle.
@@ -261,11 +331,14 @@ export function VatPage({ notify, refresh, onVerify, onAuthority }) {
               <button className="text-link dark" onClick={() => onVerify(result)}>
                 Ouvrir la vérification
               </button>
+              <Button variant="secondary full" onClick={startPreparation}>
+                Prouver une autre période
+              </Button>
             </div>
           )}
           <p className="help">
-            Moteur : Noir / UltraHonk. Aucun détail de facture ni clé privée n’est transmis au
-            serveur.
+            Vos factures et la clé de signature restent sur cet appareil. Seule la preuve publique
+            peut être enregistrée dans votre espace.
           </p>
         </section>
         <aside>
@@ -285,8 +358,8 @@ export function VatPage({ notify, refresh, onVerify, onAuthority }) {
                 relevé exhaustif.
               </p>
               <p>
-                La présence de toutes les pièces du lot, leurs dates, les taux et les arrondis, puis
-                l’addition des ventes et des avoirs.
+                La présence de toutes les factures du lot signé, leurs dates, les taux et les
+                arrondis, puis l’addition des ventes et des avoirs.
               </p>
               <p>
                 Le signataire reste responsable de l’exhaustivité et de la qualification fiscale des

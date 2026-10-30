@@ -5,11 +5,11 @@
 Relancer le serveur avec demarrer.cmd après installation de cette version, puis recharger le navigateur. Le module ajoute un programme Noir dédié ; les anciens circuits et formats de preuve restent compatibles.
 
 1. Un administrateur approuve la clé publique P-256 de la plateforme dans Sources de confiance. La clé privée reste chez l’émetteur.
-2. Ouvrir **Sources de confiance → Certifier des factures**, ou **Mes circuits → TVA collectée certifiée → Créer un lot de démonstration**.
+2. Ouvrir **Sources de confiance → Certifier des factures**, ou **Mes circuits → TVA collectée → Importer mes factures XML**.
 3. L’autorité renseigne la période en jj/mm/aaaa, puis importe de 1 à 500 factures et avoirs XML UBL. Pour une démonstration, elle peut télécharger des exemples UBL, décompresser le ZIP et sélectionner ses XML. Le fournisseur est déduit des documents.
 4. Après vérification des pièces, elle confirme explicitement l’exhaustivité pour l’entreprise et la période clôturée, puis signe avec sa clé privée. Le formulaire efface la clé après l’opération. Le relevé est valable 90 jours dans cet outil de démonstration.
-5. Elle remet à l’entreprise **Factures.certifiees.clair**. Ce fichier contient les factures privées, le masque de confidentialité et le relevé public signé. Le conserver pour un éventuel contrôle ; il n’est pas destiné au vérificateur public.
-6. L’entreprise importe ce lot dans **Mes circuits → TVA collectée certifiée**, confirme le montant collecté après avoirs, puis génère une preuve sur son appareil.
+5. Dans le parcours guidé, **Continuer vers ma preuve** transmet directement le lot signé en mémoire locale. Pour une remise externe ou une sauvegarde, elle télécharge **Factures.certifiees.clair**. Ce fichier contient les factures privées, le masque de confidentialité et le relevé public signé. Le conserver pour un éventuel contrôle ; il n’est pas destiné au vérificateur public.
+6. L’entreprise poursuit directement vers la preuve, ou importe un lot reçu avec **J’ai déjà un lot signé**. Elle confirme le montant collecté après avoirs, puis génère une preuve sur son appareil.
 7. Elle partage **TVA.preuve.clair**. Toute personne peut l’importer dans Vérifier une preuve, sans compte. La preuve peut aussi être archivée dans Mes preuves.
 
 La signature du lot n’exige pas de compte payant. La génération et l’archivage suivent les quotas de l’abonnement. Ouvrir le modèle ou certifier le lot n’enregistre aucun circuit. Le programme est enregistré au lancement de la génération ; une capacité identique est réutilisée. Les capacités sont 10, 50, 100, 250 et 500 pièces, choisies automatiquement selon le nombre de factures.

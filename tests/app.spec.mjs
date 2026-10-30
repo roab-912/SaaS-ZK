@@ -80,7 +80,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     expect(apiBodies.join('\n')).not.toContain('19910714');
     await page.getByRole('button', { name: 'Ouvrir la vérification' }).click();
     await page.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
-    await expect(page.getByText('Preuve cryptographiquement valide')).toBeVisible({
+    await expect(page.getByText('Preuve valide')).toBeVisible({
       timeout: 150000,
     });
     await page.screenshot({ path: 'test-results/verified-desktop.png', fullPage: true });
@@ -94,7 +94,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
       buffer: Buffer.from(body),
     });
     await publicPage.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
-    await expect(publicPage.getByText('Preuve cryptographiquement valide')).toBeVisible({
+    await expect(publicPage.getByText('Preuve valide')).toBeVisible({
       timeout: 150000,
     });
     envelope.circuit.name = 'Circuit falsifié';
@@ -169,6 +169,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     await page.getByRole('button', { name: /Condition de majorité/ }).click();
     await page.getByRole('button', { name: 'Personnaliser ce circuit' }).click();
     await page.getByLabel('Nom du circuit').fill('Comparaison privée');
+    await page.getByText('Options avancées de la preuve', { exact: true }).click();
     await page.getByLabel('Moteur de preuve').selectOption(engine);
     await expect(page.getByLabel('Résultat à prouver')).toHaveValue('2');
     await page.getByLabel('Bloc niveau 0').selectOption('gte');
@@ -213,7 +214,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     });
     await expect(verifier.getByText('Résultat annoncé — à vérifier')).toBeVisible();
     await verifier.getByRole('button', { name: 'Vérifier la preuve', exact: true }).click();
-    await expect(verifier.getByText('Preuve cryptographiquement valide')).toBeVisible({
+    await expect(verifier.getByText('Preuve valide')).toBeVisible({
       timeout: 150000,
     });
     await expect(
@@ -360,8 +361,12 @@ for (const privateInput of [false, true]) {
       await issuerPage.getByLabel('Valeur pour Revenus mensuels (income)').fill('3000');
       await expect(issuerPage.getByLabel('Nom du champ signé')).toHaveCount(0);
       await issuerPage
-        .getByLabel('Clé privée pour les données du circuit', { exact: true })
-        .fill(JSON.stringify(privateJwk));
+        .getByLabel('Importer une clé privée pour les données du circuit', { exact: true })
+        .setInputFiles({
+          name: 'source-privee.clair',
+          mimeType: 'application/json',
+          buffer: Buffer.from(JSON.stringify(privateJwk)),
+        });
       await issuerPage
         .getByRole('button', { name: 'Signer les données du circuit', exact: true })
         .click();

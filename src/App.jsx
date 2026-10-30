@@ -496,11 +496,16 @@ export function App() {
                   notify={notify}
                   refresh={refresh}
                   onVerify={openVerify}
-                  onAuthority={() => nav('vat-authority')}
+                  onManageSources={() => nav('issuers')}
                 />
               )}
-              {page === 'vat-authority' && <VatAuthority onBack={() => nav('issuers')} />}
-              {page === 'guide' && <Guide />}
+              {page === 'vat-authority' && (
+                <VatAuthority
+                  onBack={() => nav('issuers')}
+                  onManageSources={() => nav('issuers')}
+                />
+              )}
+              {page === 'guide' && <Guide onNavigate={nav} />}
             </>
           )}
         </main>

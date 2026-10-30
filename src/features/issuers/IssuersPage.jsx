@@ -41,7 +41,7 @@ export function Issuers({
     <>
       <PageHeading
         title="Sources de confiance"
-        desc="Les sources approuvées disponibles pour signer les entrées de vos circuits."
+        desc="Une source de confiance signe vos informations pour en certifier l’origine. Retrouvez ici les sources approuvées et leurs outils de signature."
         action={
           <div className="row-actions">
             <Button variant="secondary" onClick={onVatAuthority}>

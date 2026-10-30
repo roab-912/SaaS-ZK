@@ -22,12 +22,13 @@ test('a delayed private-key import cannot repopulate the key after a signing att
     const f = await ublFixture();
     api.mockResolvedValue(f.issuers);
     render(<VatAuthority onBack={vi.fn()} />);
-    await screen.findByRole('option', { name: 'Autorité TVA test' });
     vi.spyOn(ublImport, 'importUblFiles').mockResolvedValue(f.imported);
     fireEvent.change(screen.getByLabelText('Importer des factures UBL'), {
       target: { files: [new File(['xml'], 'facture.xml')] },
     });
-    await screen.findByText('2 documents UBL validés localement');
+    await screen.findByText('2 factures et avoirs prêts');
+    await userEvent.click(screen.getByRole('button', { name: 'Continuer vers la signature' }));
+    await screen.findByRole('option', { name: 'Autorité TVA test' });
     await userEvent.click(screen.getByRole('checkbox'));
     let finish;
     const file = new File(['x'], 'private.clair');
@@ -61,11 +62,12 @@ test('UBL authority signs both normalized values and exact original documents an
       cancel: vi.fn(),
     });
     render(<VatAuthority onBack={vi.fn()} />);
-    await screen.findByRole('option', { name: 'Autorité TVA test' });
     fireEvent.change(screen.getByLabelText('Importer des factures UBL'), {
       target: { files: [new File(['xml'], 'facture.xml')] },
     });
-    await screen.findByText('2 documents UBL validés localement');
+    await screen.findByText('2 factures et avoirs prêts');
+    await userEvent.click(screen.getByRole('button', { name: 'Continuer vers la signature' }));
+    await screen.findByRole('option', { name: 'Autorité TVA test' });
     expect(importer).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: 'Signer le relevé complet' })).toBeDisabled();
     await userEvent.click(screen.getByRole('checkbox'));
@@ -81,7 +83,7 @@ test('UBL authority signs both normalized values and exact original documents an
     expect(batch.manifest.documentsRoot).toBe(f.manifest.documentsRoot);
     await expect(verifyVatDocuments(batch)).resolves.toBeUndefined();
     expect((await verifyVatManifest(batch.manifest, f.issuers)).valid).toBe(true);
-    expect(screen.getByLabelText('Clé privée de l’émetteur TVA')).toHaveValue('');
+    expect(screen.queryByLabelText('Clé privée de l’émetteur TVA')).toBeNull();
     expect(JSON.stringify(launchProof.mock.calls)).not.toContain('<?xml');
     expect(api.mock.calls.map((c) => c[0])).toEqual(['/issuers']);
   } finally {
@@ -101,5 +103,5 @@ test('the authority imports invoices only as UBL XML and keeps .clair for its pr
   expect(screen.queryByRole('button', { name: 'Télécharger les données à adapter' })).toBeNull();
   await userEvent.upload(input, new File(['{}'], 'factures.clair', { type: 'application/json' }));
   expect(importer).not.toHaveBeenCalled();
-  expect(screen.getByLabelText('Importer la clé privée TVA')).toHaveAttribute('accept', '.clair');
+  expect(screen.getByRole('button', { name: 'Continuer vers la signature' })).toBeDisabled();
 });

@@ -2,14 +2,18 @@
 
 ## Parcours
 
-L’import UBL est disponible dans **Sources de confiance → Certifier des factures**, également accessible depuis le modèle **TVA collectée certifiée**.
+L’import UBL est disponible dans **Sources de confiance → Certifier des factures**, également accessible depuis le modèle **TVA collectée**.
 
-1. Renseigner le début et la fin de la période à certifier, en jj/mm/aaaa.
-2. Sélectionner les factures et avoirs avec **Importer des factures UBL**. Plusieurs fichiers .xml peuvent être choisis ensemble.
-3. Clair valide et lit les fichiers sur l’appareil, puis déduit l’identifiant du fournisseur et les données du circuit TVA. Les montants ne sont jamais corrigés automatiquement.
-4. Consulter le résultat, les avertissements et les documents originaux. L’identifiant de l’entreprise est déduit des factures.
-5. L’autorité approuvée confirme l’exhaustivité et signe le relevé avec sa clé privée. Elle remet le lot certifié .clair à l’entreprise.
-6. L’entreprise importe ce lot dans le modèle TVA et génère la preuve. Les XML restent privés et sont retirés du formulaire après génération. Conserver le lot d’origine pour un éventuel contrôle.
+Depuis **Mes circuits → TVA collectée**, le parcours principal est guidé :
+
+1. Cliquer sur **Importer mes factures XML**.
+2. Renseigner la période en jj/mm/aaaa et sélectionner les factures et avoirs XML de la même entreprise. Le récapitulatif indique l’entreprise, la période et le total.
+3. Choisir **Continuer vers la signature**. La personne autorisée sélectionne la source et importe son fichier de clé privée .clair. Le collage JWK reste dans une option avancée.
+4. Après confirmation de l’exhaustivité, signer le relevé. La clé privée est effacée du formulaire.
+5. Cliquer sur **Continuer vers ma preuve** : le lot signé est transmis directement en mémoire locale, sans téléchargement intermédiaire obligatoire.
+6. Confirmer le montant, générer la preuve et télécharger le fichier public à transmettre. Conserver le lot privé pour un contrôle.
+
+Le chemin **J’ai déjà un lot signé** permet toujours d’importer le fichier .clair remis par une source externe. L’outil indépendant dans Sources de confiance reste disponible pour une autorité qui souhaite uniquement signer puis remettre le lot à l’entreprise.
 
 Le bouton **Télécharger des exemples UBL** crée une archive ZIP de données fictives, selon la période et le nombre choisis. Décompresser cette archive avant de sélectionner les fichiers XML. Ce premier import ne lit pas directement les ZIP.
 

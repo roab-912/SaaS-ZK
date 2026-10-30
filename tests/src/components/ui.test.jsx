@@ -28,6 +28,7 @@ test('shared components preserve labels, actions and disabled buttons', async ()
     </>,
   );
   expect(screen.getByRole('heading', { name: 'Titre' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Titre' })).toHaveFocus();
   expect(screen.getByText('Actif')).toHaveClass('green');
   await userEvent.click(screen.getByRole('button', { name: 'Bloqué' }));
   expect(click).not.toHaveBeenCalled();

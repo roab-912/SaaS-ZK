@@ -17,7 +17,7 @@ test('catalog offers direct selection and keeps engine choice in advanced option
   await userEvent.selectOptions(screen.getByLabelText('Moteur de preuve'), PLONK_ENGINE);
   await userEvent.click(screen.getByRole('button', { name: 'Utiliser Condition de majorité' }));
   expect(choose).toHaveBeenLastCalledWith('age', PLONK_ENGINE);
-  expect(screen.getByRole('button', { name: 'Utiliser TVA collectée certifiée' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Utiliser TVA collectée' })).toBeDisabled();
 });
 test('pending selection prevents multiple submissions and engine changes', () => {
   render(<CircuitCatalog onChoose={vi.fn()} pending="age" />);

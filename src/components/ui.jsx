@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { FolderOpen, Users } from 'lucide-react';
 export function Badge({ children, tone = '' }) {
   return <span className={'badge ' + tone}>{children}</span>;
@@ -23,11 +23,17 @@ export function Empty({ icon: Icon = FolderOpen, title, children, action }) {
   );
 }
 export function PageHeading({ title, desc, action }) {
+  const heading = useRef();
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
   return (
     <div className="page-heading">
       <div>
         <div className="eyebrow">VOTRE ATELIER DE CONFIANCE</div>
-        <h1>{title}</h1>
+        <h1 ref={heading} tabIndex={-1}>
+          {title}
+        </h1>
         <p>{desc}</p>
       </div>
       {action}
