@@ -19,6 +19,8 @@ test('appearance follows the device, persists only its preference and supports k
   await expect(page.getByRole('combobox', { name: 'Apparence' })).toHaveValue('dark');
   await page.screenshot({ path: 'test-results/ux-dark-desktop.png', fullPage: true });
   await page.getByRole('button', { name: /Comprendre le zero knowledge/ }).click();
+  await expect(page.getByRole('figure')).toBeVisible();
+  await page.getByRole('button', { name: 'Consulter la FAQ' }).click();
   const question = page
     .locator('summary')
     .filter({ hasText: 'Une preuve valide peut-elle donner un résultat faux ?' });
@@ -30,7 +32,7 @@ test('appearance follows the device, persists only its preference and supports k
   expect(await page.evaluate(() => ({ ...localStorage }))).toEqual({ 'clair.theme': 'dark' });
   await page.emulateMedia({ media: 'print' });
   await expect(page.locator('.print-fallback')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Prouver, sans tout révéler.' })).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Questions fréquentes' })).toBeHidden();
 });
 test('mobile navigation contains keyboard focus, closes with Escape and keeps authentication usable', async ({
   page,

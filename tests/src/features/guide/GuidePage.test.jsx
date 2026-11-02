@@ -4,20 +4,23 @@ import { test, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Guide } from '../../../../src/features/guide/GuidePage.jsx';
-test('guide distinguishes proof validity from provenance and identifies public metadata', async () => {
+test('understanding page explains validity and provenance and separates the FAQ', () => {
   render(<Guide />);
+  expect(screen.getByRole('heading', { name: 'Comprendre le zero knowledge' })).toBeVisible();
   expect(screen.getByText(/librement déclarées/)).toBeVisible();
-  await userEvent.click(screen.getByText('Qu’est-ce qui quitte mon appareil ?'));
-  await userEvent.click(screen.getByText('Et dans six mois ?'));
-  expect(screen.getByText(/ne doivent pas contenir de secrets/)).toBeVisible();
-  expect(screen.getByRole('heading', { name: 'Et dans six mois ?' })).toBeVisible();
+  expect(screen.getByRole('figure')).toHaveAccessibleName('De vos données à la preuve');
+  expect(screen.queryByText('Et dans six mois ?')).toBeNull();
+  expect(document.querySelector('details')).toBeNull();
 });
-
-test('the guide offers direct entry to models and public verification', async () => {
+test('understanding offers models, verification and its separate FAQ', async () => {
   const navigate = vi.fn();
   render(<Guide onNavigate={navigate} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Choisir un modèle' }));
-  expect(navigate).toHaveBeenLastCalledWith('circuits');
-  await userEvent.click(screen.getByRole('button', { name: 'Vérifier un fichier reçu' }));
-  expect(navigate).toHaveBeenLastCalledWith('verify');
+  for (const [name, page] of [
+    ['Choisir un modèle', 'circuits'],
+    ['Vérifier un fichier reçu', 'verify'],
+    ['Consulter la FAQ', 'faq'],
+  ]) {
+    await userEvent.click(screen.getByRole('button', { name }));
+    expect(navigate).toHaveBeenLastCalledWith(page);
+  }
 });

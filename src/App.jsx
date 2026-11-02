@@ -1,3 +1,4 @@
+import { Faq } from './features/guide/FaqPage.jsx';
 import { AccountPage } from './features/account/AccountPage.jsx';
 import { ThemeControl } from './components/ThemeControl.jsx';
 import { SearchField } from './components/SearchField.jsx';
@@ -48,6 +49,8 @@ import { AdminDashboard } from './features/admin/AdminDashboard.jsx';
 import { ProofLibrary } from './features/proofs/ProofLibrary.jsx';
 function pageForLocation() {
   if (location.pathname.startsWith('/abonnement/')) return 'payment';
+  if (location.pathname === '/faq') return 'faq';
+  if (location.pathname === '/comprendre') return 'guide';
   if (location.pathname === '/espace-personnel') return 'account';
   if (location.pathname === '/connexion') return 'login';
   if (location.pathname === '/inscription') return 'register';
@@ -61,6 +64,7 @@ function pageForLocation() {
     'verify',
     'issuers',
     'guide',
+    'faq',
     'admin',
   ].includes(view)
     ? view
@@ -156,25 +160,19 @@ export function App() {
   }, [mobile]);
   const user = session.user,
     nav = (p) => {
+      const destination = {
+        login: '/connexion',
+        register: '/inscription',
+        account: '/espace-personnel',
+        guide: '/comprendre',
+        faq: '/faq',
+      }[p];
       if (location.pathname.startsWith('/abonnement/')) {
-        location.assign(
-          p === 'login'
-            ? '/connexion'
-            : p === 'register'
-              ? '/inscription'
-              : '/?view=' + encodeURIComponent(p),
-        );
+        location.assign(destination ?? '/?view=' + encodeURIComponent(p));
         return;
       }
       setPage(p);
-      const path =
-        p === 'login'
-          ? '/connexion'
-          : p === 'register'
-            ? '/inscription'
-            : p === 'account'
-              ? '/espace-personnel'
-              : '/';
+      const path = destination ?? '/';
       if (location.pathname !== path || location.search) history.pushState({}, '', path);
       setMobile(false);
     };
@@ -440,7 +438,8 @@ export function App() {
                   attestation: 'Créer une attestation',
                   vat: 'TVA collectée',
                   'vat-authority': 'Certifier des factures',
-                  guide: 'Guide',
+                  guide: 'Comprendre',
+                  faq: 'FAQ',
                   admin: 'Administration',
                   login: 'Connexion',
                   register: 'Inscription',
@@ -456,8 +455,9 @@ export function App() {
             </span>
             <button
               className="icon-button"
-              aria-label="Guide d’utilisation"
-              onClick={() => nav('guide')}
+              aria-label="FAQ"
+              title="Questions fréquentes"
+              onClick={() => nav('faq')}
             >
               <CircleHelp size={19} />
             </button>
@@ -670,6 +670,7 @@ export function App() {
                 />
               )}
               {page === 'guide' && <Guide onNavigate={nav} />}
+              {page === 'faq' && <Faq onNavigate={nav} />}
             </>
           )}
         </main>

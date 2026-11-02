@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { test, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../src/App.jsx';
 import { api } from '../../src/lib/api.js';
@@ -186,4 +186,32 @@ test('a direct personal-space URL restores the page and offers authentication to
   expect(await screen.findByRole('heading', { name: 'Votre espace personnel' })).toBeVisible();
   await userEvent.click(screen.getByRole('button', { name: 'Vérifier une preuve sans compte' }));
   expect(screen.getByText('Déposez votre preuve ici')).toBeVisible();
+});
+
+test('FAQ and understanding have distinct public entry points', async () => {
+  api.mockResolvedValue({ user: null });
+  render(<App />);
+  await screen.findByRole('heading', { name: 'Prouvez l’essentiel. Gardez le reste privé.' });
+  await userEvent.click(screen.getByRole('button', { name: 'FAQ', exact: true }));
+  expect(location.pathname).toBe('/faq');
+  expect(screen.getByRole('heading', { name: 'Questions fréquentes' })).toBeVisible();
+  expect(screen.queryByRole('figure')).toBeNull();
+  await userEvent.click(
+    within(screen.getByRole('main')).getByRole('button', {
+      name: 'Comprendre le zero knowledge',
+      exact: true,
+    }),
+  );
+  expect(location.pathname).toBe('/comprendre');
+  expect(screen.getByRole('figure')).toBeVisible();
+  expect(screen.queryByText('Et dans six mois ?')).toBeNull();
+});
+test.each([
+  ['/faq', 'Questions fréquentes'],
+  ['/comprendre', 'Comprendre le zero knowledge'],
+])('direct public URL %s restores its own page', async (path, title) => {
+  history.replaceState({}, '', path);
+  api.mockResolvedValue({ user: null });
+  render(<App />);
+  expect(await screen.findByRole('heading', { name: title, exact: true })).toBeVisible();
 });
