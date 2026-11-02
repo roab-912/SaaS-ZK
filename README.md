@@ -11,6 +11,7 @@ Le code est séparé entre domaine, écrans React, services serveur, persistance
 - [Contrôles de sécurité et limites](docs/SECURITY.md)
 - [Tests, couverture et non-régression visuelle](docs/TESTING.md)
 - [Interface, accessibilité et rapport imprimable](docs/INTERFACE.md)
+- [Démonstration TVA, mesures et pilote client](docs/demo-tva/DEMONSTRATION.md)
 
 ## Démarrer
 

@@ -1,0 +1,234 @@
+{
+  "startedAt": "2026-11-02T13:38:40.135Z",
+  "status": "passed",
+  "runs": [
+    {
+      "count": 10,
+      "repetition": 1,
+      "importMs": 607,
+      "signMs": 154.585,
+      "loadSignedMs": 22.6,
+      "generateMs": 3793.34,
+      "verifyMs": 1017.08,
+      "proofBytes": 25514,
+      "proofValid": true,
+      "netVatCents": 19734,
+      "salesVatCents": 19962,
+      "creditVatCents": 228,
+      "circuitCapacity": 10,
+      "crossOriginIsolated": true
+    },
+    {
+      "count": 10,
+      "repetition": 2,
+      "importMs": 619.25,
+      "signMs": 167.91,
+      "loadSignedMs": 19.145,
+      "generateMs": 2819.165,
+      "verifyMs": 911.17,
+      "proofBytes": 25514,
+      "proofValid": true,
+      "netVatCents": 19734,
+      "salesVatCents": 19962,
+      "creditVatCents": 228,
+      "circuitCapacity": 10,
+      "crossOriginIsolated": true
+    },
+    {
+      "count": 10,
+      "repetition": 3,
+      "importMs": 616.885,
+      "signMs": 153.525,
+      "loadSignedMs": 19.205,
+      "generateMs": 2982.925,
+      "verifyMs": 911.055,
+      "proofBytes": 25514,
+      "proofValid": true,
+      "netVatCents": 19734,
+      "salesVatCents": 19962,
+      "creditVatCents": 228,
+      "circuitCapacity": 10,
+      "crossOriginIsolated": true
+    },
+    {
+      "count": 100,
+      "repetition": 1,
+      "importMs": 3300.93,
+      "signMs": 206.2,
+      "loadSignedMs": 43.75,
+      "generateMs": 17112.995,
+      "verifyMs": 3588.76,
+      "proofBytes": 25520,
+      "proofValid": true,
+      "netVatCents": 278340,
+      "salesVatCents": 280620,
+      "creditVatCents": 2280,
+      "circuitCapacity": 100,
+      "crossOriginIsolated": true
+    },
+    {
+      "count": 100,
+      "repetition": 2,
+      "importMs": 3323.155,
+      "signMs": 201.38,
+      "loadSignedMs": 45.975,
+      "generateMs": 15892.785,
+      "verifyMs": 3688.125,
+      "proofBytes": 25520,
+      "proofValid": true,
+      "netVatCents": 278340,
+      "salesVatCents": 280620,
+      "creditVatCents": 2280,
+      "circuitCapacity": 100,
+      "crossOriginIsolated": true
+    },
+    {
+      "count": 100,
+      "repetition": 3,
+      "importMs": 3261.19,
+      "signMs": 197.495,
+      "loadSignedMs": 42.48,
+      "generateMs": 15835.995,
+      "verifyMs": 3499.825,
+      "proofBytes": 25520,
+      "proofValid": true,
+      "netVatCents": 278340,
+      "salesVatCents": 280620,
+      "creditVatCents": 2280,
+      "circuitCapacity": 100,
+      "crossOriginIsolated": true
+    },
+    {
+      "count": 500,
+      "repetition": 1,
+      "importMs": 16616.2,
+      "signMs": 281.165,
+      "loadSignedMs": 144.675,
+      "generateMs": 71501.69,
+      "verifyMs": 15818.565,
+      "proofBytes": 25522,
+      "proofValid": true,
+      "netVatCents": 3191700,
+      "salesVatCents": 3203100,
+      "creditVatCents": 11400,
+      "circuitCapacity": 500,
+      "crossOriginIsolated": true
+    },
+    {
+      "count": 500,
+      "repetition": 2,
+      "importMs": 16680.02,
+      "signMs": 282.465,
+      "loadSignedMs": 165.045,
+      "generateMs": 65816.2,
+      "verifyMs": 15488.535,
+      "proofBytes": 25522,
+      "proofValid": true,
+      "netVatCents": 3191700,
+      "salesVatCents": 3203100,
+      "creditVatCents": 11400,
+      "circuitCapacity": 500,
+      "crossOriginIsolated": true
+    },
+    {
+      "count": 500,
+      "repetition": 3,
+      "importMs": 16880.99,
+      "signMs": 282.48,
+      "loadSignedMs": 168.01,
+      "generateMs": 60716.38,
+      "verifyMs": 14506.3,
+      "proofBytes": 25522,
+      "proofValid": true,
+      "netVatCents": 3191700,
+      "salesVatCents": 3203100,
+      "creditVatCents": 11400,
+      "circuitCapacity": 500,
+      "crossOriginIsolated": true
+    }
+  ],
+  "checks": [
+    {
+      "id": "xml-total-incoherent",
+      "passed": true,
+      "observed": "01-total-incoherent.xml : Validation EN16931 / Peppol : [BR-CO-16] [BR-CO-16]-Amount due for payment (BT-115) = Invoice total amount with VAT (BT-112) -Paid amount (BT-113) +Rounding amount (BT-114)."
+    },
+    {
+      "id": "xml-hors-periode",
+      "passed": true,
+      "observed": "Lot UBL incompatible avec le circuit TVA : Une facture est hors période. Aucun montant source n’a été corrigé."
+    },
+    {
+      "id": "lot-incomplet",
+      "passed": true,
+      "observed": "Le relevé signé ne correspond pas au nombre de factures."
+    },
+    {
+      "id": "signature-alteree",
+      "passed": true,
+      "observed": "Signature du relevé incorrecte."
+    },
+    {
+      "id": "montant-annonce-incorrect",
+      "passed": true,
+      "observed": "Le montant annoncé ne correspond pas à la TVA des ventes diminuée des avoirs du lot."
+    },
+    {
+      "id": "preuve-alteree",
+      "passed": true,
+      "observed": "Preuve invalide : les octets cryptographiques ont été altérés."
+    },
+    {
+      "id": "source-revoquee",
+      "passed": true,
+      "observed": "Le calcul ZK reste valide ; la provenance ne satisfait plus le registre approuvé."
+    }
+  ],
+  "externalDomains": ["crs.aztec.network"],
+  "privateDataTransmitted": false,
+  "environment": {
+    "os": "win32 10.0.26200",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 7 7800X3D 8-Core Processor           ",
+    "logicalCpus": 16,
+    "ramGiB": 31.1,
+    "node": "v24.22.2",
+    "chromium": "153.0.8010.12",
+    "playwright": "1.63.0",
+    "gitHead": "5d1d6df1fd45b79fcdf8f0db0775b12c9ca919f1",
+    "dirty": true,
+    "sourceSha256": "1a21b8385daa0231c2e0744d574edbf67fba8ed7440248fb2ba6a7d87dcbf04e",
+    "lockSha256": "8114212bdd3dcc0ce82421a0f2b08b5eac1a8a8a764e3ec0d0537ff56f77ea44",
+    "viewport": {
+      "width": 1440,
+      "height": 1050
+    },
+    "headless": true,
+    "memoryPeakMeasured": false
+  },
+  "finishedAt": "2026-11-02T13:45:24.189Z",
+  "verifierCircuitChecks": [
+    {
+      "count": 10,
+      "circuitHash": "3e3bc261287f3758854bdb8898deb5bfcb1b72606f1354675744db35ad747ea6",
+      "referenceNetCents": 19734,
+      "provedNetCents": 19734,
+      "valid": true
+    },
+    {
+      "count": 100,
+      "circuitHash": "67b9b17d5ecc5051132726b302d9c1f0f4c80919284db2ebb6df63e5ff477532",
+      "referenceNetCents": 278340,
+      "provedNetCents": 278340,
+      "valid": true
+    },
+    {
+      "count": 500,
+      "circuitHash": "fc29028e6f3346b74fff399d4ce36820910974b544bdd7d4eac5c41b14b8970b",
+      "referenceNetCents": 3191700,
+      "provedNetCents": 3191700,
+      "valid": true
+    }
+  ],
+  "supplementaryValidatedAt": "2026-11-02T13:49:22.672Z"
+}

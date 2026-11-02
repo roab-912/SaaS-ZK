@@ -22,7 +22,9 @@
     "test:offline": "npm run build:offline && vitest run --config vitest.offline.config.mjs",
     "build:ubl": "node scripts/build-ubl-assets.mjs",
     "audit:dependencies": "npm audit --audit-level=low",
-    "test:security": "vitest run tests/security-audit.test.mjs tests/security-dependencies.test.mjs tests/server/audit.test.mjs tests/server/runtime-policy.test.mjs tests/server/security.test.mjs tests/server/config.test.mjs tests/server/passwords.test.mjs tests/server/routes/issuers.test.mjs tests/server/routes/billing.test.mjs tests/zk/noir/compiler.test.mjs tests/zk/noir/compile-path.test.mjs tests/zk/noir/compile-worker.test.mjs"
+    "test:security": "vitest run tests/security-audit.test.mjs tests/security-dependencies.test.mjs tests/server/audit.test.mjs tests/server/runtime-policy.test.mjs tests/server/security.test.mjs tests/server/config.test.mjs tests/server/passwords.test.mjs tests/server/routes/issuers.test.mjs tests/server/routes/billing.test.mjs tests/zk/noir/compiler.test.mjs tests/zk/noir/compile-path.test.mjs tests/zk/noir/compile-worker.test.mjs",
+    "demo:tva": "npm run build && node scripts/benchmark-vat-demo.mjs",
+    "demo:tva:serve": "node scripts/vat-demo-server.mjs"
   },
   "dependencies": {
     "@aztec/bb.js": "0.87.0",

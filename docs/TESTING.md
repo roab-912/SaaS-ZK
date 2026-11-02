@@ -100,3 +100,9 @@ Le job Linux de CI exclut les comparaisons de captures Windows à zéro pixel de
 [INTERFACE.md](INTERFACE.md) décrit les choix d’interface. Chaque nouveau composant et utilitaire dispose de son fichier de test. Les scénarios couvrent les erreurs du presse-papiers, l’annulation et l’échec des confirmations, le thème synchronisé entre consommateurs, le stockage bloqué, les données publiques autorisées à l’impression et le comptage des documents UBL vérifiés.
 
 `tests/usability.spec.mjs` couvre les préférences de l’appareil, le lien d’évitement, la FAQ, le clavier dans le menu mobile, le mot de passe, la recherche locale, la copie d’une empreinte complète et la confirmation avant suppression. Les parcours cryptographiques de `tests/app.spec.mjs` contrôlent aussi le rapport imprimable sur les trois moteurs et produisent un PDF public sur Noir. Pour les lancer : `npx playwright test --config playwright.built.config.mjs tests/usability.spec.mjs tests/app.spec.mjs` après `npm run build`.
+
+## Démonstration TVA mesurée
+
+`npm run demo:tva` construit puis mesure trois parcours complets pour chacun des volumes 10, 100 et 500, sur un serveur isolé en mémoire au port 3002. Chaque passage utilise les vrais XML validés, la signature, la preuve Noir et sa vérification anonyme. Les sept cas de rejet sont ensuite rejoués. Les mesures, captures, fichiers .clair, configuration et contrôles de requêtes restent dans un kit généré sous data/demo-tva, exclu de Git. Voir [le scénario et les limites de mesure](demo-tva/DEMONSTRATION.md).
+
+Les tests scripts/vat-demo-fixtures, vat-demo-server, vat-demo-report et benchmark-vat-demo couvrent la conformité des exemples, les erreurs volontaires, l’isolation et les droits du serveur, les bornes de mesure et les statistiques. Ils ne remplacent pas les exécutions réelles du navigateur.
