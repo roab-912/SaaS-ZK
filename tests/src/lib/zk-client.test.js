@@ -49,3 +49,18 @@ test('compilation defaults to the engine stored in the circuit', async () => {
     signal: undefined,
   });
 });
+
+test('only known stages are forwarded and cancellation ignores late progress', async () => {
+  const worker = { postMessage: vi.fn(), terminate: vi.fn() },
+    onStage = vi.fn();
+  const task = launchProof({}, () => {}, { createWorker: () => worker, onStage });
+  const receive = worker.onmessage;
+  receive({ data: { type: 'progress', message: 'local', stage: 'prove' } });
+  receive({ data: { type: 'progress', message: 'local', stage: 'PRIVATE WITNESS' } });
+  expect(onStage.mock.calls).toEqual([['prove']]);
+  const rejection = expect(task.promise).rejects.toThrow();
+  task.cancel();
+  receive({ data: { type: 'progress', message: 'local', stage: 'verify' } });
+  await rejection;
+  expect(onStage).toHaveBeenCalledOnce();
+});

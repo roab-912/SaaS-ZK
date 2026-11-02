@@ -18,7 +18,7 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
       await initialize();
       let backend, witness;
       try {
-        onProgress('Vérification des conditions sur votre appareil…');
+        onProgress('Vérification des conditions sur votre appareil…', 'witness');
         const noir = new Noir(compiled.artifact);
         ({ witness } = await noir.execute({
           context: contextField(compiled.hash),
@@ -28,9 +28,9 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
           ...(circuit.version === 2 ? { result: evaluateCircuit(circuit, values) } : {}),
         }));
         backend = new Backend(compiled.artifact.bytecode, { threads: 1 });
-        onProgress('Calcul de la preuve confidentielle…');
+        onProgress('Calcul de la preuve confidentielle…', 'prove');
         const proof = await backend.generateProof(witness, options);
-        onProgress('Contrôle de la preuve générée…');
+        onProgress('Contrôle de la preuve générée…', 'verify');
         if (!(await backend.verifyProof(proof, options)))
           throw Error('La preuve générée ne passe pas la vérification.');
         return buildProofEnvelope({

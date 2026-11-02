@@ -3582,3 +3582,51 @@ button.workspace[aria-current='page'] {
     font-size: 12px;
   }
 }
+
+.operation-status {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.proof-progress-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.proof-progress-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.55;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.proof-progress-steps li.active,
+.proof-progress-steps li.completed {
+  opacity: 1;
+}
+.proof-progress-steps li.active {
+  font-weight: 700;
+}
+.proof-progress-steps li > svg,
+.proof-step-number {
+  flex-shrink: 0;
+}
+.proof-step-number {
+  display: inline-flex;
+  width: 15px;
+  justify-content: center;
+}
+.operation-elapsed {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 520px) {
+  .proof-progress-steps {
+    grid-template-columns: 1fr;
+  }
+}

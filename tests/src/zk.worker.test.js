@@ -9,11 +9,18 @@ test('worker emits progress/results and never leaks provider diagnostics', async
   vi.stubGlobal('self', scope);
   await import('../../src/zk.worker.js');
   state.run.mockImplementationOnce(async (payload, registry, progress) => {
-    progress('local');
+    progress('local', 'prove');
+    progress('local', 'PRIVATE WITNESS');
     return { valid: true };
   });
   await scope.onmessage({ data: { mode: 'verify' } });
-  expect(scope.postMessage.mock.calls.map((c) => c[0].type)).toEqual(['progress', 'result']);
+  expect(scope.postMessage.mock.calls.map((c) => c[0].type)).toEqual([
+    'progress',
+    'progress',
+    'result',
+  ]);
+  expect(scope.postMessage.mock.calls[0][0].stage).toBe('prove');
+  expect(scope.postMessage.mock.calls[1][0]).not.toHaveProperty('stage');
   state.run.mockRejectedValueOnce(Error('PRIVATE WITNESS = 123456'));
   await scope.onmessage({ data: { mode: 'prove' } });
   expect(JSON.stringify(scope.postMessage.mock.calls)).not.toContain('123456');

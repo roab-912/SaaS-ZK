@@ -27,15 +27,15 @@ export function createCircomRuntime({
       const witness = { type: 'mem' };
       try {
         const sdk = await loadSdk();
-        onProgress('Vérification des conditions sur votre appareil…');
+        onProgress('Vérification des conditions sur votre appareil…', 'witness');
         await sdk.wtns.calculate(inputs, decode(compiled.artifact.wasm), witness, {
           memorySize: 0,
         });
-        onProgress('Calcul de la preuve confidentielle…');
+        onProgress('Calcul de la preuve confidentielle…', 'prove');
         const result = await sdk[protocol].prove(decode(compiled.artifact.zkey), witness, logger, {
           singleThread: true,
         });
-        onProgress('Contrôle de la preuve générée…');
+        onProgress('Contrôle de la preuve générée…', 'verify');
         if (
           !(await sdk[protocol].verify(
             compiled.artifact.vk,

@@ -2,7 +2,7 @@
 import React from 'react';
 import { test, expect, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as ublImport from '../../../../src/features/vat/ubl-import.js';
 import { VatPage } from '../../../../src/features/vat/VatPage.jsx';
@@ -168,4 +168,60 @@ test('choosing the wrong .clair file gives a useful message and sends no content
   }
   expect(api).not.toHaveBeenCalled();
   expect(launchProof).not.toHaveBeenCalled();
+});
+
+test('VAT progress follows the worker and cancellation releases the reservation', async () => {
+  vi.stubGlobal('crypto', webcrypto);
+  vi.clearAllMocks();
+  try {
+    const f = await ublFixture();
+    api.mockImplementation(async (path) =>
+      path === '/issuers'
+        ? f.issuers
+        : path === '/prover/authorize'
+          ? { token: 'a'.repeat(32) }
+          : {},
+    );
+    compileForEngine.mockResolvedValue({ hash: f.envelope.circuitHash });
+    let rejectProof;
+    const cancel = vi.fn(() => rejectProof(Error('Calcul annulé.')));
+    launchProof.mockImplementation((payload, progress, options) => {
+      progress('Calcul de la preuve confidentielle…');
+      options.onStage('prove');
+      return {
+        promise: new Promise((resolve, reject) => {
+          rejectProof = reject;
+        }),
+        cancel,
+      };
+    });
+    render(<VatPage notify={vi.fn()} refresh={vi.fn()} onVerify={vi.fn()} />);
+    const file = new File(['x'], 'factures.clair');
+    file.text = async () => JSON.stringify(f.batch);
+    await userEvent.click(screen.getByText('J’ai déjà un lot signé'));
+    await userEvent.upload(screen.getByLabelText('Lot de factures certifié'), file);
+    await screen.findByLabelText('TVA collectée en euros');
+    await userEvent.click(screen.getByRole('button', { name: 'Générer la preuve TVA' }));
+    expect(await screen.findByText('Création de la preuve')).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    expect(screen.getByRole('progressbar')).toHaveAttribute('value', '3');
+    await userEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(cancel).toHaveBeenCalledOnce();
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith('/prover/finish', {
+        token: 'a'.repeat(32),
+        complete: false,
+      }),
+    );
+    expect(screen.queryByLabelText('Étapes de génération')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Preuve TVA prête' })).toBeNull();
+    expect(api).not.toHaveBeenCalledWith('/prover/finish', {
+      token: 'a'.repeat(32),
+      complete: true,
+    });
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

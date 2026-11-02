@@ -48,6 +48,7 @@ export async function executeZkOperation(payload, registry, onProgress = () => {
       sources,
     };
   }
+  onProgress('Contrôle des données sur votre appareil…', 'validate');
   if (circuit.vat) {
     const batch = parseVatBatch(payload.vatBatch);
     const source = await verifyVatManifest(batch.manifest, payload.issuers);

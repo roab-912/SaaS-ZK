@@ -28,13 +28,18 @@ test('adapter always enables ZK and wipes witness on success and every failure',
       encode: () => envelope.proof,
       decode: () => new Uint8Array(),
     });
+    const onProgress = vi.fn();
     const operation = adapter.prove({
+      onProgress,
       circuit: envelope.circuit,
       compiled,
       values: { birth: 19900101, cutoff: 20080921 },
     });
     if (failure) await expect(operation).rejects.toThrow();
-    else expect(await operation).toEqual(envelope);
+    else {
+      expect(await operation).toEqual(envelope);
+      expect(onProgress.mock.calls.map((call) => call[1])).toEqual(['witness', 'prove', 'verify']);
+    }
     if (failure !== 'execute') {
       expect([...witness]).toEqual([0, 0, 0]);
       expect(destroy).toHaveBeenCalledOnce();

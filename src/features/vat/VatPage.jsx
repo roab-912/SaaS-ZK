@@ -27,6 +27,7 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
     [source, setSource] = useState(null),
     [busy, setBusy] = useState(false),
     [progress, setProgress] = useState(''),
+    [stage, setStage] = useState(null),
     [error, setError] = useState(''),
     [result, setResult] = useState(null),
     [saved, setSaved] = useState(false),
@@ -73,6 +74,8 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
     setSource(null);
     setClaim('');
     setResult(null);
+    setStage(null);
+    setProgress('');
     setError('');
     setSaved(false);
     setPreparing(true);
@@ -91,6 +94,8 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
     if (!file) return;
     const run = ++generation.current;
     setBusy(true);
+    setStage(null);
+    setProgress('');
     setBatch(null);
     setSource(null);
     setResult(null);
@@ -119,6 +124,8 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
     e.preventDefault();
     const run = ++generation.current;
     setBusy(true);
+    setStage('prepare');
+    setProgress('Préparation du circuit TVA public…');
     setError('');
     setSaved(false);
     setResult(null);
@@ -150,12 +157,22 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
           values: vatPublicValues(batch),
           issuers,
         },
-        setProgress,
+        (message) => {
+          if (run === generation.current) setProgress(message);
+        },
+        {
+          onStage: (next) => {
+            if (run === generation.current) setStage(next);
+          },
+        },
       );
       const proof = await task.current.promise;
       if (run !== generation.current) return;
+      setStage('finish');
+      setProgress('Finalisation de la preuve…');
       await api('/prover/finish', { token: authorization.token, complete: true });
       authorization = null;
+      if (run !== generation.current) return;
       setResult(proof);
       setBatch(null);
       setClaim('');
@@ -285,6 +302,7 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
           )}
           {busy && (
             <OperationProgress
+              stage={stage}
               message={progress || 'Vérification du relevé signé…'}
               onCancel={() => {
                 generation.current++;

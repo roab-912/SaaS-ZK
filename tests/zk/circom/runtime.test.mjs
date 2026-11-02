@@ -34,11 +34,14 @@ test('runtime isolates private witnesses, enforces protocol and disposes on succ
     hash,
     artifact: { protocol: 'plonk', vk: { protocol: 'plonk' }, wasm: 'AA==', zkey: 'AA==' },
   };
+  const onProgress = vi.fn();
   const envelope = await adapter.prove({
+    onProgress,
     circuit,
     compiled,
     values: { birth: '1991-07-14', cutoff: '2008-09-21' },
   });
+  expect(onProgress.mock.calls.map((call) => call[1])).toEqual(['witness', 'prove', 'verify']);
   expect(envelope.engine).toBe(PLONK_ENGINE);
   expect(witness).toEqual(new Uint8Array(3));
   expect(dispose).toHaveBeenCalledOnce();

@@ -100,6 +100,16 @@ test('UBL import, official validation, certification and private VAT proof', asy
   });
   await expect(page.getByLabel('TVA collectée en euros')).toBeVisible();
   await page.getByRole('button', { name: 'Générer la preuve TVA' }).click();
+  await expect(page.locator('.proof-progress-steps li[aria-current="step"]')).toHaveText(
+    'Création de la preuve',
+    { timeout: 120000 },
+  );
+  const clock = page.getByLabel('Temps écoulé');
+  const initialTime = await clock.textContent();
+  await expect.poll(() => clock.textContent()).not.toBe(initialTime);
+  await expect(
+    page.getByRole('progressbar', { name: 'Étapes de génération terminées' }),
+  ).toHaveAttribute('value', '3');
   await expect(page.getByRole('heading', { name: 'Preuve TVA prête' })).toBeVisible({
     timeout: 240000,
   });

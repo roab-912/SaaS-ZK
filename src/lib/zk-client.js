@@ -1,3 +1,4 @@
+import { isProofStage } from '../../shared/proof-progress.mjs';
 import { api } from './api.js';
 import { ENGINE } from '../../shared/proof.mjs';
 export function compileForEngine(circuit, engine = circuit.engine ?? ENGINE, signal) {
@@ -10,6 +11,7 @@ export function launchProof(
     createWorker = () =>
       new Worker(new URL('../zk.worker.js', import.meta.url), { type: 'module' }),
     timeout = 300000,
+    onStage = () => {},
   } = {},
 ) {
   let worker,
@@ -40,6 +42,7 @@ export function launchProof(
         if (settled) return;
         if (data?.type === 'progress') {
           onProgress(data.message);
+          if (isProofStage(data.stage)) onStage(data.stage);
           return;
         }
         if (data?.type === 'result') finish(null, data.result);

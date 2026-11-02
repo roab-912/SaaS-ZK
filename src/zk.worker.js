@@ -1,3 +1,4 @@
+import { isProofStage } from '../shared/proof-progress.mjs';
 import { prepareVatDraft } from '../zk/noir/vat-runtime.mjs';
 import { createEngineRegistry } from '../zk/registry.mjs';
 import { executeZkOperation } from '../zk/operations.mjs';
@@ -15,8 +16,12 @@ self.onmessage = async ({ data }) => {
     const result =
       data?.mode === 'vat-commit'
         ? await prepareVatDraft(data.draft)
-        : await executeZkOperation(data, registry, (message) =>
-            self.postMessage({ type: 'progress', message }),
+        : await executeZkOperation(data, registry, (message, stage) =>
+            self.postMessage({
+              type: 'progress',
+              message,
+              ...(isProofStage(stage) ? { stage } : {}),
+            }),
           );
     self.postMessage({ type: 'result', result });
   } catch {

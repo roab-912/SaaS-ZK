@@ -56,6 +56,7 @@ export function Generate({
   const [values, setValues] = useState(initial),
     [busy, setBusy] = useState(false),
     [progress, setProgress] = useState(''),
+    [stage, setStage] = useState(null),
     [result, setResult] = useState(null),
     [saved, setSaved] = useState(false),
     [savingProof, setSavingProof] = useState(false),
@@ -73,6 +74,8 @@ export function Generate({
     e.preventDefault();
     const run = ++generation.current;
     setBusy(true);
+    setStage('prepare');
+    setProgress('Préparation du circuit public…');
     setResult(null);
     setSaved(false);
     setError('');
@@ -108,12 +111,22 @@ export function Generate({
           values,
           ...(signed.length ? { attestations, issuers } : {}),
         },
-        setProgress,
+        (message) => {
+          if (run === generation.current) setProgress(message);
+        },
+        {
+          onStage: (next) => {
+            if (run === generation.current) setStage(next);
+          },
+        },
       );
       const result = await task.current.promise;
       if (run !== generation.current) return;
+      setStage('finish');
+      setProgress('Finalisation de la preuve…');
       await api('/prover/finish', { token: authorization.token, complete: true });
       authorization = null;
+      if (run !== generation.current) return;
       setResult(result);
       setValues(initial);
       setAttestations([]);
@@ -342,6 +355,7 @@ export function Generate({
             </Button>
             {busy && (
               <OperationProgress
+                stage={stage}
                 message={progress}
                 onCancel={() => {
                   generation.current++;
