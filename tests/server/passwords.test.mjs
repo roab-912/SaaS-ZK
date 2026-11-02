@@ -17,3 +17,16 @@ test('existing MVP password hashes remain compatible', async () => {
     digest = scryptSync('legacy-password', salt, 64).toString('hex');
   expect(await verifyPassword('legacy-password', salt + ':' + digest)).toBe(true);
 });
+
+test('a concurrent password burst has a bounded cost and rejects excess work', async () => {
+  const results = await Promise.allSettled(
+    Array.from({ length: 5 }, () => hashPassword('burst-password-123')),
+  );
+  expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(2);
+  expect(results.filter((r) => r.status === 'rejected').every((r) => r.reason.status === 429)).toBe(
+    true,
+  );
+  expect(
+    await verifyPassword('burst-password-123', results.find((r) => r.status === 'fulfilled').value),
+  ).toBe(true);
+});

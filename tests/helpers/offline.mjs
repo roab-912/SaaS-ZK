@@ -11,6 +11,7 @@ export async function offlineFixture() {
     JSON.stringify({
       format: 'clair-offline-release/1',
       platform: 'win32-x64',
+      nodeVersion: '24.22.2',
       bytes: bytes.length,
       sha256: createHash('sha256').update(bytes).digest('hex'),
     }),

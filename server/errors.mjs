@@ -26,21 +26,25 @@ export function errorHandler(logger = console) {
         ? error.status
         : error instanceof ZodError
           ? 400
-          : error.type === 'entity.too.large'
-            ? 413
-            : error.type === 'entity.parse.failed'
-              ? 400
-              : 500;
+          : error.type === 'encoding.unsupported'
+            ? 415
+            : error.type === 'entity.too.large'
+              ? 413
+              : error.type === 'entity.parse.failed'
+                ? 400
+                : 500;
     const message =
       error instanceof HttpError
         ? error.message
         : error instanceof ZodError
           ? validationMessage(error)
-          : status === 413
-            ? 'Requête trop volumineuse.'
-            : status === 400
-              ? 'Requête JSON invalide.'
-              : 'Erreur interne. Réessayez.';
+          : status === 415
+            ? 'Les requêtes compressées ne sont pas acceptées.'
+            : status === 413
+              ? 'Requête trop volumineuse.'
+              : status === 400
+                ? 'Requête JSON invalide.'
+                : 'Erreur interne. Réessayez.';
     if (status >= 500)
       logger.error({ event: 'request_failed', requestId: id, errorType: error.name });
     res.status(status).set('X-Request-Id', id).json({ error: message });

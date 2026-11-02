@@ -84,3 +84,13 @@ Les tests de JourneySteps vérifient l’étape courante accessible. Le parcours
 Les fichiers billing-checkout.test.mjs et billing-management.test.mjs couvrent les sessions propres au compte, l’essai unique, les cartes, les récapitulatifs expirés ou modifiés, les paiements en attente, l’idempotence et le renouvellement. Chaque composant de paiement possède son fichier de test avec SDK simulé. Les tests security.test.mjs vérifient les CSP et l’isolation distinctes des documents ZK et de paiement. tests/billing.spec.mjs vérifie les navigations et le retour à un espace ZK isolé, avec un compte et une base de test.
 
 Ces suites automatisées ordinaires ne débitent pas Stripe. Pour tester le formulaire réel, utiliser les clés de test du même compte et un compte Clair de test. Vérifier la carte 4242, le refus de carte, l’authentification bancaire, le changement d’offre qui termine l’essai, la mise à jour de carte, puis le renouvellement et les droits. Les portefeuilles demandent un appareil compatible et un domaine HTTPS enregistré ; leur présence dans les tests de composants ne constitue pas un paiement Apple Pay ou Google Pay réel.
+
+## Audit de sécurité
+
+npm run test:security exécute les tests d’abus HTTP, de révocation de sessions, de secrets exclus des logs, de cookie HTTPS, de concurrence des mots de passe et de limites du compilateur. tests/security.spec.mjs vérifie la fermeture des accès aux fichiers internes avec un marqueur synthétique et le parcours de révocation dans le navigateur. Les suites attendent le renouvellement du budget de requêtes sans désactiver les limites de production.
+
+Une première génération Noir a également été vérifiée avec une réoptimisation complète du cache Vite. Les entrées de précompilation incluent le worker pour éviter un rechargement tardif qui ferait perdre le formulaire.
+
+Le workflow .github/workflows/security.yml prépare lint, audit npm, tests et parcours compilés sous Node LTS. Son exécution GitHub reste à vérifier après publication de ces fichiers. L’audit complet est décrit dans [AUDIT-SECURITE-2026-11-02.md](AUDIT-SECURITE-2026-11-02.md).
+
+Le job Linux de CI exclut les comparaisons de captures Windows à zéro pixel de différence ; celles-ci restent testées sur Windows. Un déclenchement manuel du workflow ajoute la construction et le test de la distribution portable sur un runner Windows.

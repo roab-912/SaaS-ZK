@@ -1,4 +1,6 @@
+import { waitForApiBudget } from './helpers/browser-budget.mjs';
 import { test, expect } from '@playwright/test';
+test.beforeEach(async ({ request }) => waitForApiBudget(request));
 test('billing documents stay in Clair and return to an isolated ZK workspace', async ({ page }) => {
   const registration = await page.request.post('/api/auth/register', {
     headers: { Origin: 'http://localhost:3001' },

@@ -1,4 +1,6 @@
+import { waitForApiBudget } from './helpers/browser-budget.mjs';
 import { test, expect } from '@playwright/test';
+test.beforeEach(async ({ request }) => waitForApiBudget(request));
 import { template } from '../shared/circuit.mjs';
 
 test('dedicated auth pages, Essential trial quotas and logout work together', async ({ page }) => {
@@ -41,7 +43,7 @@ test('dedicated auth pages, Essential trial quotas and logout work together', as
   ).toBeDisabled();
   await expect(page.getByText('Tarif à configurer').first()).toBeVisible();
   await page.screenshot({ path: 'test-results/saas-billing.png', fullPage: true });
-  await page.getByRole('button', { name: 'Se déconnecter' }).click();
+  await page.getByRole('button', { name: 'Se déconnecter', exact: true }).click();
   await expect(page).toHaveURL('/connexion');
   await page.getByLabel('Adresse e-mail').fill('saas-quota@example.test');
   await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');

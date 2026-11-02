@@ -52,6 +52,7 @@ export function createRepository(db) {
       run('INSERT INTO sessions VALUES(?,?,?)', token, userId, expires);
     },
     deleteSession: (token) => run('DELETE FROM sessions WHERE token=?', token),
+    deleteUserSessions: (userId) => run('DELETE FROM sessions WHERE user_id=?', userId),
 
     markTrialUsed: (customer) => run('UPDATE users SET trial_used=1 WHERE customer=?', customer),
     setCustomer: (userId, customer) =>

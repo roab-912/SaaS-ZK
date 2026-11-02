@@ -16,3 +16,17 @@ test('portable release is unavailable if archive size does not match its metadat
     await f.close();
   }
 });
+
+test('an old archive embedding an unsupported runtime is never offered for download', async () => {
+  const f = await offlineFixture();
+  try {
+    const { readFile } = await import('node:fs/promises');
+    const file = join(f.dir, 'release.json');
+    const release = JSON.parse(await readFile(file, 'utf8'));
+    release.nodeVersion = '25.4.0';
+    await writeFile(file, JSON.stringify(release));
+    expect((await offlineRelease(f.dir)).available).toBe(false);
+  } finally {
+    await f.close();
+  }
+});

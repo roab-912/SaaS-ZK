@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import express from 'express';
+import { assertSupportedRuntime } from './runtime-policy.mjs';
 import { createApp } from './app.mjs';
 import { errorHandler } from './errors.mjs';
 export async function startServer({
@@ -14,9 +15,14 @@ export async function startServer({
   logger = console,
 } = {}) {
   const production = args.includes('--production') || env.NODE_ENV === 'production';
+  if (production) assertSupportedRuntime(process.versions.node);
   const { app, db, config } = appFactory({ production, env });
   let vite;
   const server = createServer(app);
+  server.headersTimeout = 15000;
+  server.requestTimeout = 30000;
+  server.keepAliveTimeout = 5000;
+  server.maxRequestsPerSocket = 100;
   async function closeResources() {
     try {
       if (server?.listening)

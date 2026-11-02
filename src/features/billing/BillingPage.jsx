@@ -202,6 +202,24 @@ export function Billing({
               <strong className="account-id">{user.id}</strong>
             </div>
           )}
+          {user && (
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await api('/auth/logout-all', {});
+                  location.assign('/connexion');
+                } catch (e) {
+                  notify(e.message, true);
+                  setBusy(false);
+                }
+              }}
+            >
+              Se déconnecter de tous les appareils
+            </Button>
+          )}
           <div className="public-row">
             <span>Abonnement</span>
             <Badge tone={user?.active ? 'green' : ''}>

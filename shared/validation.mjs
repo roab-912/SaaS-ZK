@@ -47,23 +47,25 @@ export function validationMessage(error) {
           field +
           ' : ce format contient des champs non pris en charge. Rechargez la page et vérifiez que le serveur est à jour.'
         );
-      if (issue.code === 'invalid_enum_value')
+      if (['invalid_enum_value', 'invalid_value'].includes(issue.code))
         return field + ' : choisissez une valeur proposée dans la liste.';
       if (issue.code === 'invalid_type')
         return (
           field +
-          (issue.received === 'undefined' ? ' : champ requis.' : ' : type de valeur incorrect.')
+          (issue.received === 'undefined' || /received undefined$/.test(issue.message ?? '')
+            ? ' : champ requis.'
+            : ' : type de valeur incorrect.')
         );
       if (issue.code === 'too_small')
         return (
           field +
-          (issue.type === 'string' && issue.minimum === 1
+          ((issue.type ?? issue.origin) === 'string' && issue.minimum === 1
             ? ' : ce champ ne peut pas être vide.'
             : ' : minimum ' +
               issue.minimum +
-              (issue.type === 'string'
+              ((issue.type ?? issue.origin) === 'string'
                 ? ' caractères.'
-                : issue.type === 'array'
+                : (issue.type ?? issue.origin) === 'array'
                   ? ' élément(s).'
                   : '.'))
         );
@@ -72,9 +74,14 @@ export function validationMessage(error) {
           field +
           ' : maximum ' +
           issue.maximum +
-          (issue.type === 'string' ? ' caractères.' : issue.type === 'array' ? ' élément(s).' : '.')
+          ((issue.type ?? issue.origin) === 'string'
+            ? ' caractères.'
+            : (issue.type ?? issue.origin) === 'array'
+              ? ' élément(s).'
+              : '.')
         );
-      if (issue.code === 'invalid_string') return field + ' : format invalide.';
+      if (['invalid_string', 'invalid_format'].includes(issue.code))
+        return field + ' : format invalide.';
       return field + ' : valeur invalide.';
     })
     .join(' ');

@@ -1,3 +1,4 @@
+import { assertSupportedRuntime } from './runtime-policy.mjs';
 import { Zip, ZipPassThrough, strToU8 } from 'fflate';
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
@@ -17,6 +18,7 @@ export async function offlineRelease(directory = resolve('data/offline')) {
       !/^[a-f0-9]{64}$/.test(release.sha256)
     )
       throw Error();
+    assertSupportedRuntime(release.nodeVersion);
     return { available: true, ...release };
   } catch {
     return { available: false, platform: 'win32-x64' };

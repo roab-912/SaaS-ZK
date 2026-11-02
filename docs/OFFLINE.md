@@ -49,3 +49,7 @@ Les sorties `data/offline/logiciel.zip` et `release.json` doivent être déploy�
 L’archive doit être reconstruite après une modification de `offline/`, `shared/`, `zk/`, des versions de dépendances ou de Node. Si elle n’est pas construite, l’interface n’affiche pas de lien mort : elle indique que le logiciel est en préparation. Un serveur SaaS sous un autre système peut distribuer l’artefact Windows préconstruit.
 
 `npm run test:offline` reconstruit le logiciel, télécharge sa véritable archive via HTTP, l’extrait dans un dossier temporaire hors du dépôt avec l’outil Windows utilisé par le lanceur, puis exécute le Node embarqué. Le test vérifie les trois moteurs, une signature privée Noir et une falsification, avec le réseau des moteurs bloqué. Le navigateur du test refuse aussi toute requête sortant du serveur local.
+
+## Runtime après l’audit
+
+Construire avec la version LTS corrigée de .node-version. Les versions non maintenues et celles antérieures aux minima de server/runtime-policy.mjs sont refusées. Le serveur ne propose plus une archive dont le champ nodeVersion correspond à une version refusée : reconstruire le logiciel après mise à jour de Node et des dépendances. Les utilisateurs ayant déjà téléchargé une ancienne archive doivent la remplacer ; le mode hors ligne ne peut pas recevoir automatiquement cette mise à jour.

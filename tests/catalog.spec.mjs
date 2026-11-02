@@ -1,4 +1,6 @@
+import { waitForApiBudget } from './helpers/browser-budget.mjs';
 import { test, expect } from '@playwright/test';
+test.beforeEach(async ({ request }) => waitForApiBudget(request));
 
 test('ready income circuit generates a false proof at equality without an editor or private upload', async ({
   page,

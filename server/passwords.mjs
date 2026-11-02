@@ -1,6 +1,18 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { fail } from './errors.mjs';
 import { promisify } from 'node:util';
-const derive = promisify(scrypt);
+const deriveKey = promisify(scrypt);
+let activeDerivations = 0;
+async function derive(password, salt, length, policy) {
+  if (activeDerivations >= 2)
+    throw fail(429, 'Le service de connexion est occupé. Réessayez dans un instant.');
+  activeDerivations++;
+  try {
+    return await deriveKey(password, salt, length, policy);
+  } finally {
+    activeDerivations--;
+  }
+}
 const saltPattern = /^[a-f0-9]{32}$/;
 const digestPattern = /^[a-f0-9]{128}$/;
 const policies = {

@@ -74,3 +74,14 @@ test('restricted live keys require the same live-payment opt-in', () => {
     loadConfig({ mode: 'stripe' }, { ...env, ALLOW_LIVE_PAYMENTS: 'true' }).paymentEnvironment,
   ).toBe('live');
 });
+
+test('a development server cannot be exposed even when Stripe is configured', () => {
+  const env = {
+    BILLING_MODE: 'stripe',
+    STRIPE_SECRET_KEY: 'sk_test_fixture',
+    STRIPE_PRICE_ID: 'price',
+    STRIPE_WEBHOOK_SECRET: 'whsec_fixture',
+  };
+  expect(() => loadConfig({ host: '0.0.0.0' }, env)).toThrow(/locale/);
+  expect(() => loadConfig({ appUrl: 'https://public.example.test' }, env)).toThrow(/locale/);
+});

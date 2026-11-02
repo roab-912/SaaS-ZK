@@ -1,3 +1,4 @@
+import { assertSupportedRuntime } from '../server/runtime-policy.mjs';
 import { cp, readFile, writeFile, mkdir, mkdtemp, rename, rm } from 'node:fs/promises';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
@@ -76,6 +77,7 @@ export async function downloadResource(url, path, size, headers = {}) {
 export async function buildOffline({
   root = resolve(fileURLToPath(new URL('..', import.meta.url))),
 } = {}) {
+  assertSupportedRuntime(process.versions.node);
   if (process.platform !== 'win32' || process.arch !== 'x64')
     throw Error('La distribution portable actuelle se construit sous Windows x64.');
   const output = join(root, 'data/offline');

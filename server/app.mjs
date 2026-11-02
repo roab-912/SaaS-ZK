@@ -1,4 +1,5 @@
 import express from 'express';
+import { createAuditLogger } from './audit.mjs';
 import Stripe from 'stripe';
 import { loadConfig } from './config.mjs';
 import { openDatabase } from './database.mjs';
@@ -31,7 +32,8 @@ export function createApp(options = {}) {
     config,
     isActive: (user) => sessions.view(user)?.active,
   });
-  const dependencies = { config, repo, sessions, stripe, compiler, billing };
+  const audit = createAuditLogger(options.logger ?? console);
+  const dependencies = { config, repo, sessions, stripe, compiler, billing, audit };
   const app = express();
   app.set('env', config.production ? 'production' : 'development');
   app.disable('x-powered-by');
@@ -47,7 +49,7 @@ export function createApp(options = {}) {
   );
   registerBillingWebhook(app, dependencies);
   app.use('/api', sameOrigin(config));
-  app.use(express.json({ limit: '300kb' }));
+  app.use(express.json({ limit: '300kb', inflate: false }));
   app.use('/api', sessions.attach);
   registerAuthRoutes(app, dependencies);
   registerAdminRoutes(app, dependencies);

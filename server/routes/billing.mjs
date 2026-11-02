@@ -18,7 +18,7 @@ const events = new Set([
 export function registerBillingWebhook(app, { stripe, billing, config }) {
   app.post(
     '/api/billing/webhook',
-    express.raw({ type: 'application/json', limit: '1mb' }),
+    express.raw({ type: 'application/json', limit: '1mb', inflate: false }),
     async (req, res) => {
       if (!stripe) return res.sendStatus(404);
       let event;
@@ -43,7 +43,21 @@ export function registerBillingWebhook(app, { stripe, billing, config }) {
     },
   );
 }
-export function registerBillingRoutes(app, { sessions, stripe, billing, config }) {
+export function registerBillingRoutes(app, { sessions, stripe, billing, config, audit }) {
+  const actions = {
+    '/api/billing/checkout': 'billing.checkout',
+    '/api/billing/payment-method': 'billing.payment_method',
+    '/api/billing/change': 'billing.change',
+    '/api/billing/renewal': 'billing.renewal',
+  };
+  app.use('/api/billing', (req, res, next) => {
+    const event = actions[req.originalUrl.split('?')[0]];
+    if (req.method === 'POST' && event)
+      res.once('finish', () => {
+        if (res.statusCode < 300) audit(event, { actorId: req.user?.id, plan: req.body?.plan });
+      });
+    next();
+  });
   app.get('/api/billing/plans', async (req, res) => res.json(await billing.plans()));
   app.get('/api/billing/config', sessions.auth, (req, res) =>
     res.json({

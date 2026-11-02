@@ -14,7 +14,7 @@ La validité d’une preuve sur des données déclarées ne certifie pas leur v�
 - Paramètres publics contrôlés selon leur type : date réelle, booléen 0/1, entier 32 bits. Les formats hexadécimaux/base64 sont bornés.
 - Compilation sérialisée, huit travaux distincts en attente au maximum, déduplication, cache de cinquante circuits et 64 Mio de JSON sérialisé au maximum, et copies indépendantes des résultats.
 - Hachage scrypt asynchrone avec sels aléatoires et comparaison à temps constant. Les nouveaux hashes utilisent N=32768, r=8, p=3 ; les formats antérieurs sont reconnus puis migrés à la connexion. Ce compromis mémoire/CPU fait partie des configurations de référence [OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#scrypt).
-- Cookies HttpOnly, SameSite=Strict, Secure en HTTPS ; jetons aléatoires stockés sous forme d’empreinte, rotation à la connexion et expiration côté serveur.
+- Cookies HttpOnly, SameSite=Strict, Secure en HTTPS, avec préfixe __Host- en HTTPS ; jetons aléatoires stockés sous forme d’empreinte, rotation à la connexion et expiration côté serveur.
 - Protection d’origine sur les mutations ; webhook Stripe exempté uniquement parce que sa signature est vérifiée sur le corps brut.
 - Autorisation serveur à chaque opération protégée et filtrage de propriétaire dans toutes les requêtes d’archives.
 - Administration par identifiants de comptes autorisés. Les clés P-256 sont parsées cryptographiquement ; clés privées et points invalides sont refusés.
@@ -29,7 +29,7 @@ La validité d’une preuve sur des données déclarées ne certifie pas leur v�
 
 Garder .env, data/, les exports d’utilisateurs et les journaux hors du dépôt. Utiliser un volume persistant et des sauvegardes SQLite. Configurer le proxy explicitement ; l’application ne fait pas confiance à des en-têtes X-Forwarded-For arbitraires.
 
-Les limites de fréquence des requêtes et les verrous de facturation sont en mémoire et conçus pour une instance. Les quotas d’abonnement et les réservations de génération sont persistés dans SQLite avec des transactions ; ils ne dépendent pas des compteurs affichés par le navigateur. Le passage à plusieurs processus demande un stockage partagé pour les sessions, limites et verrous. La préparation Circom est isolée dans un sous-processus avec délai maximal ; la compilation Noir reste dans le processus serveur.
+Les limites de fréquence des requêtes et les verrous de facturation sont en mémoire et conçus pour une instance. Les quotas d’abonnement et les réservations de génération sont persistés dans SQLite avec des transactions ; ils ne dépendent pas des compteurs affichés par le navigateur. Le passage à plusieurs processus demande un stockage partagé pour les sessions, limites et verrous. La préparation Circom est isolée dans un sous-processus avec délai maximal ; la compilation Noir utilise désormais un sous-processus sans héritage des secrets, avec délai de 180 secondes et plafond de tas V8 de 512 Mio. Ce plafond ne couvre pas toute la mémoire native/WASM : les limites OS restent à configurer.
 
 Le JavaScript ne permet pas de garantir l’effacement physique de toutes les copies mémoire. Le calcul est local mais Noir charge des paramètres publics depuis crs.aztec.network. Circom nécessite un premier téléchargement des paramètres universels PSE par le serveur, avec empreinte épinglée. Le service web n’est pas entièrement hors ligne. Un [vérificateur portable distinct](OFFLINE.md) embarque ses paramètres et un instantané du registre pour fonctionner sans connexion. Voir [ENGINES.md](ENGINES.md) pour les frontières de confiance.
 
@@ -62,3 +62,15 @@ Les factures XML sont lues et validées localement, avec des limites avant const
 Les pages /abonnement/ utilisent des iframes Stripe et une CSP dédiée en production. Elles ne sont pas cross-origin isolated, conformément aux contraintes Stripe. Le reste du site conserve son isolation COOP/COEP et sa CSP sans Stripe. Les liens de paiement chargent un nouveau document ; revenir aux circuits charge à nouveau le document isolé. Le chargeur Stripe utilise son entrée pure et n’injecte aucun script à l’import.
 
 Les données bancaires sont transmises directement à Stripe. Les réponses sensibles de facturation sont authentifiées et non mises en cache. Une session de retour ou un résultat du SDK ne donne pas de droits : le serveur relit Stripe. Le changement d’offre utilise un récapitulatif limité à cinq minutes, lié au compte, vérifié à nouveau avant mutation et protégé par une clé d’idempotence. Une carte de remplacement doit provenir d’un SetupIntent réussi, avec le même client que l’abonnement. Les mutations restent protégées par l’origine exacte. Les règles d’essai et de prorata sont définies dans [BILLING.md](BILLING.md).
+
+## Audit du 02/11/2026
+
+Voir [le rapport daté](AUDIT-SECURITE-2026-11-02.md), [la préparation NIS2](NIS2.md) et [le canevas de gestion d’incident](INCIDENTS.md). Cette revue et les tests ne délivrent pas une certification.
+
+Le développement et la prévisualisation sont limités à une écoute et une origine locales, même avec Stripe. Vite ne sert que les dossiers navigateur nécessaires ; données, exports, clés, code serveur et base SQLite sont exclus. Les corps HTTP compressés sont refusés avant décompression ; les limites de taille et d’origine restent actives.
+
+Les dérivations scrypt sont limitées à deux simultanément par processus. La connexion ajoute une limite de dix échecs par compte sur quinze minutes, en complément de la limite par IP. Mon abonnement propose la révocation de toutes les sessions d’un compte. Les événements sensibles sont journalisés avec une liste de champs autorisés ; la collecte et la rétention doivent être configurées par l’exploitant.
+
+La production, la construction et le téléchargement d’un logiciel portable exigent un runtime LTS corrigé défini dans server/runtime-policy.mjs. La version recommandée figure dans .node-version (24.22.2 au moment de la revue). Node 25.4.0 sur la machine de développement n’est plus maintenu ; remplacer cette installation avant toute exploitation ou reconstruction via les commandes habituelles. Les minima de sécurité doivent être revus après chaque publication Node : cette politique n’effectue pas de mise à jour automatique.
+
+Les dépendances sont contrôlables avec npm run audit:dependencies. La chaîne de polyfills cryptographiques génériques a été retirée ; seuls Buffer, global et process sont fournis au navigateur. Les overrides minimatch 11.0.1 et filelist 2.0.2 corrigent une dépendance transitive en conservant le traitement des chemins Windows ; le comportement des outils concernés est testé. Les moteurs ZK restent verrouillés pour préserver la compatibilité des preuves.

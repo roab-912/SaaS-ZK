@@ -108,3 +108,9 @@ JourneySteps fournit les repères d’étapes accessibles. VatPage conserve le l
 server/billing.mjs coordonne la synchronisation Stripe et les verrous par compte. server/billing-checkout.mjs gère les sessions Elements de souscription et de remplacement de carte, puis leur confirmation autoritative. server/billing-management.mjs gère le statut masqué, les prévisualisations, changements d’offre et le renouvellement. Les routes restent dans server/routes/billing.mjs et les tarifs dans server/pricing.mjs.
 
 src/features/billing/PaymentPage.jsx assemble les pages Clair. CheckoutPayment et InvoicePayment isolent les deux parcours du SDK navigateur ; src/lib/stripe-client.js charge Stripe à la demande. Ces pages sont chargées paresseusement et naviguées dans des documents distincts pour conserver l’isolation des pages ZK. Voir [BILLING.md](BILLING.md).
+
+## Durcissement de sécurité
+
+server/audit.mjs centralise les événements de sécurité expurgés ; server/runtime-policy.mjs définit les branches et minima Node admis pour la production et les distributions. La compilation Noir est exécutée dans zk/noir/compile-worker.mjs avec contrôle des chemins temporaires par compile-path.mjs, délai et ressources bornées. Le processus HTTP ne charge pas le SDK du compilateur pour effectuer le travail.
+
+Les polyfills navigateur génériques ont été remplacés par src/lib/browser-globals.js et une injection limitée aux trois globals nécessaires. La validation utilise Zod 4 ; le format canonique des circuits et les versions ZK sont conservés. Voir [l’audit](AUDIT-SECURITE-2026-11-02.md).

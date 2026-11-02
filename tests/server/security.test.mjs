@@ -81,3 +81,17 @@ test('only billing documents allow Stripe frames; ZK documents retain cross-orig
     await new Promise((r) => server.close(r));
   }
 });
+
+test('HTTPS sessions use a host-only prefixed cookie and ignore an unprefixed injected cookie', () => {
+  const repo = { createSession: vi.fn(), userForSession: vi.fn(), deleteSession: vi.fn() };
+  const sessions = createSessions(repo, { secure: true, adminIds: [] });
+  const res = { cookie: vi.fn(), clearCookie: vi.fn() };
+  sessions.issue({}, res, 'u');
+  expect(res.cookie.mock.lastCall[0]).toBe('__Host-clair_session');
+  expect(res.cookie.mock.lastCall[2]).toMatchObject({ secure: true, httpOnly: true, path: '/' });
+  expect(res.cookie.mock.lastCall[2].domain).toBeUndefined();
+  sessions.attach({ headers: { cookie: 'clair_session=' + 'a'.repeat(64) } }, res, vi.fn());
+  expect(repo.userForSession).not.toHaveBeenCalled();
+  sessions.attach({ headers: { cookie: '__Host-clair_session=' + 'a'.repeat(64) } }, res, vi.fn());
+  expect(repo.userForSession).toHaveBeenCalledOnce();
+});

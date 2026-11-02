@@ -40,6 +40,7 @@ export function createCompiler({
       try {
         result = await adapter.compile(circuit);
       } catch (error) {
+        if (error.code === 'COMPILER_RESOURCE_LIMIT') throw fail(503, error.message);
         if (error.code === 'CIRCOM_CAPACITY') throw fail(400, error.message);
         throw error;
       }

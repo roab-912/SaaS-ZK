@@ -74,6 +74,7 @@ export function createSessions(repo, config, now = Date.now) {
           admin: config.adminIds.includes(user.id),
         }
       : null;
+  const cookieName = config.secure ? '__Host-clair_session' : 'clair_session';
   const cookies = { httpOnly: true, sameSite: 'strict', secure: config.secure, path: '/' };
   return {
     view,
@@ -81,8 +82,8 @@ export function createSessions(repo, config, now = Date.now) {
       const value = req.headers.cookie
         ?.split(';')
         .map((s) => s.trim())
-        .find((s) => s.startsWith('clair_session='))
-        ?.slice(14);
+        .find((s) => s.startsWith(cookieName + '='))
+        ?.slice(cookieName.length + 1);
       if (value && /^[a-f0-9]{64}$/.test(value)) {
         req.sessionToken = hash(value);
         req.user = repo.userForSession(req.sessionToken, now());
@@ -94,11 +95,11 @@ export function createSessions(repo, config, now = Date.now) {
       const token = randomBytes(32).toString('hex'),
         maxAge = 7 * 86400000;
       repo.createSession(hash(token), userId, now() + maxAge, now());
-      res.cookie('clair_session', token, { ...cookies, maxAge });
+      res.cookie(cookieName, token, { ...cookies, maxAge });
     },
     logout(req, res) {
       if (req.sessionToken) repo.deleteSession(req.sessionToken);
-      res.clearCookie('clair_session', cookies);
+      res.clearCookie(cookieName, cookies);
     },
     auth: (req, res, next) =>
       req.user ? next() : next(fail(401, 'Connectez-vous pour continuer.')),

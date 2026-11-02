@@ -37,7 +37,7 @@ test('available sources offer Windows offline downloads for all sources or one s
   const all = await screen.findByRole('link', { name: 'Télécharger le vérificateur hors ligne' });
   expect(all).toHaveAttribute('href', '/api/offline-verifier');
   expect(
-    screen.getByRole('link', { name: 'Télécharger le vérificateur pour Source de test' }),
+    await screen.findByRole('link', { name: 'Télécharger le vérificateur pour Source de test' }),
   ).toHaveAttribute('href', '/api/offline-verifier?issuer=source-1');
   expect(screen.getByText(/révocations et changements de clés ultérieurs/)).toBeVisible();
 });

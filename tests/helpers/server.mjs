@@ -4,6 +4,7 @@ import { createApp } from '../../server/app.mjs';
 export async function serverFixture(options = {}) {
   const instance = createApp({
     dbPath: ':memory:',
+    logger: { info() {}, warn() {}, error() {} },
     appUrl: 'http://localhost:3000',
     env: { BILLING_MODE: 'demo' },
     ...options,

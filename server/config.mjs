@@ -33,6 +33,14 @@ export function loadConfig(overrides = {}, env = process.env) {
       !['localhost', '127.0.0.1', '::1'].includes(host))
   )
     throw Error('Le mode demo est réservé au développement local.');
+  if (
+    !production &&
+    (!['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname) ||
+      !['localhost', '127.0.0.1', '::1'].includes(host))
+  )
+    throw Error(
+      'Le développement et la prévisualisation sont réservés à une écoute locale. Utilisez le mode production pour exposer le service.',
+    );
   if (production && origin.protocol !== 'https:') throw Error('HTTPS requis en production.');
   const stripePrices = {
     essential: env.STRIPE_PRICE_ESSENTIAL || env.STRIPE_PRICE_ID || '',
