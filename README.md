@@ -10,6 +10,7 @@ Le code est séparé entre domaine, écrans React, services serveur, persistance
 - [Moteurs disponibles, choix et paramètres publics](docs/ENGINES.md)
 - [Contrôles de sécurité et limites](docs/SECURITY.md)
 - [Tests, couverture et non-régression visuelle](docs/TESTING.md)
+- [Interface, accessibilité et rapport imprimable](docs/INTERFACE.md)
 
 ## Démarrer
 

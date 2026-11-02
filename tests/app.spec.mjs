@@ -32,7 +32,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     ).toMatchSnapshot('dashboard-desktop.png', { maxDiffPixels: 0 });
     await page.getByRole('button', { name: 'Créer un circuit', exact: true }).click();
     await page.getByLabel('Adresse e-mail').fill(engine + '@example.test');
-    await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+    await page.getByLabel('Mot de passe', { exact: true }).fill('long-password-123');
     await page.getByRole('button', { name: 'Créer mon compte' }).click();
     await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
     await page.request.post('/__test__/subscription', {
@@ -83,6 +83,33 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     await expect(page.getByText('Preuve valide')).toBeVisible({
       timeout: 150000,
     });
+    await page.getByRole('button', { name: 'Imprimer le rapport public' }).evaluate((button) => {
+      window.print = () => {
+        window.__publicReport = document.querySelector('.verification-report')?.textContent;
+      };
+      button.click();
+    });
+    const report = await page.evaluate(() => window.__publicReport);
+    expect(report).toContain('Preuve valide');
+    expect(report).toContain(envelope.circuitHash);
+    expect(report).toContain('21/09/2008');
+    expect(report).not.toContain(privateMarker);
+    expect(report).not.toContain('19910714');
+    await expect(page.locator('.verification-report')).toHaveCount(0);
+    if (engine === ENGINE) {
+      await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+      await page.emulateMedia({ media: 'print' });
+      await expect(page.locator('.verification-report')).toBeVisible();
+      await expect(page.locator('.verify-layout')).toBeHidden();
+      await expect(page.locator('.print-fallback')).toBeHidden();
+      await page.screenshot({
+        path: 'test-results/public-verification-report.png',
+        fullPage: true,
+      });
+      await page.pdf({ path: 'test-results/public-verification-report.pdf', format: 'A4' });
+      await page.emulateMedia({ media: 'screen' });
+      await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+    }
     await page.screenshot({ path: 'test-results/verified-desktop.png', fullPage: true });
     const publicContext = await browser.newContext();
     const publicPage = await publicContext.newPage();
@@ -153,7 +180,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     await page.goto('/');
     await page.getByRole('button', { name: 'Créer un circuit', exact: true }).click();
     await page.getByLabel('Adresse e-mail').fill('false-' + engine + '@example.test');
-    await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+    await page.getByLabel('Mot de passe', { exact: true }).fill('long-password-123');
     await page.getByRole('button', { name: 'Créer mon compte' }).click();
     await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
     await page.request.post('/__test__/subscription', {
@@ -184,7 +211,7 @@ for (const engine of [ENGINE, PLONK_ENGINE, FFLONK_ENGINE]) {
     await expect(page.getByText('Votre règle est prête')).toBeVisible();
     await page.getByRole('button', { name: 'Enregistrer et prouver' }).click();
     await page.getByRole('button', { name: 'Générer ma preuve' }).click();
-    await expect(page.getByRole('alert')).toContainText('valeur requise');
+    await expect(page.locator('main').getByRole('alert')).toContainText('valeur requise');
     await page.getByLabel('Première valeur', { exact: true }).fill('172946');
     await page.getByLabel('Deuxième valeur', { exact: true }).fill('981273');
     await page.getByRole('button', { name: 'Générer ma preuve' }).click();
@@ -269,7 +296,7 @@ for (const privateInput of [false, true]) {
       await page.goto('/');
       await page.getByRole('button', { name: 'Créer un circuit', exact: true }).click();
       await page.getByLabel('Adresse e-mail').fill('sources-' + privateInput + '@example.test');
-      await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+      await page.getByLabel('Mot de passe', { exact: true }).fill('long-password-123');
       await page.getByRole('button', { name: 'Créer mon compte' }).click();
       await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
       await page.request.post('/__test__/subscription', {
@@ -499,7 +526,7 @@ test('new circuit and removal of birth both allow a single integer equals 18', a
   await page.goto('/');
   await page.getByRole('button', { name: 'Créer un circuit', exact: true }).click();
   await page.getByLabel('Adresse e-mail').fill('integer-equals@example.test');
-  await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+  await page.getByLabel('Mot de passe', { exact: true }).fill('long-password-123');
   await page.getByRole('button', { name: 'Créer mon compte' }).click();
   await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
   await page.request.post('/__test__/subscription', {

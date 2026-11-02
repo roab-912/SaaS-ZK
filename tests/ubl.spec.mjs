@@ -37,7 +37,7 @@ test('UBL import, official validation, certification and private VAT proof', asy
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/inscription');
   await page.getByLabel('Adresse e-mail').fill('ubl@example.test');
-  await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+  await page.getByLabel('Mot de passe', { exact: true }).fill('long-password-123');
   await page.getByRole('button', { name: 'Créer mon compte' }).click();
   await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
   await page.request.post('/__test__/subscription', {
@@ -92,7 +92,7 @@ test('UBL import, official validation, certification and private VAT proof', asy
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(bad)),
   });
-  await expect(page.getByRole('alert')).toContainText('document UBL original');
+  await expect(page.locator('main').getByRole('alert')).toContainText('document UBL original');
   await page.getByLabel('Lot de factures certifié', { exact: true }).setInputFiles({
     name: 'factures.clair',
     mimeType: 'application/json',
@@ -179,7 +179,7 @@ test('UBL errors are explicit and the authority form fits a mobile screen', asyn
     mimeType: 'application/xml',
     buffer: Buffer.from(invalid),
   });
-  await expect(page.getByRole('alert')).toContainText(/montant-incorrect.xml.*BR-/);
+  await expect(page.locator('main').getByRole('alert')).toContainText(/montant-incorrect.xml.*BR-/);
   await input.setInputFiles(
     files.map((f) => ({ name: f.name, mimeType: 'application/xml', buffer: Buffer.from(f.bytes) })),
   );

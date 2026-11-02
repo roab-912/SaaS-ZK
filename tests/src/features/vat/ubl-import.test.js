@@ -117,3 +117,30 @@ test('malformed Vatira exports are still rejected; importing never repairs their
     await validator.dispose();
   }
 });
+
+test('import progress counts only successfully verified documents', async () => {
+  const counts = [];
+  await importUblFiles(ublFiles(), {
+    ...options,
+    onProgress: (_message, count) => counts.push(count),
+  });
+  expect(counts).toEqual([
+    { completed: 0, total: 2 },
+    { completed: 1, total: 2 },
+    { completed: 1, total: 2 },
+    { completed: 2, total: 2 },
+  ]);
+  const failure = [];
+  await expect(
+    importUblFiles(ublFiles(), {
+      ...options,
+      validator: {
+        validate: async () => {
+          throw Error('non conforme');
+        },
+      },
+      onProgress: (_message, count) => failure.push(count),
+    }),
+  ).rejects.toThrow('non conforme');
+  expect(failure).toEqual([{ completed: 0, total: 2 }]);
+});

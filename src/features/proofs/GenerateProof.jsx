@@ -1,3 +1,4 @@
+import { OperationProgress } from '../../components/OperationProgress.jsx';
 import { circuitName } from '../../lib/format.js';
 import { DateInput } from '../../components/DateInput.jsx';
 import React from 'react';
@@ -57,6 +58,7 @@ export function Generate({
     [progress, setProgress] = useState(''),
     [result, setResult] = useState(null),
     [saved, setSaved] = useState(false),
+    [savingProof, setSavingProof] = useState(false),
     [error, setError] = useState('');
   const task = useRef(),
     generation = useRef(0);
@@ -339,21 +341,15 @@ export function Generate({
               Générer ma preuve
             </Button>
             {busy && (
-              <div className="progress" role="status">
-                <span>{progress}</span>
-                <button
-                  type="button"
-                  className="text-link dark"
-                  onClick={() => {
-                    generation.current++;
-                    task.current?.cancel();
-                    setBusy(false);
-                    setProgress('');
-                  }}
-                >
-                  Annuler
-                </button>
-              </div>
+              <OperationProgress
+                message={progress}
+                onCancel={() => {
+                  generation.current++;
+                  task.current?.cancel();
+                  setBusy(false);
+                  setProgress('');
+                }}
+              />
             )}
           </form>
         </section>
@@ -400,20 +396,27 @@ export function Generate({
               </Button>
               <Button
                 variant="secondary full"
-                disabled={saved}
+                disabled={saved || savingProof}
                 onClick={async () => {
                   try {
+                    setSavingProof(true);
                     await api('/proofs', result);
                     setSaved(true);
                     await refresh();
                     notify('Preuve enregistrée dans votre espace.');
                   } catch (e) {
                     notify(e.message, true);
+                  } finally {
+                    setSavingProof(false);
                   }
                 }}
               >
                 <Save size={16} />
-                {saved ? 'Enregistrée' : 'Enregistrer dans mon espace'}
+                {saved
+                  ? 'Enregistrée'
+                  : savingProof
+                    ? 'Enregistrement en cours…'
+                    : 'Enregistrer dans mon espace'}
               </Button>
               <button className="text-link dark" onClick={() => onVerify(result)}>
                 Ouvrir la vérification <ArrowRight size={15} />

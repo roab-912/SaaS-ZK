@@ -7,7 +7,7 @@ test('ready income circuit generates a false proof at equality without an editor
 }) => {
   await page.goto('/inscription');
   await page.getByLabel('Adresse e-mail').fill('catalog@example.test');
-  await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+  await page.getByLabel('Mot de passe', { exact: true }).fill('long-password-123');
   await page.getByRole('button', { name: 'Créer mon compte' }).click();
   await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
   await page.request.post('/__test__/subscription', {

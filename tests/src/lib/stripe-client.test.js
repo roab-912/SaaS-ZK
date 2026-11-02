@@ -1,6 +1,10 @@
 import { test, expect, vi, afterEach } from 'vitest';
 import { loadStripe } from '@stripe/stripe-js/pure';
-import { paymentStripe } from '../../../src/lib/stripe-client.js';
+import {
+  paymentStripe,
+  themedStripeAppearance,
+  stripeAppearance,
+} from '../../../src/lib/stripe-client.js';
 vi.mock('@stripe/stripe-js/pure', () => ({ loadStripe: vi.fn() }));
 afterEach(() => vi.unstubAllGlobals());
 test('Stripe loads only on a nonisolated payment document and caches successful initialization', async () => {
@@ -20,4 +24,13 @@ test('initialization failures allow a later retry', async () => {
   await expect(paymentStripe('pk_test_retry')).rejects.toThrow('network');
   loadStripe.mockResolvedValueOnce({ fixture: true });
   expect(await paymentStripe('pk_test_retry')).toEqual({ fixture: true });
+});
+
+test('appearance follows Clair without changing the light default or loading Stripe', () => {
+  const light = JSON.stringify(stripeAppearance),
+    dark = themedStripeAppearance('dark');
+  expect(dark.theme).toBe('night');
+  expect(dark.variables.colorBackground).toBe('#192720');
+  expect(themedStripeAppearance('light')).toEqual(stripeAppearance);
+  expect(JSON.stringify(stripeAppearance)).toBe(light);
 });

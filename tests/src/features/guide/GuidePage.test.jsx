@@ -4,9 +4,11 @@ import { test, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Guide } from '../../../../src/features/guide/GuidePage.jsx';
-test('guide distinguishes proof validity from provenance and identifies public metadata', () => {
+test('guide distinguishes proof validity from provenance and identifies public metadata', async () => {
   render(<Guide />);
   expect(screen.getByText(/librement déclarées/)).toBeVisible();
+  await userEvent.click(screen.getByText('Qu’est-ce qui quitte mon appareil ?'));
+  await userEvent.click(screen.getByText('Et dans six mois ?'));
   expect(screen.getByText(/ne doivent pas contenir de secrets/)).toBeVisible();
   expect(screen.getByRole('heading', { name: 'Et dans six mois ?' })).toBeVisible();
 });

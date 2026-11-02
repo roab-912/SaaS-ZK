@@ -23,3 +23,21 @@ test('auth submits credentials, displays failure and supports closing/switching'
   await userEvent.keyboard('{Escape}');
   expect(close).toHaveBeenCalled();
 });
+
+test('password visibility never submits credentials and resets on mode switch', async () => {
+  const mode = vi.fn();
+  api.mockClear();
+  render(<Auth mode="login" setMode={mode} onClose={vi.fn()} onDone={vi.fn()} />);
+  const password = screen.getByLabelText('Mot de passe', { exact: true });
+  expect(password).toHaveAttribute('type', 'password');
+  expect(password).toHaveAttribute('autocomplete', 'current-password');
+  await userEvent.type(password, 'my-private-password');
+  await userEvent.click(screen.getByRole('button', { name: 'Afficher le mot de passe' }));
+  expect(password).toHaveAttribute('type', 'text');
+  expect(api).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: 'Masquer le mot de passe' }));
+  expect(password).toHaveValue('my-private-password');
+  expect(password).toHaveAttribute('type', 'password');
+  await userEvent.click(screen.getByRole('button', { name: 'Créer un compte' }));
+  expect(password).toHaveValue('');
+});

@@ -1,13 +1,14 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { ArrowRight, Fingerprint, LoaderCircle, X } from 'lucide-react';
+import { ArrowRight, Fingerprint, LoaderCircle, X, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
 export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [error, setError] = useState(''),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [showPassword, setShowPassword] = useState(false);
   useEffect(() => {
     const listener = (e) => {
       if (e.key === 'Escape' && !embedded) onClose();
@@ -37,6 +38,7 @@ export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
         <p>Vos circuits et vos preuves, au même endroit.</p>
         {embedded && <p>{mode === 'register' ? 'Inscription' : 'Connexion'}</p>}
         <form
+          aria-busy={busy}
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
@@ -64,15 +66,30 @@ export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
           </label>
           <label>
             Mot de passe
-            <input
-              type="password"
-              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              minLength={12}
-              maxLength={128}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <span className="password-input">
+              <input
+                id="auth-password"
+                aria-label="Mot de passe"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                minLength={12}
+                maxLength={128}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="icon-button password-toggle"
+                aria-controls="auth-password"
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                aria-pressed={showPassword}
+                disabled={busy}
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </span>
             <small>12 caractères minimum.</small>
           </label>
           {error && (
@@ -92,6 +109,8 @@ export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
             onClick={() => {
               setMode(mode === 'register' ? 'login' : 'register');
               setError('');
+              setPassword('');
+              setShowPassword(false);
             }}
           >
             {mode === 'register' ? 'Se connecter' : 'Créer un compte'}

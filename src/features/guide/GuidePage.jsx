@@ -1,6 +1,8 @@
 import React from 'react';
 import { Fingerprint, GitBranch, ShieldCheck } from 'lucide-react';
+import { displayDate } from '../../lib/format.js';
 import { Button, PageHeading } from '../../components/ui.jsx';
+export const GUIDE_UPDATED_ON = '2026-11-02';
 export function Guide({ onNavigate }) {
   return (
     <>
@@ -75,30 +77,89 @@ export function Guide({ onNavigate }) {
           provenance certifiée. Une signature permet d’identifier la source, sans garantir
           l’identité de la personne qui présente la preuve.
         </p>
-        <h3>Faut-il une clé privée pour utiliser une attestation ?</h3>
-        <p>
-          Non. Importez le fichier reçu de la source ; les valeurs attendues sont remplies
-          automatiquement. La clé privée est réservée à la personne autorisée à signer pour cette
-          source.
-        </p>
-        <h3>Et dans six mois ?</h3>
-        <p>
-          La preuve garde les dates et les valeurs publiques utilisées à sa création. Vérifiez
-          qu’elles correspondent toujours à votre demande. Une attestation peut expirer et une
-          source peut être retirée du registre.
-        </p>
-        <h3>Qu’est-ce qui quitte mon appareil ?</h3>
-        <p>
-          La règle publique est envoyée au serveur pour préparer le calcul. Les valeurs privées et
-          les factures restent sur votre appareil. Si vous archivez une preuve, seul son fichier
-          public est enregistré. Les noms, descriptions et valeurs fixes d’un circuit ne doivent pas
-          contenir de secrets.
-        </p>
-        <h3>Que voit le destinataire ?</h3>
-        <p>
-          Il voit la règle, son résultat, les informations marquées publiques et les sources
-          signataires éventuelles. Les valeurs privées restent cachées. Pour la TVA, il voit
-          notamment l’entreprise, la période, le nombre de factures et les totaux.
+        <h2>Questions fréquentes</h2>
+        <details className="faq-item">
+          <summary>
+            <h3>Faut-il une clé privée pour utiliser une attestation ?</h3>
+          </summary>
+          <p>
+            Non. Importez le fichier reçu de la source ; les valeurs attendues sont remplies
+            automatiquement. La clé privée est réservée à la personne autorisée à signer pour cette
+            source.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>
+            <h3>Et dans six mois ?</h3>
+          </summary>
+          <p>
+            La preuve garde les dates et les valeurs publiques utilisées à sa création. Vérifiez
+            qu’elles correspondent toujours à votre demande. Une attestation peut expirer et une
+            source peut être retirée du registre.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>
+            <h3>Qu’est-ce qui quitte mon appareil ?</h3>
+          </summary>
+          <p>
+            La règle publique est envoyée au serveur pour préparer le calcul. Les valeurs privées et
+            les factures restent sur votre appareil. Si vous archivez une preuve, seul son fichier
+            public est enregistré. Les noms, descriptions et valeurs fixes d’un circuit ne doivent
+            pas contenir de secrets.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>
+            <h3>Que voit le destinataire ?</h3>
+          </summary>
+          <p>
+            Il voit la règle, son résultat, les informations marquées publiques et les sources
+            signataires éventuelles. Les valeurs privées restent cachées. Pour la TVA, il voit
+            notamment l’entreprise, la période, le nombre de factures et les totaux.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>
+            <h3>Une preuve valide peut-elle donner un résultat faux ?</h3>
+          </summary>
+          <p>
+            Oui. Une preuve valide peut confirmer que la règle donne faux. Le destinataire doit
+            contrôler la validité, le résultat et le circuit attendu.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>
+            <h3>Faut-il payer pour vérifier une preuve ?</h3>
+          </summary>
+          <p>
+            Non. La vérification reste accessible sans compte ni abonnement. L’abonnement concerne
+            la création et l’espace personnel.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>
+            <h3>Comment fonctionne le vérificateur hors ligne ?</h3>
+          </summary>
+          <p>
+            Il utilise les clés approuvées à la date de son téléchargement. Les révocations
+            ultérieures restent inconnues ; téléchargez une nouvelle version pour actualiser le
+            registre.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>
+            <h3>Comment changer l’apparence de Clair ?</h3>
+          </summary>
+          <p>
+            Le sélecteur Apparence, en haut de la page, propose Clair, Sombre ou Appareil. Seule
+            cette préférence est conservée dans ce navigateur ; les données des formulaires et les
+            recherches ne sont pas mémorisées par cette fonction.
+          </p>
+        </details>
+        <p className="help">
+          Guide mis à jour le{' '}
+          <time dateTime={GUIDE_UPDATED_ON}>{displayDate(GUIDE_UPDATED_ON)}</time>.
         </p>
       </section>
     </>

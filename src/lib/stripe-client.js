@@ -32,3 +32,19 @@ export function paymentStripe(key) {
     );
   return instances.get(key);
 }
+
+export function themedStripeAppearance(theme) {
+  return theme === 'dark'
+    ? {
+        ...stripeAppearance,
+        theme: 'night',
+        variables: {
+          ...stripeAppearance.variables,
+          colorPrimary: '#98cba7',
+          colorBackground: '#192720',
+          colorText: '#e3eee6',
+          colorDanger: '#ffb5b1',
+        },
+      }
+    : stripeAppearance;
+}

@@ -161,3 +161,29 @@ test('returning from billing restores the requested workspace and clears its que
     await screen.findByRole('heading', { name: 'Que souhaitez-vous prouver ?' }),
   ).toBeVisible();
 });
+
+test('personal space opens from its sidebar and breadcrumb and survives a direct visit', async () => {
+  api.mockImplementation(async (path) =>
+    path === '/session'
+      ? { user: { id: 'personal-user', email: 'personal@example.test', active: false } }
+      : [],
+  );
+  render(<App />);
+  await screen.findByRole('heading', { name: 'Prouvez l’essentiel. Gardez le reste privé.' });
+  await userEvent.click(screen.getByRole('button', { name: 'Ouvrir mon espace personnel' }));
+  expect(await screen.findByRole('heading', { name: 'Votre espace personnel' })).toBeVisible();
+  expect(location.pathname).toBe('/espace-personnel');
+  expect(screen.getByText('personal@example.test')).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'Ouvrir mes preuves' }));
+  expect(screen.getByRole('heading', { name: 'Mes preuves' })).toBeVisible();
+  await userEvent.click(screen.getByRole('link', { name: 'Espace personnel', exact: true }));
+  expect(screen.getByRole('heading', { name: 'Votre espace personnel' })).toBeVisible();
+});
+test('a direct personal-space URL restores the page and offers authentication to visitors', async () => {
+  history.replaceState({}, '', '/espace-personnel');
+  api.mockResolvedValue({ user: null });
+  render(<App />);
+  expect(await screen.findByRole('heading', { name: 'Votre espace personnel' })).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'Vérifier une preuve sans compte' }));
+  expect(screen.getByText('Déposez votre preuve ici')).toBeVisible();
+});

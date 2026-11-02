@@ -1,8 +1,9 @@
+import { matchesSearch } from '../../lib/search.js';
 import React, { useState } from 'react';
 import { ArrowRight, Braces, Fingerprint, ListFilter, LoaderCircle } from 'lucide-react';
 import { ENGINE, ZK_ENGINES } from '../../../shared/engines.mjs';
 import { CIRCUIT_CATALOG } from './catalog-model.js';
-export function CircuitCatalog({ onChoose, pending }) {
+export function CircuitCatalog({ onChoose, pending, query = '' }) {
   const [engine, setEngine] = useState(ENGINE);
   const icons = {
     age: Fingerprint,
@@ -23,7 +24,9 @@ export function CircuitCatalog({ onChoose, pending }) {
         </div>
       </div>
       <div className="templates catalog-grid">
-        {CIRCUIT_CATALOG.map((item) => {
+        {CIRCUIT_CATALOG.filter((item) =>
+          matchesSearch(query, item.title, item.description, item.category, item.fields),
+        ).map((item) => {
           const Icon = icons[item.id];
           return (
             <button
@@ -61,6 +64,14 @@ export function CircuitCatalog({ onChoose, pending }) {
           );
         })}
       </div>
+      {query &&
+        !CIRCUIT_CATALOG.some((item) =>
+          matchesSearch(query, item.title, item.description, item.category, item.fields),
+        ) && (
+          <p role="status" className="help">
+            Aucun modèle ne correspond à votre recherche.
+          </p>
+        )}
       <p className="help">
         Un circuit est une règle à vérifier. Les modèles ci-dessus sont prêts à l’emploi. Pour la
         TVA, un parcours vous guide de l’import des factures jusqu’à la preuve. Vos informations

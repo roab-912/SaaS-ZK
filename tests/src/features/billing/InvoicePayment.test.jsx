@@ -10,7 +10,7 @@ const mock = vi.hoisted(() => ({
 }));
 vi.mock('../../../../src/lib/stripe-client.js', () => ({
   paymentStripe: () => Promise.resolve({}),
-  stripeAppearance: {},
+  themedStripeAppearance: () => ({}),
 }));
 vi.mock('@stripe/react-stripe-js', () => ({
   Elements: ({ children }) => children,

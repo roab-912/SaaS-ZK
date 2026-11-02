@@ -7,7 +7,7 @@ test('dedicated auth pages, Essential trial quotas and logout work together', as
   await page.goto('/inscription');
   await expect(page.getByText('Votre espace de confiance.')).toBeVisible();
   await page.getByLabel('Adresse e-mail').fill('saas-quota@example.test');
-  await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+  await page.getByLabel('Mot de passe', { exact: true }).fill('long-password-123');
   await page.getByRole('button', { name: 'Créer mon compte' }).click();
   await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
   await page.request.post('/__test__/subscription', {
@@ -46,7 +46,7 @@ test('dedicated auth pages, Essential trial quotas and logout work together', as
   await page.getByRole('button', { name: 'Se déconnecter', exact: true }).click();
   await expect(page).toHaveURL('/connexion');
   await page.getByLabel('Adresse e-mail').fill('saas-quota@example.test');
-  await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+  await page.getByLabel('Mot de passe', { exact: true }).fill('long-password-123');
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
   await expect(page.getByLabel('Consommation de votre abonnement')).toContainText(
     'Clair Essentiel',

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { test, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Issuers } from '../../../../src/features/issuers/IssuersPage.jsx';
 import { api } from '../../../../src/lib/api.js';
@@ -40,4 +40,51 @@ test('available sources offer Windows offline downloads for all sources or one s
     await screen.findByRole('link', { name: 'Télécharger le vérificateur pour Source de test' }),
   ).toHaveAttribute('href', '/api/offline-verifier?issuer=source-1');
   expect(screen.getByText(/révocations et changements de clés ultérieurs/)).toBeVisible();
+});
+
+test('source search stays local and replacing a public key requires confirmation', async () => {
+  const { signedFixture } = await import('../../../helpers/attestation.mjs');
+  const { generateSigningKey } = await import('../../../../shared/attestations.mjs');
+  const { issuers } = await signedFixture(),
+    replacement = await generateSigningKey();
+  api.mockClear();
+  api.mockImplementation(async (path) => (path === '/issuers' ? issuers : { available: false }));
+  render(<Issuers user={{ admin: true }} notify={vi.fn()} />);
+  await screen.findByRole('button', { name: 'Modifier' });
+  await userEvent.type(screen.getByRole('searchbox'), 'SOURCE test');
+  expect(screen.getByText('1 résultat', { exact: true })).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+  await userEvent.clear(screen.getByLabelText('Clé publique P-256 (JWK)'));
+  fireEvent.change(screen.getByLabelText('Clé publique P-256 (JWK)'), {
+    target: { value: JSON.stringify(replacement.publicKey) },
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'Enregistrer la source' }));
+  expect(api.mock.calls.filter((c) => c[1])).toHaveLength(0);
+  await screen.findByRole('dialog', { name: 'Remplacer la clé de cette source ?' });
+  await userEvent.click(screen.getByRole('button', { name: 'Annuler', exact: true }));
+  expect(api.mock.calls.filter((c) => c[1])).toHaveLength(0);
+  await userEvent.click(screen.getByRole('button', { name: 'Enregistrer la source' }));
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Remplacer la clé', exact: true }),
+  );
+  expect(api).toHaveBeenCalledWith(
+    '/issuers',
+    expect.objectContaining({ jwk: replacement.publicKey }),
+  );
+});
+test('a pasted private key is rejected locally and never sent to the source registry', async () => {
+  const { generateSigningKey } = await import('../../../../shared/attestations.mjs'),
+    keys = await generateSigningKey();
+  api.mockClear();
+  api.mockResolvedValue([]);
+  render(<Issuers user={{ admin: true }} notify={vi.fn()} />);
+  await userEvent.type(screen.getByLabelText('Identifiant'), 'issuer');
+  await userEvent.type(screen.getByLabelText('Nom'), 'Source');
+  // fireEvent avoids interpreting JSON braces as keyboard shortcuts.
+  fireEvent.change(screen.getByLabelText('Clé publique P-256 (JWK)'), {
+    target: { value: JSON.stringify(keys.privateKey) },
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'Enregistrer la source' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('sans clé privée');
+  expect(api.mock.calls.filter((c) => c[1])).toHaveLength(0);
 });

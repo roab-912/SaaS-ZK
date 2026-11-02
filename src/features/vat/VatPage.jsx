@@ -1,3 +1,4 @@
+import { OperationProgress } from '../../components/OperationProgress.jsx';
 import { VatAuthority } from './VatAuthority.jsx';
 import { JourneySteps } from '../../components/JourneySteps.jsx';
 import { downloadOriginalUbl } from '../../lib/ubl-files.js';
@@ -28,7 +29,8 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
     [progress, setProgress] = useState(''),
     [error, setError] = useState(''),
     [result, setResult] = useState(null),
-    [saved, setSaved] = useState(false);
+    [saved, setSaved] = useState(false),
+    [savingProof, setSavingProof] = useState(false);
   const generation = useRef(0),
     task = useRef();
   useEffect(
@@ -282,20 +284,14 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
             </form>
           )}
           {busy && (
-            <div className="progress" role="status">
-              <span>{progress || 'Vérification du relevé signé…'}</span>
-              <button
-                type="button"
-                className="text-link dark"
-                onClick={() => {
-                  generation.current++;
-                  task.current?.cancel();
-                  setBusy(false);
-                }}
-              >
-                Annuler
-              </button>
-            </div>
+            <OperationProgress
+              message={progress || 'Vérification du relevé signé…'}
+              onCancel={() => {
+                generation.current++;
+                task.current?.cancel();
+                setBusy(false);
+              }}
+            />
           )}
           {result && (
             <div className="result-panel">
@@ -313,20 +309,27 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
               </Button>
               <Button
                 variant="secondary full"
-                disabled={saved}
+                disabled={saved || savingProof}
                 onClick={async () => {
                   try {
+                    setSavingProof(true);
                     await api('/proofs', result);
                     setSaved(true);
                     await refresh();
                     notify('Preuve TVA enregistrée.');
                   } catch (e) {
                     notify(e.message, true);
+                  } finally {
+                    setSavingProof(false);
                   }
                 }}
               >
                 <Save size={16} />
-                {saved ? 'Enregistrée' : 'Enregistrer dans mon espace'}
+                {saved
+                  ? 'Enregistrée'
+                  : savingProof
+                    ? 'Enregistrement en cours…'
+                    : 'Enregistrer dans mon espace'}
               </Button>
               <button className="text-link dark" onClick={() => onVerify(result)}>
                 Ouvrir la vérification

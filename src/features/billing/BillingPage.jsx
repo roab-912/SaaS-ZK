@@ -1,3 +1,4 @@
+import { CopyButton } from '../../components/CopyButton.jsx';
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Check, LoaderCircle, Sparkles } from 'lucide-react';
 import { Badge, Button, PageHeading } from '../../components/ui.jsx';
@@ -199,7 +200,10 @@ export function Billing({
           {user && (
             <div className="public-row">
               <span>Identifiant du compte</span>
-              <strong className="account-id">{user.id}</strong>
+              <span className="hash-with-copy">
+                <strong className="account-id">{user.id}</strong>
+                <CopyButton value={user.id} label="Copier l’identifiant du compte" />
+              </span>
             </div>
           )}
           {user && (

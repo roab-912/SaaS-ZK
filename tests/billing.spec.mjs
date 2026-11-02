@@ -9,7 +9,7 @@ test('billing documents stay in Clair and return to an isolated ZK workspace', a
   expect(registration.status()).toBe(201);
   await page.goto('/abonnement/paiement?offre=essential');
   await expect(page.getByRole('heading', { name: 'Souscrire à Clair' })).toBeVisible();
-  await expect(page.getByRole('alert')).toHaveText(/pas.*configuré/);
+  await expect(page.locator('main').getByRole('alert')).toHaveText(/pas.*configuré/);
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(false);
   expect(new URL(page.url()).origin).toBe('http://localhost:3001');
   await page.getByRole('button', { name: 'Retour à mon abonnement' }).click();

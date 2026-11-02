@@ -47,7 +47,7 @@ for (const scenario of [
     });
     await page.goto('/inscription');
     await page.getByLabel('Adresse e-mail').fill('vat-' + scenario.id + '@example.test');
-    await page.getByLabel('Mot de passe', { exact: false }).fill('long-password-123');
+    await page.getByLabel('Mot de passe', { exact: true }).fill('long-password-123');
     await page.getByRole('button', { name: 'Créer mon compte' }).click();
     await expect(page.getByRole('heading', { name: 'Votre abonnement' })).toBeVisible();
     await page.request.post('/__test__/subscription', {
@@ -131,7 +131,9 @@ for (const scenario of [
         mimeType: 'application/json',
         buffer: Buffer.from(JSON.stringify(omitted)),
       });
-      await expect(page.getByRole('alert')).toContainText('nombre de documents UBL');
+      await expect(page.locator('main').getByRole('alert')).toContainText(
+        'nombre de documents UBL',
+      );
       await page.getByLabel('Lot de factures certifié', { exact: true }).setInputFiles({
         name: 'factures.clair',
         mimeType: 'application/json',
@@ -144,7 +146,7 @@ for (const scenario of [
     if (scenario.id === 'de') expect(actual).toBe('396,50');
     await amount.fill('0,01');
     await page.getByRole('button', { name: 'Générer la preuve TVA' }).click();
-    await expect(page.getByRole('alert')).toContainText('montant annoncé');
+    await expect(page.locator('main').getByRole('alert')).toContainText('montant annoncé');
     await amount.fill(actual);
     await page.getByRole('button', { name: 'Générer la preuve TVA' }).click();
     await expect(page.getByRole('heading', { name: 'Preuve TVA prête' })).toBeVisible({

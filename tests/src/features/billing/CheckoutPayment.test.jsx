@@ -7,7 +7,7 @@ import { CheckoutPayment } from '../../../../src/features/billing/CheckoutPaymen
 const mock = vi.hoisted(() => ({ state: null, payment: vi.fn(), wallets: vi.fn() }));
 vi.mock('../../../../src/lib/stripe-client.js', () => ({
   paymentStripe: () => Promise.resolve({}),
-  stripeAppearance: {},
+  themedStripeAppearance: () => ({}),
 }));
 vi.mock('@stripe/react-stripe-js/checkout', () => ({
   CheckoutElementsProvider: ({ children }) => children,

@@ -1,7 +1,8 @@
+import { useTheme } from '../../lib/use-theme.js';
 import React, { useMemo, useRef, useState } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { Button } from '../../components/ui.jsx';
-import { paymentStripe, stripeAppearance } from '../../lib/stripe-client.js';
+import { paymentStripe, themedStripeAppearance } from '../../lib/stripe-client.js';
 import { money } from './billing-model.js';
 
 function InvoiceForm({ payment, onComplete }) {
@@ -77,11 +78,10 @@ function InvoiceForm({ payment, onComplete }) {
 }
 export function InvoicePayment({ publishableKey, payment, onComplete }) {
   const stripe = useMemo(() => paymentStripe(publishableKey), [publishableKey]);
+  const { theme } = useTheme();
+  const appearance = useMemo(() => themedStripeAppearance(theme), [theme]);
   return (
-    <Elements
-      stripe={stripe}
-      options={{ clientSecret: payment.clientSecret, appearance: stripeAppearance }}
-    >
+    <Elements stripe={stripe} options={{ clientSecret: payment.clientSecret, appearance }}>
       <InvoiceForm payment={payment} onComplete={onComplete} />
     </Elements>
   );

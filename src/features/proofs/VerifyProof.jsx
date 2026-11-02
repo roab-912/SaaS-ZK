@@ -1,9 +1,14 @@
+import { flushSync } from 'react-dom';
+import { PublicVerificationReport } from './PublicVerificationReport.jsx';
+import { CopyButton } from '../../components/CopyButton.jsx';
+import { OperationProgress } from '../../components/OperationProgress.jsx';
+import { date } from '../../lib/format.js';
 import { VatStatement } from '../vat/VatStatement.jsx';
 import { displayDate, circuitName } from '../../lib/format.js';
 import React from 'react';
 import { engineName } from '../../../shared/engines.mjs';
 import { useState, useEffect, useRef } from 'react';
-import { LoaderCircle, Search, ShieldCheck, Upload, X } from 'lucide-react';
+import { LoaderCircle, Search, ShieldCheck, Upload, X, Printer } from 'lucide-react';
 import { JourneySteps } from '../../components/JourneySteps.jsx';
 import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
 import { launchProof, compileForEngine } from '../../lib/zk-client.js';
@@ -24,7 +29,9 @@ export function Verify({ initial, notify }) {
     [status, setStatus] = useState(null),
     [expected, setExpected] = useState(''),
     [sources, setSources] = useState([]),
-    [verificationError, setVerificationError] = useState('');
+    [verificationError, setVerificationError] = useState(''),
+    [checkedAt, setCheckedAt] = useState(null),
+    [printVisible, setPrintVisible] = useState(false);
   const task = useRef(),
     input = useRef(),
     generation = useRef(0);
@@ -35,6 +42,26 @@ export function Verify({ initial, notify }) {
     },
     [],
   );
+  useEffect(() => {
+    const before = () => {
+      if (status && envelope && checkedAt) flushSync(() => setPrintVisible(true));
+    };
+    const after = () => setPrintVisible(false);
+    window.addEventListener('beforeprint', before);
+    window.addEventListener('afterprint', after);
+    return () => {
+      window.removeEventListener('beforeprint', before);
+      window.removeEventListener('afterprint', after);
+    };
+  }, [status, envelope, checkedAt]);
+  function printReport() {
+    flushSync(() => setPrintVisible(true));
+    try {
+      window.print();
+    } finally {
+      setPrintVisible(false);
+    }
+  }
   const load = async (file) => {
     const run = ++generation.current;
     task.current?.cancel();
@@ -53,6 +80,9 @@ export function Verify({ initial, notify }) {
     } catch {
       if (run !== generation.current) return;
       setStatus('invalid');
+      const message =
+        'Fichier invalide : format, valeurs publiques ou résultat incohérents (300 Ko maximum).';
+      setVerificationError(message);
       notify(
         'Fichier invalide : format, valeurs publiques ou résultat incohérents (300 Ko maximum).',
         true,
@@ -63,6 +93,7 @@ export function Verify({ initial, notify }) {
     const run = ++generation.current;
     setBusy(true);
     setStatus(null);
+    setCheckedAt(null);
     setSources([]);
     setVerificationError('');
     try {
@@ -85,6 +116,7 @@ export function Verify({ initial, notify }) {
       const result = await task.current.promise;
       if (run === generation.current) {
         setStatus(result.valid ? 'valid' : 'invalid');
+        setCheckedAt(new Date().toISOString());
         setSources(result.sources ?? []);
         if (result.proofValid && !result.valid)
           setVerificationError(
@@ -95,6 +127,7 @@ export function Verify({ initial, notify }) {
       if (run === generation.current) {
         setStatus('invalid');
         setVerificationError(e.message);
+        setCheckedAt(new Date().toISOString());
         notify(e.message, true);
       }
     } finally {
@@ -171,11 +204,7 @@ export function Verify({ initial, notify }) {
             {busy ? <LoaderCircle size={18} className="spin" /> : <ShieldCheck size={18} />}Vérifier
             la preuve
           </Button>
-          {busy && (
-            <p className="progress" role="status">
-              {progress}
-            </p>
-          )}
+          {busy && <OperationProgress message={progress} />}
           {status && (
             <div className={'validation ' + (status === 'invalid' ? 'invalid' : '')} role="status">
               {status === 'valid' ? <ShieldCheck size={22} /> : <X size={22} />}
@@ -190,6 +219,18 @@ export function Verify({ initial, notify }) {
                       'La preuve, le circuit ou les paramètres ne correspondent pas.'}
                 </p>
               </div>
+            </div>
+          )}
+          {status && envelope && checkedAt && (
+            <div className="verification-actions">
+              <p className="help">
+                Vérification effectuée le <time dateTime={checkedAt}>{date(checkedAt)}</time> sur
+                cet appareil.
+              </p>
+              <Button variant="secondary" onClick={printReport}>
+                <Printer size={17} />
+                Imprimer le rapport public
+              </Button>
             </div>
           )}
         </section>
@@ -276,7 +317,13 @@ export function Verify({ initial, notify }) {
                           </small>
                           <details className="journey-details">
                             <summary>Identifiant de la clé (avancé)</summary>
-                            <code className="hash">{input.attestation.keyHash}</code>
+                            <span className="hash-with-copy">
+                              <code className="hash">{input.attestation.keyHash}</code>
+                              <CopyButton
+                                value={input.attestation.keyHash}
+                                label={'Copier l’empreinte de la source ' + input.label}
+                              />
+                            </span>
                           </details>
                           {source && (
                             <p>Expiration : {new Date(source.expiresAt).toLocaleString('fr-FR')}</p>
@@ -290,7 +337,10 @@ export function Verify({ initial, notify }) {
               <details className="journey-details">
                 <summary>Consulter le circuit complet</summary>
                 <h4>Empreinte du circuit</h4>
-                <code className="hash">{envelope.circuitHash}</code>
+                <span className="hash-with-copy">
+                  <code className="hash">{envelope.circuitHash}</code>
+                  <CopyButton value={envelope.circuitHash} label="Copier l’empreinte du circuit" />
+                </span>
                 <pre>{JSON.stringify(envelope.circuit, null, 2)}</pre>
               </details>
               <div className="notice">
@@ -305,6 +355,15 @@ export function Verify({ initial, notify }) {
           )}
         </section>
       </div>
+      {printVisible && status && envelope && checkedAt && (
+        <PublicVerificationReport
+          envelope={envelope}
+          status={status}
+          checkedAt={checkedAt}
+          sources={sources}
+          error={verificationError}
+        />
+      )}
     </>
   );
 }

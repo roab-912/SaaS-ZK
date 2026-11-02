@@ -14,6 +14,8 @@ test('table routes edit/prove/delete actions to the selected version', async () 
   await userEvent.click(screen.getByRole('button', { name: /^Condition de majorité/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Générer' }));
   await userEvent.click(screen.getByRole('button', { name: /Supprimer/ }));
+  expect(del).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: 'Supprimer le circuit', exact: true }));
   for (const fn of [edit, prove, del]) expect(fn).toHaveBeenCalledWith(c);
 });
 

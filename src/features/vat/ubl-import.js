@@ -33,7 +33,10 @@ export async function importUblFiles(
   let total = 0;
   for (const [i, file] of selected.entries()) {
     if (!isCurrent()) throw Error('Import UBL annulé.');
-    onProgress('Validation UBL ' + (i + 1) + ' / ' + selected.length + ' : ' + file.name);
+    onProgress('Validation UBL ' + (i + 1) + ' / ' + selected.length + ' : ' + file.name, {
+      completed: i,
+      total: selected.length,
+    });
     // Let the browser paint progress and respond to cancellation between documents.
     await new Promise((resolve) => setTimeout(resolve, 0));
     try {
@@ -47,6 +50,7 @@ export async function importUblFiles(
       if (!isCurrent()) throw Error('Import UBL annulé.');
       records.push(record);
       reports.push({ ...report, name: file.name });
+      onProgress('Document vérifié : ' + file.name, { completed: i + 1, total: selected.length });
       documents.push({
         invoiceId: record.invoice.id,
         originalId: record.originalId,

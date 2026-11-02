@@ -1,3 +1,7 @@
+import { AccountPage } from './features/account/AccountPage.jsx';
+import { ThemeControl } from './components/ThemeControl.jsx';
+import { SearchField } from './components/SearchField.jsx';
+import { matchesSearch } from './lib/search.js';
 import { VatPage } from './features/vat/VatPage.jsx';
 import { VatAuthority } from './features/vat/VatAuthority.jsx';
 import React, { lazy, Suspense } from 'react';
@@ -44,12 +48,21 @@ import { AdminDashboard } from './features/admin/AdminDashboard.jsx';
 import { ProofLibrary } from './features/proofs/ProofLibrary.jsx';
 function pageForLocation() {
   if (location.pathname.startsWith('/abonnement/')) return 'payment';
+  if (location.pathname === '/espace-personnel') return 'account';
   if (location.pathname === '/connexion') return 'login';
   if (location.pathname === '/inscription') return 'register';
   const view = new URLSearchParams(location.search).get('view');
-  return ['home', 'billing', 'circuits', 'proofs', 'verify', 'issuers', 'guide', 'admin'].includes(
-    view,
-  )
+  return [
+    'home',
+    'account',
+    'billing',
+    'circuits',
+    'proofs',
+    'verify',
+    'issuers',
+    'guide',
+    'admin',
+  ].includes(view)
     ? view
     : 'home';
 }
@@ -69,7 +82,8 @@ export function App() {
     [selected, setSelected] = useState(null),
     [verifyFile, setVerifyFile] = useState(null),
     [mobile, setMobile] = useState(false),
-    [startingTemplate, setStartingTemplate] = useState(null);
+    [startingTemplate, setStartingTemplate] = useState(null),
+    [circuitQuery, setCircuitQuery] = useState('');
   const starting = useRef(false);
   const timer = useRef();
   const notify = (message, error = false) => {
@@ -114,6 +128,32 @@ export function App() {
     window.addEventListener('popstate', back);
     return () => window.removeEventListener('popstate', back);
   }, []);
+  useEffect(() => {
+    if (!mobile) return;
+    const sidebar = document.getElementById('main-navigation'),
+      toggle = document.querySelector('.mobile-menu');
+    const trap = (e) => {
+      if (e.key !== 'Tab') return;
+      const links = [...sidebar.querySelectorAll('button:not(:disabled),a[href]')].filter(
+        (el) => el.getClientRects().length,
+      );
+      const first = links[0],
+        last = links.at(-1);
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+    sidebar.querySelector('.mobile-close')?.focus();
+    sidebar.addEventListener('keydown', trap);
+    return () => {
+      sidebar.removeEventListener('keydown', trap);
+      toggle?.focus();
+    };
+  }, [mobile]);
   const user = session.user,
     nav = (p) => {
       if (location.pathname.startsWith('/abonnement/')) {
@@ -127,7 +167,14 @@ export function App() {
         return;
       }
       setPage(p);
-      const path = p === 'login' ? '/connexion' : p === 'register' ? '/inscription' : '/';
+      const path =
+        p === 'login'
+          ? '/connexion'
+          : p === 'register'
+            ? '/inscription'
+            : p === 'account'
+              ? '/espace-personnel'
+              : '/';
       if (location.pathname !== path || location.search) history.pushState({}, '', path);
       setMobile(false);
     };
@@ -197,6 +244,16 @@ export function App() {
     setVerifyFile(e);
     nav('verify');
   };
+  const visibleCircuits = circuits.filter((c) =>
+    matchesSearch(
+      circuitQuery,
+      c.schema.name,
+      c.schema.vat ? 'TVA collectée' : '',
+      c.schema.description,
+      c.hash,
+      c.id,
+    ),
+  );
   const navs = [
     ['home', LayoutDashboard, 'Vue d’ensemble'],
     ['circuits', GitBranch, 'Mes circuits'],
@@ -205,7 +262,38 @@ export function App() {
   ];
   return (
     <div className="app">
-      <aside className={'sidebar ' + (mobile ? 'open' : '')}>
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={() => document.getElementById('main-content')?.focus()}
+      >
+        Aller au contenu principal
+      </a>
+      <aside
+        role={mobile ? 'dialog' : undefined}
+        aria-modal={mobile ? true : undefined}
+        aria-label="Navigation principale"
+        id="main-navigation"
+        className={'sidebar ' + (mobile ? 'open' : '')}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setMobile(false);
+            document.querySelector('.mobile-menu')?.focus();
+          }
+        }}
+      >
+        {mobile && (
+          <button
+            className="icon-button mobile-close"
+            aria-label="Fermer le menu"
+            onClick={() => {
+              setMobile(false);
+              document.querySelector('.mobile-menu')?.focus();
+            }}
+          >
+            <X size={20} />
+          </button>
+        )}
         <a
           className="brand"
           href="/"
@@ -219,14 +307,20 @@ export function App() {
           </span>
           clair<span className="brand-dot">.</span>
         </a>
-        <div className="workspace">
+        <button
+          type="button"
+          className="workspace"
+          aria-label="Ouvrir mon espace personnel"
+          aria-current={page === 'account' ? 'page' : undefined}
+          onClick={() => nav('account')}
+        >
           <span className="workspace-avatar">{user ? user.email[0].toUpperCase() : 'P'}</span>
           <span>
             <strong>Espace personnel</strong>
             <small>{user ? 'Votre atelier de preuves' : 'Découvrez Clair'}</small>
           </span>
           <ChevronRight size={15} />
-        </div>
+        </button>
         <div className="nav-label">VOTRE ESPACE</div>
         <nav>
           {navs.map(([id, Icon, label]) => (
@@ -286,7 +380,7 @@ export function App() {
               Comprendre le zero knowledge <ArrowUpRight size={14} />
             </button>
           </div>
-          <button className="account" onClick={() => (user ? nav('billing') : nav('login'))}>
+          <button className="account" onClick={() => (user ? nav('account') : nav('login'))}>
             <span className="avatar">
               {user ? user.email[0].toUpperCase() : <Users size={18} />}
             </span>
@@ -301,24 +395,40 @@ export function App() {
         </div>
       </aside>
       {mobile && (
-        <button className="scrim" aria-label="Fermer le menu" onClick={() => setMobile(false)} />
+        <button
+          className="scrim"
+          aria-label="Fermer le menu en cliquant à l’extérieur"
+          onClick={() => setMobile(false)}
+        />
       )}
-      <div className="main-shell">
+      <div className="main-shell" inert={mobile}>
         <header className="topbar">
           <div className="breadcrumb">
             <button
               className="icon-button mobile-menu"
+              aria-expanded={mobile}
+              aria-controls="main-navigation"
               aria-label="Ouvrir le menu"
               onClick={() => setMobile(true)}
             >
               <Menu size={20} />
             </button>
-            <span>Espace personnel</span>
+            <a
+              className="breadcrumb-workspace"
+              href="/espace-personnel"
+              onClick={(e) => {
+                e.preventDefault();
+                nav('account');
+              }}
+            >
+              Espace personnel
+            </a>
             <ChevronRight size={14} />
             <strong>
               {
                 {
                   home: 'Vue d’ensemble',
+                  account: 'Mon espace',
                   circuits: 'Mes circuits',
                   editor: 'Éditeur de circuit',
                   generate: 'Générer une preuve',
@@ -339,6 +449,7 @@ export function App() {
             </strong>
           </div>
           <div className="top-actions">
+            <ThemeControl />
             <span className="local-indicator">
               <span />
               Calcul local
@@ -378,9 +489,12 @@ export function App() {
             )}
           </div>
         </header>
-        <main>
+        <main id="main-content" tabIndex={-1}>
+          <p className="print-fallback">
+            Pour imprimer un rapport public, ouvrez une preuve et lancez sa vérification.
+          </p>
           {loading ? (
-            <div className="loading">
+            <div className="loading" role="status">
               <LoaderCircle className="spin" />
               Chargement…
             </div>
@@ -388,6 +502,7 @@ export function App() {
             <>
               {['login', 'register'].includes(page) && (
                 <Auth
+                  key={page}
                   embedded
                   mode={page}
                   setMode={nav}
@@ -399,6 +514,14 @@ export function App() {
                 />
               )}
               {page === 'admin' && user?.admin && <AdminDashboard />}
+              {page === 'account' && (
+                <AccountPage
+                  session={session}
+                  circuits={circuits}
+                  proofs={proofs}
+                  onNavigate={nav}
+                />
+              )}
               {page === 'home' && (
                 <Dashboard
                   {...{ start, nav, circuits, proofs, edit, prove }}
@@ -417,7 +540,17 @@ export function App() {
                       </Button>
                     }
                   />
-                  <CircuitCatalog onChoose={start} pending={startingTemplate} />
+                  <SearchField
+                    label="Rechercher un circuit"
+                    value={circuitQuery}
+                    onChange={setCircuitQuery}
+                    placeholder="Modèle, nom, description ou empreinte…"
+                  />
+                  <CircuitCatalog
+                    onChoose={start}
+                    pending={startingTemplate}
+                    query={circuitQuery}
+                  />
                   <div className="section-heading">
                     <div>
                       <h2>Vos circuits enregistrés</h2>
@@ -427,15 +560,22 @@ export function App() {
                   {!user ? (
                     <AccountEmpty open={() => setAuth('login')} />
                   ) : circuits.length ? (
-                    <CircuitTable
-                      circuits={circuits}
-                      onEdit={edit}
-                      onProve={prove}
-                      onDelete={async (c) => {
-                        await api('/circuits/' + c.id, {}, 'DELETE');
-                        await refresh();
-                      }}
-                    />
+                    visibleCircuits.length ? (
+                      <CircuitTable
+                        circuits={visibleCircuits}
+                        onEdit={edit}
+                        onProve={prove}
+                        onDelete={async (c) => {
+                          await api('/circuits/' + c.id, {}, 'DELETE');
+                          await refresh();
+                        }}
+                        notify={notify}
+                      />
+                    ) : (
+                      <Empty title="Aucun circuit enregistré ne correspond à cette recherche.">
+                        Essayez un autre nom ou une partie de l’empreinte.
+                      </Empty>
+                    )
                   ) : (
                     <Empty icon={GitBranch} title="Votre atelier est prêt.">
                       Choisissez un circuit ci-dessus pour commencer sans construire de règle.
@@ -480,7 +620,7 @@ export function App() {
                 />
               )}
               {page === 'proofs' && (
-                <ProofLibrary {...{ user, nav, setAuth, proofs, openVerify, refresh }} />
+                <ProofLibrary {...{ user, nav, setAuth, proofs, openVerify, refresh, notify }} />
               )}
               {page === 'verify' && <Verify initial={verifyFile} notify={notify} />}
               {page === 'billing' && (
@@ -548,6 +688,7 @@ export function App() {
       </div>
       {auth && (
         <Auth
+          key={auth}
           mode={auth}
           setMode={setAuth}
           onClose={() => setAuth(null)}
@@ -559,7 +700,10 @@ export function App() {
         />
       )}
       {toast && (
-        <div className={'toast ' + (toast.error ? 'error' : '')} role="status">
+        <div
+          className={'toast ' + (toast.error ? 'error' : '')}
+          role={toast.error ? 'alert' : 'status'}
+        >
           {toast.error ? <CircleHelp size={18} /> : <Check size={18} />}
           <span>{toast.message}</span>
           <button

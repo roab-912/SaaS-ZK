@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { test, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ProofLibrary } from '../../../../src/features/proofs/ProofLibrary.jsx';
 import { proofFixture } from '../../../helpers/proof.mjs';
@@ -28,6 +28,13 @@ test('library downloads, verifies and deletes only the selected public envelope'
   await userEvent.click(screen.getByRole('button', { name: 'Vérifier', exact: true }));
   expect(verify).toHaveBeenCalledWith(envelope);
   await userEvent.click(screen.getByRole('button', { name: 'Supprimer la preuve' }));
+  expect(api).not.toHaveBeenCalled();
+  await userEvent.click(
+    within(screen.getByRole('dialog')).getByRole('button', {
+      name: 'Supprimer la preuve',
+      exact: true,
+    }),
+  );
   expect(api).toHaveBeenCalledWith('/proofs/p', {}, 'DELETE');
   expect(refresh).toHaveBeenCalled();
 });

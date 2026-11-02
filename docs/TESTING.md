@@ -94,3 +94,9 @@ Une première génération Noir a également été vérifiée avec une réoptimi
 Le workflow .github/workflows/security.yml prépare lint, audit npm, tests et parcours compilés sous Node LTS. Son exécution GitHub reste à vérifier après publication de ces fichiers. L’audit complet est décrit dans [AUDIT-SECURITE-2026-11-02.md](AUDIT-SECURITE-2026-11-02.md).
 
 Le job Linux de CI exclut les comparaisons de captures Windows à zéro pixel de différence ; celles-ci restent testées sur Windows. Un déclenchement manuel du workflow ajoute la construction et le test de la distribution portable sur un runner Windows.
+
+## Confort d’utilisation
+
+[INTERFACE.md](INTERFACE.md) décrit les choix d’interface. Chaque nouveau composant et utilitaire dispose de son fichier de test. Les scénarios couvrent les erreurs du presse-papiers, l’annulation et l’échec des confirmations, le thème synchronisé entre consommateurs, le stockage bloqué, les données publiques autorisées à l’impression et le comptage des documents UBL vérifiés.
+
+`tests/usability.spec.mjs` couvre les préférences de l’appareil, le lien d’évitement, la FAQ, le clavier dans le menu mobile, le mot de passe, la recherche locale, la copie d’une empreinte complète et la confirmation avant suppression. Les parcours cryptographiques de `tests/app.spec.mjs` contrôlent aussi le rapport imprimable sur les trois moteurs et produisent un PDF public sur Noir. Pour les lancer : `npx playwright test --config playwright.built.config.mjs tests/usability.spec.mjs tests/app.spec.mjs` après `npm run build`.

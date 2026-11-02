@@ -34,3 +34,21 @@ test('invalid imports never enter the worker', async () => {
   expect(notify).toHaveBeenCalledWith(expect.stringContaining('valide'), true);
   expect(screen.getByRole('button', { name: 'Vérifier la preuve', exact: true })).toBeDisabled();
 });
+
+test('printing renders only the public report during print and then removes it', async () => {
+  const envelope = await proofFixture();
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {
+    const report = screen.getByRole('article', { name: 'Rapport public de vérification' });
+    expect(report).toHaveTextContent('21/09/2008');
+    expect(report).not.toHaveTextContent('AAAA');
+  });
+  render(<Verify initial={envelope} notify={vi.fn()} />);
+  expect(screen.queryByRole('button', { name: 'Imprimer le rapport public' })).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: 'Vérifier la preuve', exact: true }));
+  await screen.findByText('Preuve valide');
+  expect(screen.queryByRole('article')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: 'Imprimer le rapport public' }));
+  expect(print).toHaveBeenCalledOnce();
+  expect(screen.queryByRole('article')).toBeNull();
+  print.mockRestore();
+});

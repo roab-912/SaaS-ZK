@@ -1,8 +1,13 @@
+import { CopyButton } from '../../components/CopyButton.jsx';
+import { SearchField } from '../../components/SearchField.jsx';
+import { ConfirmationDialog } from '../../components/ConfirmationDialog.jsx';
+import { matchesSearch } from '../../lib/search.js';
+import { date } from '../../lib/format.js';
 import React, { useState, useEffect } from 'react';
 import { BadgeCheck } from 'lucide-react';
 import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
-import { keyFingerprint } from '../../../shared/attestations.mjs';
+import { keyFingerprint, publicKeySchema } from '../../../shared/attestations.mjs';
 export function Issuers({
   user,
   notify,
@@ -16,13 +21,20 @@ export function Issuers({
     [approved, setApproved] = useState(true),
     [error, setError] = useState(''),
     [saving, setSaving] = useState(false),
-    [offline, setOffline] = useState(null);
+    [offline, setOffline] = useState(null),
+    [query, setQuery] = useState(''),
+    [checkedAt, setCheckedAt] = useState(null),
+    [pendingSource, setPendingSource] = useState(null);
   const refresh = () =>
-    api('/issuers').then(async (rows) =>
-      setIssuers(
-        await Promise.all(rows.map(async (i) => ({ ...i, keyHash: await keyFingerprint(i.jwk) }))),
-      ),
-    );
+    api('/issuers')
+      .then(async (rows) =>
+        setIssuers(
+          await Promise.all(
+            rows.map(async (i) => ({ ...i, keyHash: await keyFingerprint(i.jwk) })),
+          ),
+        ),
+      )
+      .then(() => setCheckedAt(new Date().toISOString()));
   useEffect(() => {
     refresh().catch((e) => setError(e.message));
     let active = true;
@@ -37,6 +49,12 @@ export function Issuers({
       active = false;
     };
   }, []);
+  const visible = issuers.filter((i) => matchesSearch(query, i.name, i.id, i.keyHash));
+  async function saveSource(payload) {
+    await api('/issuers', payload);
+    await refresh();
+    notify('Registre mis à jour.');
+  }
   return (
     <>
       <PageHeading
@@ -77,8 +95,24 @@ export function Issuers({
           révocations et changements de clés ultérieurs ne sont pas connus. Retéléchargez-le pour
           actualiser les sources.
         </p>
+        {checkedAt && (
+          <p className="help">
+            Registre consulté le <time dateTime={checkedAt}>{date(checkedAt)}</time>.
+          </p>
+        )}
+        {issuers.length > 0 && (
+          <SearchField
+            label="Rechercher une source"
+            value={query}
+            onChange={setQuery}
+            count={visible.length}
+          />
+        )}
+        {issuers.length && !visible.length ? (
+          <p role="status">Aucune source ne correspond à cette recherche.</p>
+        ) : null}
         {issuers.length ? (
-          issuers.map((i) => (
+          visible.map((i) => (
             <div className="issuer-row" key={i.id}>
               <BadgeCheck />
               <div>
@@ -87,7 +121,14 @@ export function Issuers({
                 <details>
                   <summary>Voir la clé publique</summary>
                   <pre>{JSON.stringify(i.jwk, null, 2)}</pre>
-                  <code className="hash">{i.keyHash}</code>
+                  <CopyButton
+                    value={JSON.stringify(i.jwk, null, 2)}
+                    label={'Copier la clé publique de ' + i.name}
+                  />
+                  <span className="hash-with-copy">
+                    <code className="hash">{i.keyHash}</code>
+                    <CopyButton value={i.keyHash} label={'Copier l’empreinte de ' + i.name} />
+                  </span>
                 </details>
               </div>
               <Badge>Approuvée</Badge>
@@ -156,9 +197,18 @@ export function Issuers({
                 } catch {
                   throw Error('La clé publique doit être un objet JSON au format JWK.');
                 }
-                await api('/issuers', { id, name, jwk: key, approved });
-                await refresh();
-                notify('Registre mis à jour.');
+                const checkedKey = publicKeySchema.safeParse(key);
+                if (!checkedKey.success)
+                  throw Error(
+                    'Utilisez uniquement une clé publique P-256 valide, sans clé privée.',
+                  );
+                const payload = { id, name, jwk: checkedKey.data, approved };
+                const previous = issuers.find((i) => i.id === id);
+                if (previous && (!approved || previous.keyHash !== (await keyFingerprint(key)))) {
+                  setPendingSource(payload);
+                  return;
+                }
+                await saveSource(payload);
               } catch (e) {
                 setError(e.message);
               } finally {
@@ -212,6 +262,24 @@ export function Issuers({
             <Button disabled={saving}>Enregistrer la source</Button>
           </form>
         </section>
+      )}
+      {pendingSource && (
+        <ConfirmationDialog
+          title={
+            pendingSource.approved
+              ? 'Remplacer la clé de cette source ?'
+              : 'Révoquer cette source ?'
+          }
+          confirmLabel={pendingSource.approved ? 'Remplacer la clé' : 'Révoquer la source'}
+          onCancel={() => setPendingSource(null)}
+          onConfirm={() => saveSource(pendingSource)}
+        >
+          <p>
+            Les anciennes attestations de cette source ne seront plus considérées comme approuvées
+            lors des prochaines vérifications en ligne. Les vérificateurs hors ligne conservent leur
+            ancien registre jusqu’à leur actualisation.
+          </p>
+        </ConfirmationDialog>
       )}
     </>
   );

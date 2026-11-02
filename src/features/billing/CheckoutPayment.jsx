@@ -1,3 +1,4 @@
+import { useTheme } from '../../lib/use-theme.js';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   CheckoutElementsProvider,
@@ -7,7 +8,7 @@ import {
 } from '@stripe/react-stripe-js/checkout';
 import { money } from './billing-model.js';
 import { Button } from '../../components/ui.jsx';
-import { paymentStripe, stripeAppearance } from '../../lib/stripe-client.js';
+import { paymentStripe, themedStripeAppearance } from '../../lib/stripe-client.js';
 
 class CheckoutBoundary extends React.Component {
   state = { failed: false };
@@ -116,13 +117,15 @@ function CheckoutForm({ sessionId, trialDays, mode, onComplete }) {
 }
 export function CheckoutPayment({ publishableKey, checkout, onComplete }) {
   const stripe = useMemo(() => paymentStripe(publishableKey), [publishableKey]);
+  const { theme } = useTheme();
+  const appearance = useMemo(() => themedStripeAppearance(theme), [theme]);
   return (
     <CheckoutBoundary key={checkout.sessionId}>
       <CheckoutElementsProvider
         stripe={stripe}
         options={{
           clientSecret: checkout.clientSecret,
-          elementsOptions: { appearance: stripeAppearance },
+          elementsOptions: { appearance },
         }}
       >
         <CheckoutForm

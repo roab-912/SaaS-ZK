@@ -1,3 +1,4 @@
+import { OperationProgress } from '../../components/OperationProgress.jsx';
 import { importUblFiles } from './ubl-import.js';
 import { makeUblExamples } from '../../../shared/ubl-examples.mjs';
 import { vatDocumentsRoot, UBL_VALIDATION_VERSION } from '../../../shared/vat-documents.mjs';
@@ -26,6 +27,7 @@ export function VatAuthority({ onBack, onReady, onManageSources }) {
     [documents, setDocuments] = useState(null),
     [reports, setReports] = useState([]),
     [progress, setProgress] = useState(''),
+    [importProgress, setImportProgress] = useState(null),
     [key, setKey] = useState(''),
     [complete, setComplete] = useState(false),
     [result, setResult] = useState(null),
@@ -65,6 +67,7 @@ export function VatAuthority({ onBack, onReady, onManageSources }) {
     setDocuments(null);
     setReports([]);
     setProgress('');
+    setImportProgress(null);
     setResult(null);
     setComplete(false);
     setError('');
@@ -81,8 +84,11 @@ export function VatAuthority({ onBack, onReady, onManageSources }) {
         periodStart: start,
         periodEnd: end,
         isCurrent: () => token === run.current,
-        onProgress: (message) => {
-          if (token === run.current) setProgress(message);
+        onProgress: (message, counts) => {
+          if (token === run.current) {
+            setProgress(message);
+            setImportProgress(counts);
+          }
         },
       });
       if (token !== run.current) return;
@@ -107,6 +113,7 @@ export function VatAuthority({ onBack, onReady, onManageSources }) {
     setError('');
     setResult(null);
     setProgress('');
+    setImportProgress(null);
     try {
       if (!complete) throw Error('Confirmez l’exhaustivité du relevé.');
       const source = issuers.find((i) => i.id === issuerId);
@@ -483,22 +490,19 @@ export function VatAuthority({ onBack, onReady, onManageSources }) {
           </>
         )}
         {busy && (
-          <div className="progress" role="status">
-            <span>{progress || 'Vérification sur votre appareil…'}</span>
-            <button
-              type="button"
-              className="text-link dark"
-              onClick={() => {
-                run.current++;
-                task.current?.cancel();
-                setBusy(false);
-                setProgress('');
-                setKey('');
-              }}
-            >
-              Annuler
-            </button>
-          </div>
+          <OperationProgress
+            message={progress || 'Vérification sur votre appareil…'}
+            completed={importProgress?.completed}
+            total={importProgress?.total}
+            onCancel={() => {
+              run.current++;
+              task.current?.cancel();
+              setBusy(false);
+              setKey('');
+              setProgress('');
+              setImportProgress(null);
+            }}
+          />
         )}
         {result && (
           <div className="result-panel">
