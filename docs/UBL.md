@@ -19,6 +19,8 @@ Le bouton **Télécharger des exemples UBL** crée une archive ZIP de données f
 
 L’extension .xml est utilisée pour les documents UBL natifs. Seuls les lots certifiés et les preuves utilisent l’extension .clair pour conserver le relevé signé. L’ajout de factures accepte uniquement les XML UBL ; l’import et l’export de brouillons de factures .clair ont été retirés. Aucun fichier de facture n’est envoyé au serveur.
 
+Si la source n’a pas encore de clés, un administrateur peut les générer dans **Sources de confiance → Ajouter une autorité → Générer les clés**. Le bouton télécharge une archive ZIP contenant les clés privée et publique. La décompresser, enregistrer la source, puis importer le fichier `.cle-privee.clair` à l’étape de signature des factures. Une clé publique existante peut aussi être importée ou collée. Le tableau des autorités permet ensuite de modifier le nom, le statut et la clé publique. Voir [Sources de confiance](SOURCES.md).
+
 ## Périmètre pris en charge
 
 - UBL 2.1 Invoice avec le code 380 et CreditNote avec le code 381.

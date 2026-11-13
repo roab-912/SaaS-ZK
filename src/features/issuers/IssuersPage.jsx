@@ -1,13 +1,21 @@
+import React, { useState, useEffect, useRef, useId } from 'react';
+import { BadgeCheck, KeyRound } from 'lucide-react';
 import { CopyButton } from '../../components/CopyButton.jsx';
 import { SearchField } from '../../components/SearchField.jsx';
 import { ConfirmationDialog } from '../../components/ConfirmationDialog.jsx';
+import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
 import { matchesSearch } from '../../lib/search.js';
 import { date } from '../../lib/format.js';
-import React, { useState, useEffect } from 'react';
-import { BadgeCheck } from 'lucide-react';
-import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
-import { keyFingerprint, publicKeySchema } from '../../../shared/attestations.mjs';
+import { downloadBytes } from '../../lib/files.js';
+import {
+  generateSourceKeys,
+  readSourcePublicKey,
+  normalizeSourceId,
+  sourceKeysArchive,
+} from './source-keys.js';
+import { keyFingerprint } from '../../../shared/attestations.mjs';
+
 export function Issuers({
   user,
   notify,
@@ -18,25 +26,40 @@ export function Issuers({
     [name, setName] = useState(''),
     [id, setId] = useState(''),
     [jwk, setJwk] = useState(''),
-    [approved, setApproved] = useState(true),
     [error, setError] = useState(''),
     [saving, setSaving] = useState(false),
+    [keyBusy, setKeyBusy] = useState(false),
+    [keyNotice, setKeyNotice] = useState(''),
     [offline, setOffline] = useState(null),
     [query, setQuery] = useState(''),
     [checkedAt, setCheckedAt] = useState(null),
-    [pendingSource, setPendingSource] = useState(null);
-  const refresh = () =>
-    api('/issuers')
-      .then(async (rows) =>
-        setIssuers(
-          await Promise.all(
-            rows.map(async (i) => ({ ...i, keyHash: await keyFingerprint(i.jwk) })),
-          ),
-        ),
-      )
-      .then(() => setCheckedAt(new Date().toISOString()));
+    [pendingSource, setPendingSource] = useState(null),
+    [editing, setEditing] = useState(null);
+  const operation = useRef(0);
+  const idHelp = useId();
+  const idHint =
+    '1 à 40 caractères : lettres minuscules, chiffres et tirets. Exemple : source-test.';
+  const admin = !!user?.admin;
+  const busy = saving || keyBusy;
+  const refresh = async () => {
+    const rows = await api(admin ? '/admin/issuers' : '/issuers');
+    setIssuers(
+      await Promise.all(
+        rows.map(async (source) => ({
+          ...source,
+          keyHash: await keyFingerprint(source.jwk),
+        })),
+      ),
+    );
+    setCheckedAt(new Date().toISOString());
+  };
   useEffect(() => {
     refresh().catch((e) => setError(e.message));
+    return () => {
+      operation.current++;
+    };
+  }, [admin]);
+  useEffect(() => {
     let active = true;
     api('/offline-verifier/status')
       .then((status) => {
@@ -49,17 +72,86 @@ export function Issuers({
       active = false;
     };
   }, []);
-  const visible = issuers.filter((i) => matchesSearch(query, i.name, i.id, i.keyHash));
+  const visible = issuers.filter((source) =>
+    matchesSearch(query, source.name, source.id, source.keyHash),
+  );
+
   async function saveSource(payload) {
     await api('/issuers', payload);
     await refresh();
+    setEditing(null);
     notify('Registre mis à jour.');
+  }
+  async function submitSource(draft) {
+    setError('');
+    setSaving(true);
+    try {
+      if (!/^[a-z0-9-]{1,40}$/.test(draft.id)) throw Error('Identifiant : ' + idHint);
+      const key = await readSourcePublicKey(draft.jwk);
+      const payload = { id: draft.id, name: draft.name, jwk: key, approved: draft.approved };
+      const previous = issuers.find((source) => source.id === draft.id);
+      if (
+        previous &&
+        ((previous.approved !== false && !payload.approved) ||
+          previous.keyHash !== (await keyFingerprint(key)))
+      ) {
+        setPendingSource(payload);
+        return;
+      }
+      await saveSource(payload);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function generateKeys() {
+    const token = ++operation.current;
+    setKeyBusy(true);
+    setError('');
+    setKeyNotice('');
+    try {
+      const keys = await generateSourceKeys();
+      if (token !== operation.current) return;
+      const fileId = id.replace(/^-+|-+$/g, '') || 'source';
+      // Trigger one download so browsers do not block a second automatic file.
+      downloadBytes(sourceKeysArchive(keys, fileId), fileId + '.cles.zip', 'application/zip');
+      setJwk(JSON.stringify(keys.publicKey, null, 2));
+      setKeyNotice(
+        'Clés téléchargées dans une archive ZIP. Conservez le fichier .cle-privee.clair pour signer.',
+      );
+    } catch (e) {
+      if (token === operation.current)
+        setError(e.message || 'Impossible de générer et télécharger les clés. Réessayez.');
+    } finally {
+      if (token === operation.current) setKeyBusy(false);
+    }
+  }
+  async function importKey(event) {
+    const element = event.target;
+    const file = element.files[0];
+    if (!file) return;
+    const token = ++operation.current;
+    setKeyBusy(true);
+    setError('');
+    try {
+      if (file.size > 4096) throw Error('Fichier de clé trop volumineux (4 Ko maximum).');
+      const key = await readSourcePublicKey(await file.text());
+      if (token !== operation.current) return;
+      setJwk(JSON.stringify(key, null, 2));
+      setKeyNotice('Clé publique importée.');
+    } catch (e) {
+      if (token === operation.current) setError(e.message);
+    } finally {
+      element.value = '';
+      if (token === operation.current) setKeyBusy(false);
+    }
   }
   return (
     <>
       <PageHeading
         title="Sources de confiance"
-        desc="Une source de confiance signe vos informations pour en certifier l’origine. Retrouvez ici les sources approuvées et leurs outils de signature."
+        desc="Ajoutez vos autorités de confiance et gérez leurs clés de signature."
         action={
           <div className="row-actions">
             <Button variant="secondary" onClick={onVatAuthority}>
@@ -74,9 +166,96 @@ export function Issuers({
           {error}
         </div>
       )}
-      <section className="panel form-panel">
+      {admin && (
+        <section className="panel form-panel issuer-form">
+          <h2>Ajouter une autorité</h2>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (busy) return;
+              const sourceId = id.replace(/^-+|-+$/g, '');
+              setId(sourceId);
+              submitSource({ id: sourceId, name, jwk, approved: true });
+            }}
+          >
+            <label>
+              Nom
+              <input
+                required
+                maxLength={80}
+                value={name}
+                disabled={busy}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+            <label>
+              Identifiant
+              <input
+                required
+                maxLength={40}
+                pattern={'[a-z0-9\\-]{1,40}'}
+                title={idHint}
+                aria-describedby={idHelp}
+                placeholder="source-test"
+                value={id}
+                disabled={busy}
+                onChange={(e) => setId(normalizeSourceId(e.target.value))}
+                onBlur={() => setId((value) => value.replace(/^-+|-+$/g, ''))}
+              />
+            </label>
+            <p className="help" id={idHelp}>
+              {idHint}
+            </p>
+            <div className="row-actions">
+              <Button
+                type="button"
+                variant="small secondary"
+                disabled={busy}
+                onClick={generateKeys}
+              >
+                <KeyRound size={15} />
+                {keyBusy ? 'Préparation…' : 'Générer les clés'}
+              </Button>
+            </div>
+            <p className="help">
+              Télécharge les clés privée et publique dans un ZIP et remplit la clé publique.
+            </p>
+            {keyNotice && (
+              <p className="help" role="status">
+                {keyNotice}
+              </p>
+            )}
+            <details className="journey-details">
+              <summary>Clé publique et import d’une clé existante</summary>
+              <label>
+                Importer une clé publique existante (.clair ou .json)
+                <input
+                  type="file"
+                  accept=".clair,.json,application/json"
+                  disabled={busy}
+                  onChange={importKey}
+                />
+              </label>
+              <label>
+                Clé publique P-256 (JWK)
+                <textarea
+                  value={jwk}
+                  disabled={busy}
+                  onChange={(e) => {
+                    setJwk(e.target.value);
+                    setKeyNotice('');
+                  }}
+                  placeholder='{"kty":"EC","crv":"P-256","x":"…","y":"…"}'
+                />
+              </label>
+            </details>
+            <Button disabled={busy || !jwk.trim()}>Enregistrer la source</Button>
+          </form>
+        </section>
+      )}
+      <section className="panel form-panel sources-list">
         <div className="row-actions source-downloads">
-          <h2>Sources disponibles</h2>
+          <h2>Autorités de confiance</h2>
           {offline?.available && (
             <a className="button secondary" href="/api/offline-verifier" download>
               Télécharger le vérificateur hors ligne
@@ -87,7 +266,7 @@ export function Issuers({
           {offline?.available
             ? 'Logiciel portable Windows 64 bits · ' +
               Math.ceil(offline.bytes / 1048576) +
-              ' Mio environ. Extrayez l’archive ZIP puis lancez demarrer.cmd. Aucune installation ni connexion Internet nécessaire.'
+              ' Mio environ. Extrayez l’archive ZIP puis lancez demarrer.cmd.'
             : 'Le téléchargement du vérificateur Windows sera disponible une fois sa préparation terminée.'}
         </p>
         <p className="help">
@@ -108,60 +287,155 @@ export function Issuers({
             count={visible.length}
           />
         )}
-        {issuers.length && !visible.length ? (
+        {issuers.length > 0 && !visible.length && (
           <p role="status">Aucune source ne correspond à cette recherche.</p>
-        ) : null}
-        {issuers.length ? (
-          visible.map((i) => (
-            <div className="issuer-row" key={i.id}>
-              <BadgeCheck />
-              <div>
-                <strong>{i.name}</strong>
-                <small>{i.id}</small>
-                <details>
-                  <summary>Voir la clé publique</summary>
-                  <pre>{JSON.stringify(i.jwk, null, 2)}</pre>
-                  <CopyButton
-                    value={JSON.stringify(i.jwk, null, 2)}
-                    label={'Copier la clé publique de ' + i.name}
-                  />
-                  <span className="hash-with-copy">
-                    <code className="hash">{i.keyHash}</code>
-                    <CopyButton value={i.keyHash} label={'Copier l’empreinte de ' + i.name} />
-                  </span>
-                </details>
-              </div>
-              <Badge>Approuvée</Badge>
-              {offline?.available && (
-                <a
-                  className="button secondary"
-                  href={'/api/offline-verifier?issuer=' + encodeURIComponent(i.id)}
-                  download
-                  aria-label={'Télécharger le vérificateur pour ' + i.name}
-                >
-                  Vérificateur hors ligne
-                </a>
-              )}
-              {user?.admin && (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setId(i.id);
-                    setName(i.name);
-                    setJwk(JSON.stringify(i.jwk, null, 2));
-                    setApproved(true);
-                    setError('');
-                  }}
-                >
-                  Modifier
-                </Button>
-              )}
-            </div>
-          ))
+        )}
+        {issuers.length > 0 ? (
+          <div
+            className="table-wrap issuer-table"
+            tabIndex={0}
+            role="region"
+            aria-label="Liste des autorités de confiance"
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Nom</th>
+                  <th scope="col">Identifiant</th>
+                  <th scope="col">Statut</th>
+                  <th scope="col">Clé publique</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((source) => {
+                  const row = editing?.id === source.id ? editing : null;
+                  return (
+                    <tr key={source.id}>
+                      <td>
+                        {row ? (
+                          <input
+                            aria-label={'Nom de ' + source.id}
+                            required
+                            maxLength={80}
+                            disabled={busy}
+                            value={row.name}
+                            onChange={(e) => setEditing({ ...row, name: e.target.value })}
+                          />
+                        ) : (
+                          <strong>{source.name}</strong>
+                        )}
+                      </td>
+                      <td>
+                        <code>{source.id}</code>
+                      </td>
+                      <td>
+                        {row ? (
+                          <select
+                            aria-label={'Statut de ' + source.id}
+                            value={String(row.approved)}
+                            disabled={busy}
+                            onChange={(e) =>
+                              setEditing({ ...row, approved: e.target.value === 'true' })
+                            }
+                          >
+                            <option value="true">Approuvée</option>
+                            <option value="false">Révoquée</option>
+                          </select>
+                        ) : (
+                          <Badge tone={source.approved === false ? 'warning' : ''}>
+                            {source.approved === false ? 'Révoquée' : 'Approuvée'}
+                          </Badge>
+                        )}
+                      </td>
+                      <td>
+                        {row ? (
+                          <textarea
+                            aria-label={'Clé publique de ' + source.id}
+                            disabled={busy}
+                            value={row.jwk}
+                            onChange={(e) => setEditing({ ...row, jwk: e.target.value })}
+                          />
+                        ) : (
+                          <details>
+                            <summary>Voir la clé publique</summary>
+                            <pre>{JSON.stringify(source.jwk, null, 2)}</pre>
+                            <CopyButton
+                              value={JSON.stringify(source.jwk, null, 2)}
+                              label={'Copier la clé publique de ' + source.name}
+                            />
+                            <span className="hash-with-copy">
+                              <code className="hash">{source.keyHash}</code>
+                              <CopyButton
+                                value={source.keyHash}
+                                label={'Copier l’empreinte de ' + source.name}
+                              />
+                            </span>
+                          </details>
+                        )}
+                      </td>
+                      <td>
+                        <div className="row-actions">
+                          {admin &&
+                            (row ? (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="small"
+                                  disabled={busy || !row.name.trim() || !row.jwk.trim()}
+                                  onClick={() => submitSource(row)}
+                                >
+                                  Enregistrer
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="small secondary"
+                                  disabled={busy}
+                                  onClick={() => setEditing(null)}
+                                >
+                                  Annuler
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="small secondary"
+                                disabled={busy}
+                                onClick={() => {
+                                  setEditing({
+                                    id: source.id,
+                                    name: source.name,
+                                    jwk: JSON.stringify(source.jwk, null, 2),
+                                    approved: source.approved !== false,
+                                  });
+                                  setError('');
+                                }}
+                              >
+                                Modifier
+                              </Button>
+                            ))}
+                          {offline?.available && source.approved !== false && (
+                            <a
+                              className="button small secondary"
+                              href={'/api/offline-verifier?issuer=' + encodeURIComponent(source.id)}
+                              download
+                              aria-label={'Télécharger le vérificateur pour ' + source.name}
+                            >
+                              Vérificateur hors ligne
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <Empty icon={BadgeCheck} title="Aucune source disponible">
-            {user?.admin
-              ? 'Ajoutez une source avec sa clé publique pour commencer.'
+            {admin
+              ? 'Ajoutez une autorité avec le formulaire ci-dessus.'
               : 'Un administrateur peut ajouter des sources avec leur clé publique.'}
           </Empty>
         )}
@@ -175,94 +449,13 @@ export function Issuers({
             <strong>FranceConnect</strong>
             <small>À venir · Connexion indisponible</small>
             <p className="help">
-              Aperçu : connecter une identité numérique et utiliser les attributs autorisés dans un
-              parcours d’attestation et de preuve. Ce module reste à développer.
+              Connecter une identité numérique et utiliser ses attributs dans un parcours
+              d’attestation et de preuve. Ce module reste à développer.
             </p>
           </div>
           <Badge>Bientôt</Badge>
         </article>
       </section>
-      {user?.admin && (
-        <section className="panel form-panel issuer-form">
-          <h2>Ajouter ou modifier une source</h2>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setError('');
-              setSaving(true);
-              try {
-                let key;
-                try {
-                  key = JSON.parse(jwk);
-                } catch {
-                  throw Error('La clé publique doit être un objet JSON au format JWK.');
-                }
-                const checkedKey = publicKeySchema.safeParse(key);
-                if (!checkedKey.success)
-                  throw Error(
-                    'Utilisez uniquement une clé publique P-256 valide, sans clé privée.',
-                  );
-                const payload = { id, name, jwk: checkedKey.data, approved };
-                const previous = issuers.find((i) => i.id === id);
-                if (previous && (!approved || previous.keyHash !== (await keyFingerprint(key)))) {
-                  setPendingSource(payload);
-                  return;
-                }
-                await saveSource(payload);
-              } catch (e) {
-                setError(e.message);
-              } finally {
-                setSaving(false);
-              }
-            }}
-          >
-            <label>
-              Identifiant
-              <input
-                required
-                maxLength={40}
-                pattern="[a-z0-9-]{1,40}"
-                value={id}
-                onChange={(e) => setId(e.target.value)}
-              />
-            </label>
-            <label>
-              Nom
-              <input
-                required
-                maxLength={80}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <label>
-              Clé publique P-256 (JWK)
-              <textarea
-                required
-                value={jwk}
-                onChange={(e) => setJwk(e.target.value)}
-                placeholder='{"kty":"EC","crv":"P-256","x":"…","y":"…"}'
-              />
-            </label>
-            <label>
-              Statut
-              <select
-                value={String(approved)}
-                onChange={(e) => setApproved(e.target.value === 'true')}
-              >
-                <option value="true">Approuvée</option>
-                <option value="false">Révoquée</option>
-              </select>
-            </label>
-            <p className="help">
-              L’émetteur peut créer une attestation depuis la page dédiée et remettre son fichier au
-              destinataire. Révoquer une source ou remplacer sa clé retire l’approbation de ses
-              anciennes attestations.
-            </p>
-            <Button disabled={saving}>Enregistrer la source</Button>
-          </form>
-        </section>
-      )}
       {pendingSource && (
         <ConfirmationDialog
           title={

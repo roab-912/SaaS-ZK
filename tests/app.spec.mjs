@@ -281,7 +281,7 @@ for (const privateInput of [false, true]) {
         await route.fulfill({ response, json: data });
       });
       const registry = async (context) =>
-        context.route('**/api/issuers', async (route) => {
+        context.route(/\/api\/(?:admin\/)?issuers$/, async (route) => {
           if (route.request().method() === 'POST') {
             const body = route.request().postDataJSON();
             expect(body.jwk.d).toBeUndefined();
@@ -316,6 +316,7 @@ for (const privateInput of [false, true]) {
       );
       await page.getByLabel('Identifiant', { exact: true }).fill('source-1');
       await page.getByLabel('Nom', { exact: true }).fill('Banque de test — simulation');
+      await page.getByText('Clé publique et import d’une clé existante', { exact: true }).click();
       await page.getByLabel('Clé publique P-256 (JWK)').fill(JSON.stringify(publicJwk));
       await page.getByRole('button', { name: 'Enregistrer la source' }).click();
       await expect(page.getByText('Banque de test — simulation', { exact: true })).toBeVisible();

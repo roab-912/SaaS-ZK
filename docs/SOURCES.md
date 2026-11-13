@@ -4,7 +4,7 @@ Cette version permet d’enregistrer une source avec sa clé publique P-256 et d
 
 ## Essayer le parcours
 
-1. Un administrateur enregistre la source et sa clé publique P-256 JWK dans **Sources de confiance**. Pour configurer un administrateur local, ajouter son identifiant de compte à `ADMIN_USER_IDS` dans `.env`, puis redémarrer le serveur. L’identifiant du compte connecté est accessible dans `/api/session`.
+1. Un administrateur renseigne l’identifiant et le nom dans **Sources de confiance → Ajouter une autorité**, puis clique sur **Générer les clés**. Une archive ZIP contenant les clés privée et publique se télécharge automatiquement et la clé publique est remplie. Il peut aussi ouvrir **Clé publique et import d’une clé existante** pour importer une clé publique `.clair` ou `.json`, ou la coller. Cliquer ensuite sur **Enregistrer la source**. Pour configurer un administrateur local, ajouter son identifiant de compte à `ADMIN_USER_IDS` dans `.env`, puis redémarrer le serveur. L’identifiant du compte connecté est accessible dans `/api/session`.
 2. Le destinataire prépare son circuit en mode **Vrai ou faux**, choisit la source sur les entrées concernées et définit leurs noms de champs signés, par exemple `income_monthly_eur`. Ces entrées deviennent publiques par défaut ; avec Noir / UltraHonk, leur visibilité peut ensuite être passée à **Privée**. Source, empreinte de clé et champ attendu font partie de l’empreinte du circuit. Il utilise **Exporter le circuit public** dans l’éditeur pour transmettre sa structure à l’autorité ; ce fichier ne contient aucune valeur saisie pour une preuve.
 3. L’émetteur ouvre **Sources de confiance → Créer une attestation**. Cette page est accessible sans compte ni abonnement. Il sélectionne d’abord sa source : seuls les circuits enregistrés dans son compte qui désignent cette autorité avec sa clé actuelle sont proposés. Il peut aussi utiliser **Importer un circuit public** ; l’import est refusé si le circuit n’attribue aucun champ à cette source. Le formulaire affiche automatiquement les champs attendus de cette autorité avec leurs types et noms signés. Seules les entrées liées à sa clé actuelle sont proposées ; les données déclarées ou destinées à une autre autorité sont exclues. Les champs privés à signer sont identifiés comme tels. La liste des circuits des autres comptes n’est pas publiée.
 4. L’émetteur renseigne chaque valeur et importe sa clé privée JWK au format `.clair` ou la colle une seule fois pour signer l’ensemble. La clé reste locale et est effacée du formulaire après la tentative. Il télécharge un fichier `.attestation.clair` par champ et les transmet au destinataire. Chaque fichier contient une donnée signée, aucune preuve ZK, et est valable sept jours. La clé privée n’est jamais transmise. Le choix **Saisir un champ libre (avancé)** conserve la création manuelle sans circuit.
@@ -15,6 +15,20 @@ Cette version permet d’enregistrer une source avec sa clé publique P-256 et d
 **Signer manuellement avec une clé privée** reste disponible dans un volet replié sous chaque champ signé de la page de génération. Le destinataire utilise généralement le fichier fourni par la source. Le JSON peut aussi être collé dans **Coller une attestation JSON**.
 
 Modifier une valeur chargée retire son attestation : fournir une nouvelle attestation ou signer à nouveau avant de générer. L’attestation est une déclaration de l’émetteur ; elle ne garantit ni sa vérité ni l’identité du porteur. Les fichiers restent copiables et réutilisables pendant leur validité.
+
+## Créer les clés d’une source
+
+La génération utilise Web Crypto dans le navigateur, sur HTTPS ou localhost. Un seul clic lance le téléchargement de `identifiant.cles.zip`, contenant `identifiant.cle-publique.clair` et `identifiant.cle-privee.clair`, et remplit la clé publique du formulaire. Seule cette clé publique est envoyée au registre lors de l’enregistrement.
+
+Décompresser l’archive et conserver `identifiant.cle-privee.clair` chez la personne autorisée à signer. Ce fichier contient la clé privée JWK P-256 attendue par **Créer une attestation** et **Certifier des factures**. La clé privée n’est ni affichée, ni envoyée au serveur, ni enregistrée dans le stockage du navigateur ; elle n’est utilisée en mémoire que pour préparer le téléchargement. Si l’enregistrement échoue, conserver l’archive déjà téléchargée et réessayer l’enregistrement avec la même clé publique.
+
+L’identifiant accepte 1 à 40 lettres minuscules, chiffres ou tirets. Le formulaire convertit les majuscules, accents et espaces à la saisie : `Source Démo` devient `source-demo`.
+
+## Modifier les autorités
+
+Le tableau **Autorités de confiance** affiche le nom, l’identifiant, le statut, la clé publique et les actions. Un administrateur clique sur **Modifier** dans une ligne pour changer le nom, le statut ou la clé publique, puis sur **Enregistrer** ou **Annuler**. L’identifiant reste stable. La révocation et le remplacement d’une clé demandent confirmation. Les autorités révoquées restent visibles aux administrateurs et peuvent être réactivées ; le registre public et les sélecteurs de signature continuent de ne proposer que les autorités approuvées.
+
+L’import ou le collage d’une clé publique accepte un objet JWK public P-256 de 4 Ko maximum. Les métadonnées JWK usuelles (`alg`, `ext`, `key_ops`, `use`, `kid`) sont acceptées lorsqu’elles correspondent à une clé de vérification ECDSA P-256 ; seuls `kty`, `crv`, `x` et `y` sont envoyés au registre. Les clés privées et les points elliptiques invalides sont refusés localement. Pour changer la clé d’une source existante, utiliser **Modifier** ; l’enregistrement d’une nouvelle clé conserve la confirmation de remplacement et ses conséquences sur les anciennes attestations.
 
 ## Création des circuits
 
@@ -64,7 +78,7 @@ Le registre est celui de l’instance Clair utilisée pour vérifier. Vérifier 
 
 Les fichiers de l’application utilisent une seule extension : `.clair`. Leur contenu reste du JSON. Le nom précise l’usage sans multiplier les extensions : `majorite.preuve.clair`, `majorite.circuit.clair`, `revenus.attestation.clair` ou `source.cle-privee.clair` pour une clé privée JWK.
 
-Les sélecteurs de fichiers filtrent uniquement les `.clair`, y compris l’import de clés privées. Les schémas, signatures et versions des protocoles restent inchangés.
+Les sélecteurs de fichiers filtrent les `.clair`, y compris l’import de clés privées. L’import de clé publique accepte aussi les `.json` pour les clés produites par un outil externe. Les schémas, signatures et versions des protocoles restent inchangés.
 
 ## Entrées signées privées avec Noir
 

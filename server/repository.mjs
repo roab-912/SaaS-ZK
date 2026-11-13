@@ -189,10 +189,15 @@ export function createRepository(db) {
     },
     deleteProof: (userId, proofId) =>
       run('DELETE FROM proofs WHERE id=? AND user_id=?', proofId, userId),
-    listIssuers: () =>
-      all('SELECT id,name,jwk FROM issuers WHERE approved=1').map((r) => ({
+    listIssuers: ({ includeRevoked = false } = {}) =>
+      all(
+        includeRevoked
+          ? 'SELECT id,name,jwk,approved FROM issuers ORDER BY name,id'
+          : 'SELECT id,name,jwk FROM issuers WHERE approved=1',
+      ).map((r) => ({
         ...r,
         jwk: JSON.parse(r.jwk),
+        ...(includeRevoked ? { approved: Boolean(r.approved) } : {}),
       })),
     saveIssuer: (row) =>
       run(

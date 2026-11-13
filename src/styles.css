@@ -1326,6 +1326,37 @@ pre {
 .issuer-form h2 {
   margin-bottom: 20px;
 }
+.sources-list {
+  margin-top: 25px;
+  min-width: 0;
+}
+.issuer-table {
+  margin-top: 20px;
+  max-width: 100%;
+}
+.issuer-table table {
+  min-width: 760px;
+  table-layout: fixed;
+}
+.issuer-table td {
+  white-space: normal;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.issuer-table pre,
+.issuer-table .hash {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.issuer-table input,
+.issuer-table select,
+.issuer-table textarea {
+  width: 100%;
+  min-width: 0;
+}
+.issuer-table textarea {
+  min-height: 160px;
+}
 .guide-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

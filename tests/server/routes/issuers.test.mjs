@@ -13,6 +13,8 @@ test('only approved account IDs can add and revoke validated public keys', async
       approved: true,
     };
     expect((await f.request('/issuers', { cookie: a.cookie, body })).status).toBe(403);
+    expect((await f.request('/admin/issuers')).status).toBe(401);
+    expect((await f.request('/admin/issuers', { cookie: a.cookie })).status).toBe(403);
     // Set a known ID without changing the role model or relying on email.
     f.db
       .prepare('INSERT INTO users(id,email,password,created) VALUES(?,?,?,?)')
@@ -30,6 +32,16 @@ test('only approved account IDs can add and revoke validated public keys', async
     expect(await (await f.request('/issuers')).json()).toHaveLength(1);
     await f.request('/issuers', { cookie, body: { ...body, approved: false } });
     expect(await (await f.request('/issuers')).json()).toEqual([]);
+    expect(await (await f.request('/admin/issuers', { cookie })).json()).toEqual([
+      { ...body, approved: false },
+    ]);
+    expect(
+      (await f.request('/issuers', { cookie, body: { ...body, name: 'Renamed', approved: true } }))
+        .status,
+    ).toBe(200);
+    expect(await (await f.request('/admin/issuers', { cookie })).json()).toEqual([
+      { ...body, name: 'Renamed', approved: true },
+    ]);
   } finally {
     await f.close();
   }
