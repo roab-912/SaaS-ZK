@@ -84,7 +84,19 @@ export function AdminDashboard() {
             <h3>Statuts des comptes</h3>
             {data.statuses.map((s) => (
               <div className="public-row" key={s.status}>
-                <span>{s.status}</span>
+                <span>
+                  {{
+                    inactive: 'Sans abonnement',
+                    active: 'Actif',
+                    trialing: 'Essai en cours',
+                    past_due: 'Paiement en retard',
+                    canceled: 'Résilié',
+                    unpaid: 'Impayé',
+                    incomplete: 'Souscription à finaliser',
+                    incomplete_expired: 'Souscription expirée',
+                    paused: 'Suspendu',
+                  }[s.status] || s.status}
+                </span>
                 <strong>{s.count}</strong>
               </div>
             ))}

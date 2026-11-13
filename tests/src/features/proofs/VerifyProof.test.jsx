@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { test, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Verify } from '../../../../src/features/proofs/VerifyProof.jsx';
 import { proofFixture } from '../../../helpers/proof.mjs';
@@ -39,6 +39,8 @@ test('replacing a preloaded proof shows the imported filename and clears it afte
   file.text = async () => JSON.stringify(envelope);
   await userEvent.upload(screen.getByLabelText('Fichier de preuve'), file);
   expect(await screen.findByLabelText('Nom du fichier chargé')).toHaveTextContent(file.name);
+  fireEvent.change(screen.getByLabelText('Fichier de preuve'), { target: { files: [] } });
+  expect(screen.getByLabelText('Nom du fichier chargé')).toHaveTextContent(file.name);
   expect(screen.getByRole('button', { name: 'Vérifier la preuve', exact: true })).toBeEnabled();
   const invalid = new File(['bad'], 'bad.clair', { type: 'application/json' });
   invalid.text = async () => 'bad';

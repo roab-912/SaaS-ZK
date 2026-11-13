@@ -32,6 +32,27 @@ const plans = [
   },
 ];
 vi.mock('../../../../src/lib/api.js', () => ({ api: vi.fn() }));
+
+test('a failed price catalogue stops loading and can be retried', async () => {
+  api.mockRejectedValueOnce(Error('Connexion interrompue.')).mockResolvedValue(plans);
+  render(
+    <Billing
+      session={{ user: null, billingMode: 'stripe', plans }}
+      login={vi.fn()}
+      refresh={vi.fn()}
+      notify={vi.fn()}
+    />,
+  );
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Les tarifs n’ont pas pu être chargés',
+  );
+  expect(screen.queryByRole('button', { name: 'Chargement…' })).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+  expect(
+    await screen.findByRole('button', { name: 'Essayer Clair Pro pendant 30 jours' }),
+  ).toBeEnabled();
+  expect(screen.queryByRole('alert')).toBeNull();
+});
 test('unconfigured billing neither advertises free plans nor activates a local trial', () => {
   api.mockClear();
   render(

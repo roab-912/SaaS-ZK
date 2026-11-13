@@ -67,9 +67,11 @@ export function ProofLibrary({
                 <Badge>
                   {p.envelope.vatManifest
                     ? 'Relevé TVA signé · À vérifier'
-                    : p.envelope.attestations?.length
-                      ? 'Attestations jointes · À vérifier'
-                      : 'Données déclarées'}
+                    : p.envelope.privateAttestations?.length
+                      ? 'Attestations privées · À vérifier'
+                      : p.envelope.attestations?.length
+                        ? 'Attestations jointes · À vérifier'
+                        : 'Données déclarées'}
                 </Badge>
               </div>
               <h3>{circuitName(p.envelope.circuit)}</h3>

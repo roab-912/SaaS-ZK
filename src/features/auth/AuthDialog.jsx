@@ -1,14 +1,21 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Fingerprint, LoaderCircle, X, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../components/ui.jsx';
 import { api } from '../../lib/api.js';
 export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
+  const returnFocus = useRef(document.activeElement);
+  const Heading = embedded ? 'h1' : 'h2';
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [showPassword, setShowPassword] = useState(false);
+  useEffect(() => {
+    if (embedded) return;
+    const previous = returnFocus.current;
+    return () => previous?.focus();
+  }, [embedded]);
   useEffect(() => {
     const listener = (e) => {
       if (e.key === 'Escape' && !embedded) onClose();
@@ -23,6 +30,21 @@ export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
         role={embedded ? undefined : 'dialog'}
         aria-modal={embedded ? undefined : 'true'}
         aria-labelledby="auth-title"
+        onKeyDown={(event) => {
+          if (embedded || event.key !== 'Tab') return;
+          const controls = [
+            ...event.currentTarget.querySelectorAll(':is(button, input, a[href]):not(:disabled)'),
+          ];
+          const first = controls[0],
+            last = controls.at(-1);
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last?.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first?.focus();
+          }
+        }}
       >
         {!embedded && (
           <button className="icon-button modal-close" aria-label="Fermer" onClick={onClose}>
@@ -32,11 +54,10 @@ export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
         <span className="brand-icon">
           <Fingerprint size={30} />
         </span>
-        <h2 id="auth-title">
+        <Heading id="auth-title">
           {mode === 'register' ? 'Votre espace de confiance.' : 'Heureux de vous retrouver.'}
-        </h2>
+        </Heading>
         <p>Vos circuits et vos preuves, au même endroit.</p>
-        {embedded && <p>{mode === 'register' ? 'Inscription' : 'Connexion'}</p>}
         <form
           aria-busy={busy}
           onSubmit={async (e) => {
@@ -59,6 +80,7 @@ export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
               autoFocus
               type="email"
               autoComplete="email"
+              disabled={busy}
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -75,6 +97,7 @@ export function Auth({ mode, setMode, onClose, onDone, embedded = false }) {
                 minLength={12}
                 maxLength={128}
                 required
+                disabled={busy}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />

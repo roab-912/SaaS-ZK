@@ -19,6 +19,21 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 const admin = { admin: true };
+test('an unavailable registry is not presented as empty and can be retried', async () => {
+  api.mockImplementation(async (path) => {
+    if (path === '/issuers') throw Error('Connexion interrompue.');
+    return { available: false };
+  });
+  render(<Issuers user={null} notify={vi.fn()} />);
+  expect(screen.getByRole('status')).toHaveTextContent('Chargement des autorités');
+  expect(screen.queryByText('Aucune source disponible')).toBeNull();
+  expect(await screen.findByRole('alert')).toHaveTextContent('Connexion interrompue');
+  expect(screen.queryByText('Aucune source disponible')).toBeNull();
+  api.mockResolvedValue([]);
+  await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+  expect(await screen.findByText('Aucune source disponible')).toBeVisible();
+});
+
 async function openKeyOptions() {
   await userEvent.click(screen.getByText('Clé publique et import d’une clé existante'));
 }

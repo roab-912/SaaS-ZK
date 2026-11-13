@@ -7,6 +7,50 @@ import { App } from '../../src/App.jsx';
 import { api } from '../../src/lib/api.js';
 vi.mock('../../src/lib/api.js', () => ({ api: vi.fn() }));
 afterEach(() => window.history.replaceState({}, '', '/'));
+test('workspace navigation survives a reload and identifies the current page', async () => {
+  api.mockImplementation(async (path) =>
+    path === '/session' ? { user: { email: 'u@example.test', active: true } } : [],
+  );
+  const view = render(<App />);
+  await screen.findByRole('heading', { name: 'Prouvez l’essentiel. Gardez le reste privé.' });
+  await userEvent.click(screen.getByRole('button', { name: 'Mes preuves', exact: true }));
+  expect(location.search).toBe('?view=proofs');
+  expect(document.title).toBe('Mes preuves · Clair');
+  expect(screen.getByRole('button', { name: 'Mes preuves', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  view.unmount();
+  render(<App />);
+  expect(await screen.findByRole('heading', { name: 'Mes preuves' })).toBeVisible();
+});
+
+test('a failed archive load offers recovery instead of displaying an empty workspace', async () => {
+  let available = false;
+  api.mockImplementation(async (path) => {
+    if (path === '/session') return { user: { email: 'u@example.test', active: true } };
+    if (!available) throw Error('Connexion interrompue.');
+    return [];
+  });
+  history.replaceState({}, '', '/?view=proofs');
+  render(<App />);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Connexion interrompue.');
+  expect(screen.queryByText('Vos preuves vous attendront ici.')).toBeNull();
+  available = true;
+  await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+  expect(await screen.findByRole('heading', { name: 'Mes preuves' })).toBeVisible();
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
+test('the admin URL offers a clear next action to an anonymous visitor', async () => {
+  api.mockResolvedValue({ user: null });
+  history.replaceState({}, '', '/?view=admin');
+  render(<App />);
+  expect(await screen.findByText('Accès réservé aux administrateurs')).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'Se connecter', exact: true }));
+  expect(location.pathname).toBe('/connexion');
+});
+
 test('anonymous app opens public verification and gates editor through signup', async () => {
   api.mockResolvedValue({ user: null, billingMode: 'demo', paymentEnvironment: 'demo' });
   render(<App />);

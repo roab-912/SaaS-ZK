@@ -19,9 +19,12 @@ export function Billing({
     (user?.status && !['inactive', 'canceled', 'incomplete_expired'].includes(user.status)),
   );
   const [loadedPlans, setLoadedPlans] = useState(null),
-    [priceError, setPriceError] = useState('');
+    [priceError, setPriceError] = useState(''),
+    [priceAttempt, setPriceAttempt] = useState(0);
   useEffect(() => {
     let mounted = true;
+    setPriceError('');
+    setLoadedPlans(null);
     if (mode === 'stripe')
       api('/billing/plans')
         .then((data) => {
@@ -34,7 +37,7 @@ export function Billing({
     return () => {
       mounted = false;
     };
-  }, [mode]);
+  }, [mode, priceAttempt]);
   const plans = loadedPlans ||
     session.plans || [
       {
@@ -67,9 +70,12 @@ export function Billing({
         desc="Choisissez les limites adaptées à votre utilisation."
       />
       {priceError && (
-        <p className="error-text" role="alert">
-          {priceError}
-        </p>
+        <div className="catalog-error" role="alert">
+          <p className="error-text">Les tarifs n’ont pas pu être chargés. {priceError}</p>
+          <Button variant="secondary small" onClick={() => setPriceAttempt((n) => n + 1)}>
+            Réessayer
+          </Button>
+        </div>
       )}
       {mode === 'demo' && (
         <p className="notice">
@@ -85,111 +91,122 @@ export function Billing({
       )}
       <div className="billing-layout">
         <div className="plans-list">
-          {plans.map((plan) => {
-            const current = user?.active && (user.plan || 'essential') === plan.id;
-            return (
-              <section className="plan-card" key={plan.id}>
-                <div className="template-top">
-                  <span className="template-icon sage">
-                    <Sparkles size={23} />
-                  </span>
-                  <Badge tone="green">
-                    {current
-                      ? user?.trialActive
-                        ? 'Essai en cours'
-                        : 'Votre offre'
-                      : paymentEnvironment === 'demo'
-                        ? 'Démonstration locale'
-                        : paymentEnvironment === 'test'
-                          ? 'Stripe · Mode test'
-                          : 'Stripe · Paiement réel'}
-                  </Badge>
-                </div>
-                <h2>{plan.name}</h2>
-                <div className="price">
-                  {plan.price
-                    ? new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: plan.price.currency,
-                      }).format(
-                        plan.price.amount /
-                          10 **
-                            new Intl.NumberFormat('fr-FR', {
-                              style: 'currency',
-                              currency: plan.price.currency,
-                            }).resolvedOptions().maximumFractionDigits,
-                      )
-                    : mode === 'demo'
-                      ? 'Tarif à configurer'
-                      : loadedPlans
-                        ? 'Tarif indisponible'
-                        : 'Chargement du tarif…'}
-                  {plan.price && (
-                    <span>
-                      {' '}
-                      / {plan.price.intervalCount > 1 ? plan.price.intervalCount + ' ' : ''}
-                      {
-                        { day: 'jour', week: 'semaine', month: 'mois', year: 'an' }[
-                          plan.price.interval
-                        ]
-                      }
-                      {plan.price.intervalCount > 1 && plan.price.interval !== 'month' ? 's' : ''}
-                      {plan.price.taxBehavior === 'inclusive'
-                        ? ' · taxes incluses'
-                        : plan.price.taxBehavior === 'exclusive'
-                          ? ' · hors taxes'
-                          : ''}
+          {[...plans]
+            .sort((a, b) =>
+              user?.active
+                ? Number(b.id === (user.plan || 'essential')) -
+                  Number(a.id === (user.plan || 'essential'))
+                : 0,
+            )
+            .map((plan) => {
+              const current = user?.active && (user.plan || 'essential') === plan.id;
+              return (
+                <section className={'plan-card' + (current ? ' current-plan' : '')} key={plan.id}>
+                  <div className="template-top">
+                    <span className="template-icon sage">
+                      <Sparkles size={23} />
                     </span>
-                  )}
-                </div>
-                <div className="plan-features">
-                  {[
-                    plan.circuits + ' circuits enregistrés',
-                    plan.generations + ' générations de preuves par mois',
-                    plan.proofs + ' preuves archivées',
-                    'Calcul sur votre appareil',
-                    'Vérification publique et hors ligne',
-                  ].map((x) => (
-                    <div key={x}>
-                      <Check size={17} />
-                      {x}
-                    </div>
-                  ))}
-                </div>
-                {plan.priceError && <p className="error-text">{plan.priceError}</p>}
-                <Button
-                  variant="full"
-                  disabled={busy || mode !== 'stripe' || !loadedPlans || !plan.available}
-                  onClick={() => run(hasExisting ? 'manage' : 'checkout', plan.id)}
-                >
-                  {busy && <LoaderCircle className="spin" size={17} />}
-                  {mode !== 'stripe'
-                    ? 'Configurer Stripe pour souscrire'
-                    : !loadedPlans
-                      ? 'Chargement…'
-                      : !plan.available
-                        ? 'Bientôt disponible'
-                        : hasExisting
-                          ? current
-                            ? 'Gérer mon abonnement'
-                            : 'Changer d’offre'
-                          : user?.trialEligible === false
-                            ? 'Choisir ' + plan.name
-                            : 'Essayer ' + plan.name + ' pendant 30 jours'}
-                  <ArrowRight size={17} />
-                </Button>
-                <p className="plan-footnote">
-                  {mode !== 'stripe'
-                    ? 'Aucun accès payant ne sera activé avant la validation dans Stripe.'
-                    : user?.trialEligible === false
-                      ? 'Essai déjà utilisé sur ce compte. Le montant sera confirmé avant validation.'
-                      : '30 jours d’essai avec un moyen de paiement requis. Un seul essai par compte, toutes offres confondues. Ensuite, facturation automatique sauf annulation.'}
-                  {paymentEnvironment === 'test' &&
-                    ' Paiements Stripe de test : aucun prélèvement réel.'}
-                </p>
-              </section>
-            );
-          })}
+                    <Badge tone="green">
+                      {current
+                        ? user?.trialActive
+                          ? 'Essai en cours'
+                          : 'Votre offre'
+                        : paymentEnvironment === 'demo'
+                          ? 'Démonstration locale'
+                          : paymentEnvironment === 'test'
+                            ? 'Stripe · Mode test'
+                            : 'Stripe · Paiement réel'}
+                    </Badge>
+                  </div>
+                  <h2>{plan.name}</h2>
+                  <div className="price">
+                    {plan.price
+                      ? new Intl.NumberFormat('fr-FR', {
+                          style: 'currency',
+                          currency: plan.price.currency,
+                        }).format(
+                          plan.price.amount /
+                            10 **
+                              new Intl.NumberFormat('fr-FR', {
+                                style: 'currency',
+                                currency: plan.price.currency,
+                              }).resolvedOptions().maximumFractionDigits,
+                        )
+                      : mode === 'demo'
+                        ? 'Tarif à configurer'
+                        : loadedPlans || priceError
+                          ? 'Tarif indisponible'
+                          : 'Chargement du tarif…'}
+                    {plan.price && (
+                      <span>
+                        {' '}
+                        / {plan.price.intervalCount > 1 ? plan.price.intervalCount + ' ' : ''}
+                        {
+                          { day: 'jour', week: 'semaine', month: 'mois', year: 'an' }[
+                            plan.price.interval
+                          ]
+                        }
+                        {plan.price.intervalCount > 1 && plan.price.interval !== 'month' ? 's' : ''}
+                        {plan.price.taxBehavior === 'inclusive'
+                          ? ' · taxes incluses'
+                          : plan.price.taxBehavior === 'exclusive'
+                            ? ' · hors taxes'
+                            : ''}
+                      </span>
+                    )}
+                  </div>
+                  <div className="plan-features">
+                    {[
+                      plan.circuits + ' circuits enregistrés',
+                      plan.generations + ' générations de preuves par mois',
+                      plan.proofs + ' preuves archivées',
+                      'Calcul sur votre appareil',
+                      'Vérification publique et hors ligne',
+                    ].map((x) => (
+                      <div key={x}>
+                        <Check size={17} />
+                        {x}
+                      </div>
+                    ))}
+                  </div>
+                  {plan.priceError && <p className="error-text">{plan.priceError}</p>}
+                  <Button
+                    variant="full"
+                    disabled={busy || mode !== 'stripe' || !loadedPlans || !plan.available}
+                    onClick={() => run(hasExisting ? 'manage' : 'checkout', plan.id)}
+                  >
+                    {busy && <LoaderCircle className="spin" size={17} />}
+                    {mode !== 'stripe'
+                      ? 'Configurer Stripe pour souscrire'
+                      : priceError
+                        ? 'Tarif indisponible'
+                        : !loadedPlans
+                          ? 'Chargement…'
+                          : !plan.available
+                            ? 'Bientôt disponible'
+                            : hasExisting
+                              ? current
+                                ? 'Gérer mon abonnement'
+                                : 'Changer d’offre'
+                              : user?.trialEligible === false
+                                ? 'Choisir ' + plan.name
+                                : 'Essayer ' + plan.name + ' pendant 30 jours'}
+                    <ArrowRight size={17} />
+                  </Button>
+                  <p className="plan-footnote">
+                    {mode !== 'stripe'
+                      ? 'Aucun accès payant ne sera activé avant la validation dans Stripe.'
+                      : hasExisting
+                        ? 'Consultez votre facturation, changez d’offre ou gérez le renouvellement de votre abonnement.'
+                        : user?.trialEligible === false
+                          ? 'Essai déjà utilisé sur ce compte. Le montant sera confirmé avant validation.'
+                          : '30 jours d’essai avec un moyen de paiement requis. Un seul essai par compte, toutes offres confondues. Ensuite, facturation automatique sauf annulation.'}
+                    {paymentEnvironment === 'test' &&
+                      ' Paiements Stripe de test : aucun prélèvement réel.'}
+                  </p>
+                </section>
+              );
+            })}
         </div>
         <section className="panel explanation">
           <h2>Votre compte</h2>
@@ -205,24 +222,6 @@ export function Billing({
                 <CopyButton value={user.id} label="Copier l’identifiant du compte" />
               </span>
             </div>
-          )}
-          {user && (
-            <Button
-              variant="secondary"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await api('/auth/logout-all', {});
-                  location.assign('/connexion');
-                } catch (e) {
-                  notify(e.message, true);
-                  setBusy(false);
-                }
-              }}
-            >
-              Se déconnecter de tous les appareils
-            </Button>
           )}
           <div className="public-row">
             <span>Abonnement</span>
@@ -285,6 +284,28 @@ export function Billing({
           )}
           <h3>Vérifier reste ouvert à tous.</h3>
           <p>Le destinataire d’une preuve peut la vérifier sans souscrire à Clair.</p>
+          {user && (
+            <details className="journey-details">
+              <summary>Sécurité du compte</summary>
+              <p className="help">Fermez toutes vos sessions, y compris sur cet appareil.</p>
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await api('/auth/logout-all', {});
+                    location.assign('/connexion');
+                  } catch (e) {
+                    notify(e.message, true);
+                    setBusy(false);
+                  }
+                }}
+              >
+                Se déconnecter de tous les appareils
+              </Button>
+            </details>
+          )}
         </section>
       </div>
     </>

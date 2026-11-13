@@ -47,6 +47,41 @@ import { Guide } from './features/guide/GuidePage.jsx';
 import { Dashboard } from './features/dashboard/Dashboard.jsx';
 import { AdminDashboard } from './features/admin/AdminDashboard.jsx';
 import { ProofLibrary } from './features/proofs/ProofLibrary.jsx';
+const pageTitles = {
+  home: 'Vue d’ensemble',
+  account: 'Mon espace',
+  circuits: 'Mes circuits',
+  editor: 'Éditeur de circuit',
+  generate: 'Générer une preuve',
+  proofs: 'Mes preuves',
+  verify: 'Vérifier une preuve',
+  billing: 'Abonnement',
+  payment: 'Facturation',
+  issuers: 'Sources de confiance',
+  attestation: 'Créer une attestation',
+  vat: 'TVA collectée',
+  'vat-authority': 'Certifier des factures',
+  guide: 'Comprendre',
+  faq: 'FAQ',
+  admin: 'Administration',
+  login: 'Connexion',
+  register: 'Inscription',
+};
+function pathForPage(page) {
+  const path = {
+    home: '/',
+    login: '/connexion',
+    register: '/inscription',
+    account: '/espace-personnel',
+    guide: '/comprendre',
+    faq: '/faq',
+  }[page];
+  // Drafts and private inputs stay in memory; a reload returns to the circuit library.
+  return (
+    path ??
+    '/?view=' + encodeURIComponent(['editor', 'generate'].includes(page) ? 'circuits' : page)
+  );
+}
 function pageForLocation() {
   if (location.pathname.startsWith('/abonnement/')) return 'payment';
   if (location.pathname === '/faq') return 'faq';
@@ -66,6 +101,9 @@ function pageForLocation() {
     'guide',
     'faq',
     'admin',
+    'vat',
+    'attestation',
+    'vat-authority',
   ].includes(view)
     ? view
     : 'home';
@@ -77,6 +115,7 @@ export function App() {
       paymentEnvironment: 'demo',
     }),
     [loading, setLoading] = useState(true),
+    [loadError, setLoadError] = useState(''),
     [page, setPage] = useState(pageForLocation),
     [auth, setAuth] = useState(null),
     [circuits, setCircuits] = useState([]),
@@ -97,7 +136,6 @@ export function App() {
   };
   async function refresh() {
     const s = await api('/session');
-    setSession(s);
     if (s.user) {
       const [c, p] = await Promise.all([api('/circuits'), api('/proofs')]);
       setCircuits(c);
@@ -106,7 +144,19 @@ export function App() {
       setCircuits([]);
       setProofs([]);
     }
+    setSession(s);
     return s;
+  }
+  async function retryLoad() {
+    setLoading(true);
+    setLoadError('');
+    try {
+      await refresh();
+    } catch (e) {
+      setLoadError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => {
     (async () => {
@@ -115,12 +165,12 @@ export function App() {
           try {
             await api('/billing/sync', {});
           } catch {}
-          history.replaceState({}, '', location.pathname);
+          history.replaceState({}, '', pathForPage('billing'));
           setPage('billing');
         }
         await refresh();
       } catch (e) {
-        notify(e.message, true);
+        setLoadError(e.message);
       } finally {
         setLoading(false);
       }
@@ -128,10 +178,32 @@ export function App() {
     return () => clearTimeout(timer.current);
   }, []);
   useEffect(() => {
-    const back = () => setPage(pageForLocation());
+    const back = () => {
+      setPage(pageForLocation());
+      setMobile(false);
+    };
     window.addEventListener('popstate', back);
     return () => window.removeEventListener('popstate', back);
   }, []);
+  useEffect(() => {
+    document.title = `${pageTitles[page] || 'Votre espace'} · Clair`;
+    if (loading) return;
+    document.querySelector('.main-shell')?.scrollIntoView?.({ block: 'start' });
+    if (['login', 'register'].includes(page)) return;
+    const heading = document.querySelector('main h1');
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  }, [page, loading]);
+  useEffect(() => {
+    if (!mobile && !auth) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobile, auth]);
   useEffect(() => {
     if (!mobile) return;
     const sidebar = document.getElementById('main-navigation'),
@@ -160,20 +232,14 @@ export function App() {
   }, [mobile]);
   const user = session.user,
     nav = (p) => {
-      const destination = {
-        login: '/connexion',
-        register: '/inscription',
-        account: '/espace-personnel',
-        guide: '/comprendre',
-        faq: '/faq',
-      }[p];
+      const path = pathForPage(p);
       if (location.pathname.startsWith('/abonnement/')) {
-        location.assign(destination ?? '/?view=' + encodeURIComponent(p));
+        location.assign(path);
         return;
       }
       setPage(p);
-      const path = destination ?? '/';
-      if (location.pathname !== path || location.search) history.pushState({}, '', path);
+      if (location.pathname + location.search !== path || page !== p)
+        history.pushState({}, '', path);
       setMobile(false);
     };
   const needPaid = () => {
@@ -268,6 +334,7 @@ export function App() {
         Aller au contenu principal
       </a>
       <aside
+        inert={!!auth}
         role={mobile ? 'dialog' : undefined}
         aria-modal={mobile ? true : undefined}
         aria-label="Navigation principale"
@@ -324,6 +391,7 @@ export function App() {
           {navs.map(([id, Icon, label]) => (
             <button
               key={id}
+              aria-current={page === id ? 'page' : undefined}
               className={
                 'nav-item ' +
                 (page === id || (id === 'circuits' && ['editor', 'generate', 'vat'].includes(page))
@@ -348,6 +416,7 @@ export function App() {
               (['issuers', 'attestation', 'vat-authority'].includes(page) ? 'active' : '')
             }
             onClick={() => nav('issuers')}
+            aria-current={page === 'issuers' ? 'page' : undefined}
           >
             <BadgeCheck size={19} />
             Sources de confiance
@@ -356,6 +425,7 @@ export function App() {
             <button
               className={'nav-item ' + (page === 'admin' ? 'active' : '')}
               onClick={() => nav('admin')}
+              aria-current={page === 'admin' ? 'page' : undefined}
             >
               <Users size={19} />
               Administration
@@ -364,6 +434,7 @@ export function App() {
           <button
             className={'nav-item ' + (page === 'billing' ? 'active' : '')}
             onClick={() => nav('billing')}
+            aria-current={page === 'billing' ? 'page' : undefined}
           >
             <CreditCard size={19} />
             Mon abonnement
@@ -399,7 +470,7 @@ export function App() {
           onClick={() => setMobile(false)}
         />
       )}
-      <div className="main-shell" inert={mobile}>
+      <div className="main-shell" inert={mobile || !!auth}>
         <header className="topbar">
           <div className="breadcrumb">
             <button
@@ -422,30 +493,7 @@ export function App() {
               Espace personnel
             </a>
             <ChevronRight size={14} />
-            <strong>
-              {
-                {
-                  home: 'Vue d’ensemble',
-                  account: 'Mon espace',
-                  circuits: 'Mes circuits',
-                  editor: 'Éditeur de circuit',
-                  generate: 'Générer une preuve',
-                  proofs: 'Mes preuves',
-                  verify: 'Vérification',
-                  billing: 'Abonnement',
-                  payment: 'Facturation',
-                  issuers: 'Sources de confiance',
-                  attestation: 'Créer une attestation',
-                  vat: 'TVA collectée',
-                  'vat-authority': 'Certifier des factures',
-                  guide: 'Comprendre',
-                  faq: 'FAQ',
-                  admin: 'Administration',
-                  login: 'Connexion',
-                  register: 'Inscription',
-                }[page]
-              }
-            </strong>
+            <strong>{pageTitles[page]}</strong>
           </div>
           <div className="top-actions">
             <ThemeControl />
@@ -465,6 +513,7 @@ export function App() {
               <button
                 className="icon-button"
                 aria-label="Se déconnecter"
+                title="Se déconnecter"
                 onClick={async () => {
                   try {
                     await api('/auth/logout', {});
@@ -482,11 +531,11 @@ export function App() {
               >
                 <LogOut size={18} />
               </button>
-            ) : (
+            ) : !['login', 'register'].includes(page) ? (
               <Button variant="small secondary" onClick={() => nav('login')}>
                 Connexion
               </Button>
-            )}
+            ) : null}
           </div>
         </header>
         <main id="main-content" tabIndex={-1}>
@@ -497,6 +546,16 @@ export function App() {
             <div className="loading" role="status">
               <LoaderCircle className="spin" />
               Chargement…
+            </div>
+          ) : loadError ? (
+            <div role="alert">
+              <Empty
+                icon={CircleHelp}
+                title="Votre espace n’a pas pu être chargé"
+                action={<Button onClick={retryLoad}>Réessayer</Button>}
+              >
+                {loadError}
+              </Empty>
             </div>
           ) : (
             <>
@@ -514,6 +573,19 @@ export function App() {
                 />
               )}
               {page === 'admin' && user?.admin && <AdminDashboard />}
+              {page === 'admin' && !user?.admin && (
+                <Empty
+                  icon={LockKeyhole}
+                  title="Accès réservé aux administrateurs"
+                  action={
+                    <Button onClick={() => nav(user ? 'account' : 'login')}>
+                      {user ? 'Revenir à mon espace' : 'Se connecter'}
+                    </Button>
+                  }
+                >
+                  Connectez-vous avec un compte administrateur pour consulter cette page.
+                </Empty>
+              )}
               {page === 'account' && (
                 <AccountPage
                   session={session}

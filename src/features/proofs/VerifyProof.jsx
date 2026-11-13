@@ -66,6 +66,7 @@ export function Verify({ initial, notify }) {
     }
   }
   const load = async (file) => {
+    if (!file) return;
     const run = ++generation.current;
     task.current?.cancel();
     setBusy(false);
@@ -75,7 +76,6 @@ export function Verify({ initial, notify }) {
     setSources([]);
     setVerificationError('');
     try {
-      if (!file) return;
       if (file.size > 300000) throw Error();
       const raw = JSON.parse(await file.text());
       if (run !== generation.current) return;
@@ -187,7 +187,10 @@ export function Verify({ initial, notify }) {
               accept=".clair"
               aria-label="Fichier de preuve"
               hidden
-              onChange={(e) => load(e.target.files[0])}
+              onChange={(e) => {
+                load(e.target.files[0]);
+                e.target.value = '';
+              }}
             />
           </div>
           <details className="journey-details">

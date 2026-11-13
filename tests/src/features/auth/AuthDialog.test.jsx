@@ -6,6 +6,24 @@ import userEvent from '@testing-library/user-event';
 import { Auth } from '../../../../src/features/auth/AuthDialog.jsx';
 import { api } from '../../../../src/lib/api.js';
 vi.mock('../../../../src/lib/api.js', () => ({ api: vi.fn() }));
+
+test('keyboard focus stays in the dialog and returns to its opener on close', async () => {
+  const opener = document.createElement('button');
+  document.body.append(opener);
+  opener.focus();
+  const view = render(<Auth mode="login" setMode={vi.fn()} onClose={vi.fn()} onDone={vi.fn()} />);
+  const first = screen.getByRole('button', { name: 'Fermer', exact: true });
+  const last = screen.getByRole('button', { name: 'Créer un compte' });
+  first.focus();
+  expect(first).toHaveFocus();
+  await userEvent.tab({ shift: true });
+  expect(last).toHaveFocus();
+  await userEvent.tab();
+  expect(first).toHaveFocus();
+  view.unmount();
+  expect(opener).toHaveFocus();
+  opener.remove();
+});
 test('auth submits credentials, displays failure and supports closing/switching', async () => {
   const done = vi.fn(),
     close = vi.fn(),

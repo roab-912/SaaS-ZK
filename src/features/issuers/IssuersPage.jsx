@@ -27,6 +27,8 @@ export function Issuers({
     [id, setId] = useState(''),
     [jwk, setJwk] = useState(''),
     [error, setError] = useState(''),
+    [registryError, setRegistryError] = useState(''),
+    [loading, setLoading] = useState(true),
     [saving, setSaving] = useState(false),
     [keyBusy, setKeyBusy] = useState(false),
     [keyNotice, setKeyNotice] = useState(''),
@@ -53,8 +55,19 @@ export function Issuers({
     );
     setCheckedAt(new Date().toISOString());
   };
+  async function loadRegistry() {
+    setLoading(true);
+    setRegistryError('');
+    try {
+      await refresh();
+    } catch (e) {
+      setRegistryError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
   useEffect(() => {
-    refresh().catch((e) => setError(e.message));
+    loadRegistry();
     return () => {
       operation.current++;
     };
@@ -151,7 +164,11 @@ export function Issuers({
     <>
       <PageHeading
         title="Sources de confiance"
-        desc="Ajoutez vos autorités de confiance et gérez leurs clés de signature."
+        desc={
+          admin
+            ? 'Ajoutez vos autorités de confiance et gérez leurs clés de signature.'
+            : 'Consultez les autorités approuvées pour vérifier l’origine des informations signées.'
+        }
         action={
           <div className="row-actions">
             <Button variant="secondary" onClick={onVatAuthority}>
@@ -178,31 +195,33 @@ export function Issuers({
               submitSource({ id: sourceId, name, jwk, approved: true });
             }}
           >
-            <label>
-              Nom
-              <input
-                required
-                maxLength={80}
-                value={name}
-                disabled={busy}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <label>
-              Identifiant
-              <input
-                required
-                maxLength={40}
-                pattern={'[a-z0-9\\-]{1,40}'}
-                title={idHint}
-                aria-describedby={idHelp}
-                placeholder="source-test"
-                value={id}
-                disabled={busy}
-                onChange={(e) => setId(normalizeSourceId(e.target.value))}
-                onBlur={() => setId((value) => value.replace(/^-+|-+$/g, ''))}
-              />
-            </label>
+            <div className="issuer-identity-fields">
+              <label>
+                Nom
+                <input
+                  required
+                  maxLength={80}
+                  value={name}
+                  disabled={busy}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </label>
+              <label>
+                Identifiant
+                <input
+                  required
+                  maxLength={40}
+                  pattern={'[a-z0-9\\-]{1,40}'}
+                  title={idHint}
+                  aria-describedby={idHelp}
+                  placeholder="source-test"
+                  value={id}
+                  disabled={busy}
+                  onChange={(e) => setId(normalizeSourceId(e.target.value))}
+                  onBlur={() => setId((value) => value.replace(/^-+|-+$/g, ''))}
+                />
+              </label>
+            </div>
             <p className="help" id={idHelp}>
               {idHint}
             </p>
@@ -254,26 +273,7 @@ export function Issuers({
         </section>
       )}
       <section className="panel form-panel sources-list">
-        <div className="row-actions source-downloads">
-          <h2>Autorités de confiance</h2>
-          {offline?.available && (
-            <a className="button secondary" href="/api/offline-verifier" download>
-              Télécharger le vérificateur hors ligne
-            </a>
-          )}
-        </div>
-        <p className="help">
-          {offline?.available
-            ? 'Logiciel portable Windows 64 bits · ' +
-              Math.ceil(offline.bytes / 1048576) +
-              ' Mio environ. Extrayez l’archive ZIP puis lancez demarrer.cmd.'
-            : 'Le téléchargement du vérificateur Windows sera disponible une fois sa préparation terminée.'}
-        </p>
-        <p className="help">
-          Le logiciel inclut un instantané des clés publiques approuvées. Hors ligne, les
-          révocations et changements de clés ultérieurs ne sont pas connus. Retéléchargez-le pour
-          actualiser les sources.
-        </p>
+        <h2>Autorités de confiance</h2>
         {checkedAt && (
           <p className="help">
             Registre consulté le <time dateTime={checkedAt}>{date(checkedAt)}</time>.
@@ -285,12 +285,26 @@ export function Issuers({
             value={query}
             onChange={setQuery}
             count={visible.length}
+            placeholder="Nom, identifiant ou empreinte…"
           />
         )}
         {issuers.length > 0 && !visible.length && (
           <p role="status">Aucune source ne correspond à cette recherche.</p>
         )}
-        {issuers.length > 0 ? (
+        {registryError && (
+          <div className="registry-error" role="alert">
+            <p className="error-text">Le registre n’a pas pu être actualisé. {registryError}</p>
+            <Button variant="secondary small" onClick={loadRegistry}>
+              Réessayer
+            </Button>
+          </div>
+        )}
+        {loading && (
+          <p role="status" className="help">
+            Chargement des autorités…
+          </p>
+        )}
+        {visible.length > 0 ? (
           <div
             className="table-wrap issuer-table"
             tabIndex={0}
@@ -432,12 +446,28 @@ export function Issuers({
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : !loading && !registryError && !issuers.length ? (
           <Empty icon={BadgeCheck} title="Aucune source disponible">
             {admin
               ? 'Ajoutez une autorité avec le formulaire ci-dessus.'
               : 'Un administrateur peut ajouter des sources avec leur clé publique.'}
           </Empty>
+        ) : null}
+        {offline?.available && (
+          <details className="journey-details">
+            <summary>Vérifier des preuves hors ligne</summary>
+            <p className="help">
+              Logiciel portable Windows 64 bits · {Math.ceil(offline.bytes / 1048576)} Mio environ.
+              Extrayez l’archive ZIP puis lancez demarrer.cmd.
+            </p>
+            <p className="help">
+              Le logiciel inclut les clés publiques approuvées au téléchargement. Retéléchargez-le
+              pour prendre en compte les révocations et les changements de clés.
+            </p>
+            <a className="button secondary" href="/api/offline-verifier" download>
+              Télécharger le vérificateur hors ligne
+            </a>
+          </details>
         )}
         <article
           className="issuer-row source-preview"

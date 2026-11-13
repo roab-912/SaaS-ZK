@@ -9,6 +9,22 @@ import { api } from '../../../../src/lib/api.js';
 import { download } from '../../../../src/lib/files.js';
 vi.mock('../../../../src/lib/api.js', () => ({ api: vi.fn(async () => ({})) }));
 vi.mock('../../../../src/lib/files.js', () => ({ download: vi.fn() }));
+
+test('private attestations are identified as signed information still awaiting verification', async () => {
+  const envelope = { ...(await proofFixture()), privateAttestations: [{ issuer: 'source' }] };
+  render(
+    <ProofLibrary
+      user={{ id: 'u' }}
+      nav={vi.fn()}
+      setAuth={vi.fn()}
+      proofs={[{ id: 'p', created: '2026-09-21', envelope }]}
+      openVerify={vi.fn()}
+      refresh={vi.fn()}
+    />,
+  );
+  expect(screen.getByText('Attestations privées · À vérifier')).toBeVisible();
+  expect(screen.queryByText('Données déclarées')).toBeNull();
+});
 test('library downloads, verifies and deletes only the selected public envelope', async () => {
   const envelope = await proofFixture(),
     verify = vi.fn(),
