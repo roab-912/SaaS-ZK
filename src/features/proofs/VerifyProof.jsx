@@ -8,7 +8,7 @@ import { displayDate, circuitName } from '../../lib/format.js';
 import React from 'react';
 import { engineName } from '../../../shared/engines.mjs';
 import { useState, useEffect, useRef } from 'react';
-import { LoaderCircle, Search, ShieldCheck, Upload, X, Printer } from 'lucide-react';
+import { FileCheck2, LoaderCircle, Search, ShieldCheck, Upload, X, Printer } from 'lucide-react';
 import { JourneySteps } from '../../components/JourneySteps.jsx';
 import { Badge, Button, Empty, PageHeading } from '../../components/ui.jsx';
 import { launchProof, compileForEngine } from '../../lib/zk-client.js';
@@ -24,6 +24,9 @@ import {
 } from '../../../shared/circuit.mjs';
 export function Verify({ initial, notify }) {
   const [envelope, setEnvelope] = useState(initial),
+    [loadedName, setLoadedName] = useState(() =>
+      initial ? circuitName(initial.circuit) + '.preuve.clair' : '',
+    ),
     [busy, setBusy] = useState(false),
     [progress, setProgress] = useState(''),
     [status, setStatus] = useState(null),
@@ -68,6 +71,7 @@ export function Verify({ initial, notify }) {
     setBusy(false);
     setStatus(null);
     setEnvelope(null);
+    setLoadedName('');
     setSources([]);
     setVerificationError('');
     try {
@@ -77,6 +81,7 @@ export function Verify({ initial, notify }) {
       if (run !== generation.current) return;
       validateCircuit(raw.circuit);
       setEnvelope(parseProof(raw));
+      setLoadedName(file.name);
     } catch {
       if (run !== generation.current) return;
       setStatus('invalid');
@@ -163,12 +168,16 @@ export function Verify({ initial, notify }) {
             }}
           >
             <span className="empty-icon">
-              <Upload size={27} />
+              {envelope ? <FileCheck2 size={27} /> : <Upload size={27} />}
             </span>
             <h3>{envelope ? 'Fichier chargé' : 'Déposez votre preuve ici'}</h3>
-            <p>
-              {envelope ? circuitName(envelope.circuit) : 'Un fichier .clair généré avec Clair'}
-            </p>
+            {envelope ? (
+              <p className="loaded-proof-name" aria-label="Nom du fichier chargé">
+                {loadedName}
+              </p>
+            ) : (
+              <p>Un fichier .clair généré avec Clair</p>
+            )}
             <Button disabled={busy} variant="secondary" onClick={() => input.current.click()}>
               {envelope ? 'Choisir un autre fichier' : 'Parcourir les fichiers'}
             </Button>

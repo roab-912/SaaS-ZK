@@ -14,6 +14,11 @@ test('verifier displays actual statement and checks requested fingerprint before
   const envelope = await proofFixture(),
     notify = vi.fn();
   render(<Verify initial={envelope} notify={notify} />);
+  expect(screen.getByRole('heading', { name: 'Fichier chargé' })).toBeVisible();
+  expect(screen.getByLabelText('Nom du fichier chargé')).toHaveTextContent(
+    envelope.circuit.name + '.preuve.clair',
+  );
+  expect(screen.queryByText('Déposez votre preuve ici')).toBeNull();
   expect(screen.getByText('21/09/2008')).toBeVisible();
   await userEvent.click(screen.getByRole('button', { name: 'Vérifier la preuve', exact: true }));
   expect(await screen.findByText('Preuve valide')).toBeVisible();
@@ -23,6 +28,23 @@ test('verifier displays actual statement and checks requested fingerprint before
   expect(await screen.findByText('Preuve invalide', { exact: true })).toBeVisible();
   expect(launchProof).toHaveBeenCalledTimes(1);
   expect(notify).toHaveBeenCalledWith(expect.stringContaining('empreinte'), true);
+});
+
+test('replacing a preloaded proof shows the imported filename and clears it after an invalid import', async () => {
+  const envelope = await proofFixture();
+  render(<Verify initial={envelope} notify={vi.fn()} />);
+  const file = new File([JSON.stringify(envelope)], 'justificatif-recu.preuve.clair', {
+    type: 'application/json',
+  });
+  file.text = async () => JSON.stringify(envelope);
+  await userEvent.upload(screen.getByLabelText('Fichier de preuve'), file);
+  expect(await screen.findByLabelText('Nom du fichier chargé')).toHaveTextContent(file.name);
+  expect(screen.getByRole('button', { name: 'Vérifier la preuve', exact: true })).toBeEnabled();
+  const invalid = new File(['bad'], 'bad.clair', { type: 'application/json' });
+  invalid.text = async () => 'bad';
+  await userEvent.upload(screen.getByLabelText('Fichier de preuve'), invalid);
+  expect(screen.queryByLabelText('Nom du fichier chargé')).toBeNull();
+  expect(screen.getByRole('heading', { name: 'Déposez votre preuve ici' })).toBeVisible();
 });
 test('invalid imports never enter the worker', async () => {
   const notify = vi.fn();

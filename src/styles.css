@@ -1224,6 +1224,10 @@ input[hidden] {
   color: #8b9880;
   margin-bottom: 20px;
 }
+.dropzone .loaded-proof-name {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
 details {
   margin-top: 24px;
 }
