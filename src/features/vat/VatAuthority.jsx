@@ -1,7 +1,11 @@
 import { OperationProgress } from '../../components/OperationProgress.jsx';
 import { importUblFiles } from './ubl-import.js';
 import { makeUblExamples } from '../../../shared/ubl-examples.mjs';
-import { downloadUblExamples, downloadOriginalUbl } from '../../lib/ubl-files.js';
+import {
+  downloadUblExamples,
+  downloadOriginalUbl,
+  vatOriginalsFilename,
+} from '../../lib/ubl-files.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { JourneySteps } from '../../components/JourneySteps.jsx';
 import { displayDate } from '../../lib/format.js';
@@ -476,22 +480,27 @@ export function VatAuthority({ onBack, onReady, onManageSources }) {
               La signature de la source a été vérifiée. Le lot signé reste valable 90 jours et votre
               clé privée a été retirée du formulaire.
             </p>
-            {onReady && (
+            {onReady ? (
               <Button variant="full" disabled={busy} onClick={continueToProof}>
                 Continuer vers ma preuve
               </Button>
+            ) : (
+              <>
+                <Button
+                  variant="full"
+                  disabled={busy}
+                  onClick={() =>
+                    download(result, vatOriginalsFilename(result.manifest), { compact: true })
+                  }
+                >
+                  Télécharger le lot certifié
+                </Button>
+                <p className="help">
+                  Conservez une copie du lot signé pour vos archives ou un contrôle. Il contient les
+                  factures privées : transmettez uniquement la preuve à votre destinataire.
+                </p>
+              </>
             )}
-            <Button
-              variant={onReady ? 'secondary' : 'full'}
-              disabled={busy}
-              onClick={() => download(result, 'Factures.certifiees.clair')}
-            >
-              Télécharger le lot certifié
-            </Button>
-            <p className="help">
-              Conservez une copie du lot signé pour vos archives ou un contrôle. Il contient les
-              factures privées : transmettez uniquement la preuve à votre destinataire.
-            </p>
           </div>
         )}
       </section>

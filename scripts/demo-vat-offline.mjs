@@ -20,6 +20,8 @@ import { fixtureReference } from './vat-demo-fixtures.mjs';
 import { publishVatDemo } from './publish-vat-demo.mjs';
 
 // A new directory and a new fictional signing key isolate every rehearsal.
+const count = Number(process.argv[2] ?? 100);
+if (![100, 500].includes(count)) throw Error('Choisissez un lot de 100 ou 500 pièces.');
 const root = resolve('data/demo-tva-hors-ligne');
 await mkdir(root, { recursive: true });
 const kit = await mkdtemp(join(root, 'session-'));
@@ -36,7 +38,7 @@ const source = {
 const snapshot = await createTrustSnapshot([source], 'https://demo.invalid');
 const now = new Date();
 const year = now.getUTCFullYear() - (now.getUTCMonth() < 2 ? 1 : 0);
-const circuit = vatCircuit(500);
+const circuit = vatCircuit(count);
 const compiled = await compileNoir(circuit);
 const crsPath = resolve(process.env.CLAIR_DEMO_CRS_PATH || 'data/offline-cache');
 const registry = createEngineRegistry([createNoirNode({ crsPath, Noir })], ['prove', 'verify']);
@@ -55,9 +57,9 @@ try {
   ]) {
     const periodStart = year + '-' + month + '-01';
     const periodEnd = new Date(Date.UTC(year, Number(month), 0)).toISOString().slice(0, 10);
-    console.log('Validation des 500 XML de ' + label);
+    console.log('Validation des ' + count + ' XML de ' + label);
     const files = makeUblExamples({
-      count: 500,
+      count,
       peppol: true,
       periodStart,
       periodEnd,
@@ -118,7 +120,7 @@ await writeFile(
     'Période : janvier ' + year,
     'Source attendue : ' + source.name + ' (' + source.id + ')',
     'Empreinte de sa clé : ' + snapshot.issuers[0].keyHash,
-    'Programme TVA v2 · 500 pièces · empreinte : ' + compiled.hash,
+    'Programme TVA v2 · ' + count + ' pièces · empreinte : ' + compiled.hash,
   ].join('\r\n'),
 );
 console.log('Kit prêt. Transférez uniquement le dossier ' + agent + ' pour le contrôle ordinaire.');

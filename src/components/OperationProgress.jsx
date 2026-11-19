@@ -1,6 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { Check, LoaderCircle } from 'lucide-react';
 import { PROOF_STEPS } from '../../shared/proof-progress.mjs';
+function EstimatedProgress({ elapsed, index, stage }) {
+  const [started] = useState(elapsed);
+  const seconds = Math.max(0, elapsed - started);
+  const scale = stage === 'prove' ? 25 : 8;
+  const fraction = seconds / (seconds + scale);
+  const value = index >= 0 ? index + fraction : fraction;
+  const max = index >= 0 ? PROOF_STEPS.length : 1;
+  const percent = Math.min(99, Math.floor((100 * value) / max));
+  return (
+    <>
+      <progress
+        aria-label="Progression estimée"
+        value={value}
+        max={max}
+        aria-valuetext={percent + ' % estimés'}
+      />
+      <small aria-live="off">Progression estimée · {percent} %</small>
+    </>
+  );
+}
 export function OperationProgress({
   message = 'Calcul en cours sur votre appareil…',
   completed,
@@ -31,32 +51,25 @@ export function OperationProgress({
           <LoaderCircle className="spin" size={18} aria-hidden="true" />
           <span>{message}</span>
         </div>
-        <progress
-          aria-label={
-            index >= 0
-              ? 'Étapes de génération terminées'
-              : determinate
-                ? 'Documents vérifiés'
-                : 'Opération en cours'
-          }
-          {...(index >= 0
-            ? { value: index, max: PROOF_STEPS.length }
-            : determinate
-              ? { value: completed, max: total }
-              : {})}
-        />
+        {determinate ? (
+          <progress aria-label="Documents vérifiés" value={completed} max={total} />
+        ) : (
+          <EstimatedProgress
+            key={stage ?? 'operation'}
+            elapsed={elapsed}
+            index={index}
+            stage={stage}
+          />
+        )}
         {index >= 0 ? (
           <small>
-            Étape {index + 1} sur {PROOF_STEPS.length} · Les étapes peuvent avoir des durées
-            différentes.
+            Étape {index + 1} sur {PROOF_STEPS.length}
           </small>
-        ) : (
-          determinate && (
-            <small>
-              {completed} / {total} documents vérifiés
-            </small>
-          )
-        )}
+        ) : determinate ? (
+          <small>
+            {completed} / {total} documents vérifiés
+          </small>
+        ) : null}
       </div>
       {index >= 0 && (
         <ol className="proof-progress-steps" aria-label="Étapes de génération">

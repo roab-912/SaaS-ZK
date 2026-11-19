@@ -8,7 +8,7 @@ Les améliorations visent les parcours du PoC sur ordinateur et sur mobile.
 - Connexion : afficher ou masquer le mot de passe sans soumettre le formulaire. Le changement de parcours remet le champ à zéro.
 - Copie : empreintes complètes, clés publiques et identifiant du compte. Succès annoncé ; en cas de refus du presse-papiers, un message indique la copie manuelle. Aucun bouton de copie de clé privée n’est ajouté.
 - Actions sensibles : confirmation avant suppression d’un circuit ou d’une preuve et avant révocation ou remplacement de clé d’une source. Annuler est le choix initial au clavier. Une erreur garde la confirmation ouverte.
-- Calcul : étapes annoncées avec une progression indéterminée pour les calculs ZK. L’import UBL affiche le nombre réel de documents vérifiés. Les enregistrements sont bloqués pendant leur requête.
+- Pendant le calcul ZK, la barre suit les étapes signalées par le moteur et avance entre ces étapes avec la mention « Progression estimée ». L’import UBL affiche le nombre réel de documents vérifiés.
 - Impression : après vérification, le bouton « Imprimer le rapport public » produit le statut, le résultat, la règle, l’empreinte, les valeurs publiques et la provenance. Le fichier cryptographique brut, les attestations brutes, les champs privés et les clés privées ne sont pas sérialisés dans le rapport. Imprimer une autre page ne produit que des instructions pour ouvrir un rapport.
 - Guide : FAQ dépliable, date de révision éditoriale explicite. Les dates de consultation du registre et de vérification sont calculées lors de l’opération ; elles ne prétendent pas dater une modification des données.
 

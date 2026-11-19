@@ -191,11 +191,14 @@ test('offline downloads and local table search remain available', async () => {
   expect(
     await screen.findByRole('link', { name: 'Télécharger le vérificateur hors ligne' }),
   ).toHaveAttribute('href', '/api/offline-verifier');
-  expect(
-    await screen.findByRole('link', { name: 'Télécharger le vérificateur pour Source de test' }),
-  ).toHaveAttribute('href', '/api/offline-verifier?issuer=source-1');
+  await screen.findByRole('searchbox');
+  expect(screen.getAllByRole('link', { name: /vérificateur/i })).toHaveLength(1);
   await userEvent.type(screen.getByRole('searchbox'), 'missing');
   expect(screen.getByText('Aucune source ne correspond à cette recherche.')).toBeVisible();
+  expect(screen.getByRole('link', { name: /vérificateur/i })).toHaveAttribute(
+    'href',
+    '/api/offline-verifier',
+  );
 });
 
 test('late imports are discarded after leaving the page', async () => {

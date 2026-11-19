@@ -4,10 +4,10 @@ import { test, expect, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { OperationProgress } from '../../../src/components/OperationProgress.jsx';
-test('only measured document progress shows a percentage-equivalent counter', async () => {
+test('measured document counts take precedence over the labelled estimate', async () => {
   const cancel = vi.fn(),
     v = render(<OperationProgress message="Vérification" onCancel={cancel} />);
-  expect(screen.getByRole('progressbar')).not.toHaveAttribute('value');
+  expect(screen.getByRole('progressbar')).toHaveAccessibleName('Progression estimée');
   v.rerender(<OperationProgress message="Import UBL" completed={2} total={10} onCancel={cancel} />);
   expect(screen.getByRole('progressbar')).toHaveAttribute('value', '2');
   expect(screen.getByRole('progressbar')).toHaveAttribute('max', '10');
@@ -15,7 +15,7 @@ test('only measured document progress shows a percentage-equivalent counter', as
   await userEvent.click(screen.getByRole('button', { name: 'Annuler' }));
   expect(cancel).toHaveBeenCalledOnce();
   v.rerender(<OperationProgress completed={20} total={10} />);
-  expect(screen.getByRole('progressbar')).not.toHaveAttribute('value');
+  expect(screen.getByRole('progressbar')).toHaveAccessibleName('Progression estimée');
 });
 
 test('elapsed time updates independently of real stages and stops on unmount', () => {
@@ -31,7 +31,8 @@ test('elapsed time updates independently of real stages and stops on unmount', (
       vi.advanceTimersByTime(65000);
     });
     expect(screen.getByLabelText('Temps écoulé')).toHaveTextContent('1 min 05 s');
-    expect(screen.getByRole('progressbar')).toHaveAttribute('value', '3');
+    expect(screen.getByRole('progressbar').value).toBeGreaterThan(3);
+    expect(screen.getByRole('progressbar').value).toBeLessThan(4);
     expect(screen.getByRole('status')).not.toHaveTextContent('Temps écoulé');
     view.rerender(<OperationProgress stage="verify" />);
     expect(screen.getByRole('progressbar')).toHaveAttribute('value', '4');

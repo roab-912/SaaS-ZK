@@ -16,10 +16,12 @@ vi.mock('../../../../src/lib/files.js', () => ({ download: vi.fn() }));
 afterEach(() => vi.unstubAllGlobals());
 test('all downloads and the generated proof use one demo session without registering its source', async () => {
   vi.stubGlobal('crypto', webcrypto);
-  const { batch, issuers } = await ublFixture();
+  const { batch, issuers } = await ublFixture(100);
   const session = {
     id: 'kit-Abc123',
     month: '2026-01',
+    count: 100,
+    netCents: 278340,
     expiresAt: '2099-01-01T00:00:00Z',
     source: issuers[0],
     januarySignature: batch.manifest.signature,
@@ -33,7 +35,8 @@ test('all downloads and the generated proof use one demo session without registe
   launchProof.mockReturnValue({ promise: Promise.resolve(envelope), cancel: vi.fn() });
   compileForEngine.mockResolvedValue({});
   render(<VatDemoGuide />);
-  const links = await screen.findAllByRole('link');
+  await screen.findByRole('link', { name: 'Télécharger janvier.originaux.clair' });
+  const links = screen.getAllByRole('link').filter((a) => a.hasAttribute('download'));
   expect(links.map((a) => a.download).sort()).toEqual([
     'fevrier.originaux.clair',
     'fevrier.preuve.clair',
@@ -49,6 +52,7 @@ test('all downloads and the generated proof use one demo session without registe
   expect(launchProof.mock.calls[0][0]).toMatchObject({
     mode: 'prove',
     demoKit: session.id,
+    circuit: { vat: { capacity: 100 } },
     vatBatch: batch,
     issuers,
   });
@@ -61,6 +65,6 @@ test('an expired kit keeps the guide readable and removes downloads', async () =
   }));
   render(<VatDemoGuide />);
   expect(await screen.findByRole('alert')).toHaveTextContent('expiré');
-  expect(screen.queryAllByRole('link')).toHaveLength(0);
+  expect(screen.getAllByRole('link').filter((a) => a.hasAttribute('download'))).toHaveLength(0);
   expect(screen.getByRole('button', { name: 'Générer ma preuve de janvier' })).toBeDisabled();
 });

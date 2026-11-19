@@ -1,6 +1,6 @@
-export function download(value, name) {
+export function download(value, name, { compact = false } = {}) {
   const url = URL.createObjectURL(
-    new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }),
+    new Blob([JSON.stringify(value, null, compact ? undefined : 2)], { type: 'application/json' }),
   );
   const a = document.createElement('a');
   a.href = url;

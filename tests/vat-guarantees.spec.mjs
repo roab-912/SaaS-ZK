@@ -8,14 +8,12 @@ test('VAT guarantees explain completeness and stay readable on desktop and mobil
   await expect(guarantees).toBeVisible();
   await expect(guarantees.getByText(/Tout le lot signé/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Importer mes factures XML' })).toBeVisible();
-  await guarantees.getByText('Comment l’exhaustivité est-elle garantie ?').click();
-  await expect(guarantees.getByText(/pour 100 pièces certifiées/)).toBeVisible();
+  await expect(guarantees.getByRole('listitem')).toHaveCount(4);
+  await expect(guarantees.locator('details')).toHaveCount(0);
+  await expect(page.locator('footer')).toBeVisible();
   await page.screenshot({ path: 'test-results/vat-guarantees-desktop.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await guarantees.getByText('Quels contrôles sont imposés par le circuit ?').click();
-  await expect(guarantees.getByText(/Identifiants distincts/)).toBeVisible();
-  await guarantees.getByText('Quelles règles de TVA sont appliquées ?').click();
-  await expect(guarantees.getByText('Le rattachement utilise la date de facture.')).toBeVisible();
+  await expect(guarantees.getByText('Montant recalculé')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'test-results/vat-guarantees-mobile.png', fullPage: true });
 });

@@ -72,8 +72,9 @@ test('UBL import, official validation, certification and private VAT proof', asy
   await expect(page.getByRole('heading', { name: 'Lot certifié prêt' })).toBeVisible({
     timeout: 30000,
   });
+  await page.getByRole('button', { name: 'Continuer vers ma preuve' }).click();
   let download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Télécharger le lot certifié' }).click();
+  await page.getByRole('button', { name: 'Télécharger septembre.originaux.clair' }).click();
   let batchText = '';
   for await (const b of await (await download).createReadStream()) batchText += b;
   const batch = JSON.parse(batchText);
@@ -107,9 +108,13 @@ test('UBL import, official validation, certification and private VAT proof', asy
   const clock = page.getByLabel('Temps écoulé');
   const initialTime = await clock.textContent();
   await expect.poll(() => clock.textContent()).not.toBe(initialTime);
-  await expect(
-    page.getByRole('progressbar', { name: 'Étapes de génération terminées' }),
-  ).toHaveAttribute('value', '3');
+  await expect
+    .poll(async () =>
+      Number(
+        await page.getByRole('progressbar', { name: 'Progression estimée' }).getAttribute('value'),
+      ),
+    )
+    .toBeGreaterThan(3);
   await expect(page.getByRole('heading', { name: 'Preuve TVA prête' })).toBeVisible({
     timeout: 240000,
   });

@@ -574,7 +574,7 @@ test('new circuit and removal of birth both allow a single integer equals 18', a
   });
 });
 
-test('offline verifier links identify source scope and fit on mobile', async ({ page }) => {
+test('one offline verifier for all approved sources is visible on mobile', async ({ page }) => {
   const { generateKeyPairSync } = await import('node:crypto');
   const jwk = generateKeyPairSync('ec', { namedCurve: 'P-256' }).publicKey.export({
     format: 'jwk',
@@ -598,10 +598,9 @@ test('offline verifier links identify source scope and fit on mobile', async ({ 
   await expect(
     page.getByRole('link', { name: 'Télécharger le vérificateur hors ligne' }),
   ).toHaveAttribute('href', '/api/offline-verifier');
-  await expect(
-    page.getByRole('link', { name: 'Télécharger le vérificateur pour Source de test' }),
-  ).toHaveAttribute('href', '/api/offline-verifier?issuer=source-1');
-  await expect(page.getByText(/révocations et changements de clés ultérieurs/)).toBeVisible();
+  await expect(page.getByText('Source de test', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: /vérificateur/i })).toHaveCount(1);
+  await expect(page.getByText(/Un seul ZIP pour toutes les autorités approuvées/)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );

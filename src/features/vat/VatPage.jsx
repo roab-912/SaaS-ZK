@@ -1,7 +1,7 @@
 import { OperationProgress } from '../../components/OperationProgress.jsx';
 import { VatAuthority } from './VatAuthority.jsx';
 import { JourneySteps } from '../../components/JourneySteps.jsx';
-import { downloadOriginalUbl } from '../../lib/ubl-files.js';
+import { downloadOriginalUbl, vatOriginalsFilename } from '../../lib/ubl-files.js';
 import { verifyVatDocuments, VAT_DOCUMENT_LIMITS } from '../../../shared/vat-documents.mjs';
 import React, { useEffect, useRef, useState } from 'react';
 import { Download, Fingerprint, LoaderCircle, Save } from 'lucide-react';
@@ -175,7 +175,6 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
       authorization = null;
       if (run !== generation.current) return;
       setResult(proof);
-      setBatch(null);
       setClaim('');
       setSource(verified);
       await refresh();
@@ -194,6 +193,15 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
     }
   }
   const manifest = batch?.manifest ?? result?.vatManifest;
+  const originalsDownload = batch && (
+    <Button
+      type="button"
+      variant="secondary full"
+      onClick={() => download(batch, vatOriginalsFilename(batch.manifest), { compact: true })}
+    >
+      <Download size={16} /> Télécharger {vatOriginalsFilename(batch.manifest)}
+    </Button>
+  );
   const totals = batch
     ? vatSummary(vatDraftFromBatch(batch))
     : result
@@ -259,7 +267,7 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
               {error}
             </div>
           )}
-          {batch && (
+          {batch && !result && (
             <form onSubmit={generate} noValidate>
               {batch.documents && (
                 <details className="ubl-documents">
@@ -299,6 +307,11 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
                 {busy ? <LoaderCircle className="spin" size={18} /> : <Fingerprint size={18} />}
                 Générer la preuve TVA
               </Button>
+              {originalsDownload}
+              <p className="help">
+                Ce lot privé contient les XML importés et leur relevé signé. Conservez-le chez
+                l’entreprise pour un contrôle sur pièces.
+              </p>
             </form>
           )}
           {busy && (
@@ -318,14 +331,15 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
               <p>
                 Vous pouvez maintenant télécharger la preuve et la transmettre à votre destinataire.
               </p>
-              <p>
-                Les factures privées ont été retirées du formulaire. Conservez le lot d’origine pour
-                un éventuel contrôle.
-              </p>
               <Button variant="full" onClick={() => download(result, 'TVA.preuve.clair')}>
                 <Download size={16} />
                 Télécharger la preuve TVA
               </Button>
+              {originalsDownload}
+              <p className="help">
+                Le lot d’originaux reste disponible dans cet onglet jusqu’à votre départ ou au
+                démarrage d’une autre période.
+              </p>
               <Button
                 variant="secondary full"
                 disabled={saved || savingProof}

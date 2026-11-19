@@ -114,8 +114,9 @@ for (const scenario of [
       });
       await page.setViewportSize({ width: 1440, height: 1050 });
     } else {
+      await page.getByRole('button', { name: 'Continuer vers ma preuve' }).click();
       next = page.waitForEvent('download');
-      await page.getByRole('button', { name: 'Télécharger le lot certifié' }).click();
+      await page.getByRole('button', { name: /^Télécharger .*\.originaux\.clair$/ }).click();
       const batchDownload = await next;
       expect(batchDownload.suggestedFilename()).toMatch(/\.clair$/);
       let batchText = '';

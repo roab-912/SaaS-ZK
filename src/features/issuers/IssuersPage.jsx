@@ -274,6 +274,19 @@ export function Issuers({
       )}
       <section className="panel form-panel sources-list">
         <h2>Autorités de confiance</h2>
+        {offline?.available && (
+          <div>
+            <a className="button secondary" href="/api/offline-verifier" download>
+              Télécharger le vérificateur hors ligne
+            </a>
+            <p className="help">
+              Un seul ZIP pour toutes les autorités approuvées au moment du téléchargement (
+              {Math.ceil(offline.bytes / 1048576)} Mio). Extrayez-le sur un poste Windows 64 bits
+              puis lancez <code>demarrer.cmd</code>. Retéléchargez-le si une autorité est ajoutée,
+              révoquée ou change de clé.
+            </p>
+          </div>
+        )}
         {checkedAt && (
           <p className="help">
             Registre consulté le <time dateTime={checkedAt}>{date(checkedAt)}</time>.
@@ -318,7 +331,7 @@ export function Issuers({
                   <th scope="col">Identifiant</th>
                   <th scope="col">Statut</th>
                   <th scope="col">Clé publique</th>
-                  <th scope="col">Actions</th>
+                  {admin && <th scope="col">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -388,10 +401,10 @@ export function Issuers({
                           </details>
                         )}
                       </td>
-                      <td>
-                        <div className="row-actions">
-                          {admin &&
-                            (row ? (
+                      {admin && (
+                        <td>
+                          <div className="row-actions">
+                            {row ? (
                               <>
                                 <Button
                                   type="button"
@@ -427,19 +440,10 @@ export function Issuers({
                               >
                                 Modifier
                               </Button>
-                            ))}
-                          {offline?.available && source.approved !== false && (
-                            <a
-                              className="button small secondary"
-                              href={'/api/offline-verifier?issuer=' + encodeURIComponent(source.id)}
-                              download
-                              aria-label={'Télécharger le vérificateur pour ' + source.name}
-                            >
-                              Vérificateur hors ligne
-                            </a>
-                          )}
-                        </div>
-                      </td>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -458,22 +462,6 @@ export function Issuers({
             Guide et fichiers de la démonstration TVA hors ligne
           </a>
         </div>
-        {offline?.available && (
-          <details className="journey-details">
-            <summary>Vérifier des preuves hors ligne</summary>
-            <p className="help">
-              Logiciel portable Windows 64 bits · {Math.ceil(offline.bytes / 1048576)} Mio environ.
-              Extrayez l’archive ZIP puis lancez demarrer.cmd.
-            </p>
-            <p className="help">
-              Le logiciel inclut les clés publiques approuvées au téléchargement. Retéléchargez-le
-              pour prendre en compte les révocations et les changements de clés.
-            </p>
-            <a className="button secondary" href="/api/offline-verifier" download>
-              Télécharger le vérificateur hors ligne
-            </a>
-          </details>
-        )}
         <article
           className="issuer-row source-preview"
           aria-label="FranceConnect — à venir"

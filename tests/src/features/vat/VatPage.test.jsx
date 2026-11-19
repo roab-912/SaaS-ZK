@@ -39,6 +39,12 @@ test('VAT journey checks the claim and stores only the public circuit and proof,
     await userEvent.click(screen.getByText('J’ai déjà un lot signé'));
     await userEvent.upload(screen.getByLabelText('Lot de factures certifié'), file);
     const amount = await screen.findByLabelText('TVA collectée en euros');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Télécharger septembre.originaux.clair' }),
+    );
+    expect(download).toHaveBeenLastCalledWith(f.batch, 'septembre.originaux.clair', {
+      compact: true,
+    });
     expect(api.mock.calls.filter(([p]) => p === '/circuits')).toHaveLength(0);
     fireEvent.change(amount, { target: { value: '99999' } });
     await userEvent.click(screen.getByRole('button', { name: 'Générer la preuve TVA' }));
@@ -49,6 +55,10 @@ test('VAT journey checks the claim and stores only the public circuit and proof,
     });
     await userEvent.click(screen.getByRole('button', { name: 'Générer la preuve TVA' }));
     await screen.findByRole('heading', { name: 'Preuve TVA prête' });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Télécharger septembre.originaux.clair' }),
+    );
+    expect(download.mock.lastCall[0]).toEqual(f.batch);
     expect(screen.queryByLabelText('TVA collectée en euros')).toBeNull();
     expect(launchProof.mock.lastCall[0].vatBatch.invoices).toHaveLength(2);
     await userEvent.click(screen.getByRole('button', { name: 'Télécharger la preuve TVA' }));
@@ -141,11 +151,14 @@ test('XML import and local signing continue directly into a proof without an int
     await userEvent.click(screen.getByRole('checkbox'));
     await userEvent.click(screen.getByRole('button', { name: 'Signer le relevé complet' }));
     await screen.findByRole('heading', { name: 'Lot certifié prêt' });
+    expect(screen.queryByRole('button', { name: 'Télécharger le lot certifié' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Continuer vers ma preuve' }));
     await screen.findByLabelText('TVA collectée en euros');
     expect(download).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Prouver la TVA collectée' })).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Générer la preuve TVA' }));
+    const generate = screen.getByRole('button', { name: 'Générer la preuve TVA' });
+    expect(generate.nextElementSibling).toHaveAccessibleName(/^Télécharger .*\.originaux\.clair$/);
+    await userEvent.click(generate);
     await screen.findByRole('heading', { name: 'Preuve TVA prête' });
     const requests = JSON.stringify(api.mock.calls);
     expect(requests).not.toContain(f.priv.d);

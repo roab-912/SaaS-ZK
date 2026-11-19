@@ -5,7 +5,7 @@ import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { validateTrustSnapshot } from '../shared/trust-snapshot.mjs';
 import { parseProof } from '../shared/proof.mjs';
-import { parseVatBatch, verifyVatManifest } from '../shared/vat.mjs';
+import { parseVatBatch, vatPublicValues, verifyVatManifest } from '../shared/vat.mjs';
 import { verifyOriginalsAgainstManifest } from '../shared/vat-originals.mjs';
 import { makeUblExamples } from '../shared/ubl-examples.mjs';
 import { OFFLINE_LAUNCHER } from '../server/offline-bundle.mjs';
@@ -22,7 +22,7 @@ export async function publishVatDemo(kit) {
   )
     throw Error('Ce registre ne correspond pas à la source fictive de la démonstration.');
   const files = [];
-  let january, expiresAt;
+  let january, expiresAt, netCents;
   for (const [name, month] of [
     ['janvier', '01'],
     ['fevrier', '02'],
@@ -32,7 +32,8 @@ export async function publishVatDemo(kit) {
     const manifest = proof.vatManifest;
     if (
       manifest?.companyId !== 'FR00000000000' ||
-      manifest.count !== 500 ||
+      ![100, 500].includes(manifest.count) ||
+      proof.circuit.vat?.capacity !== manifest.count ||
       proof.circuit.vat?.programVersion !== 2 ||
       manifest.periodStart.slice(5) !== month + '-01' ||
       !(await verifyVatManifest(manifest, snapshot.issuers)).valid
@@ -40,7 +41,7 @@ export async function publishVatDemo(kit) {
       throw Error('Relevé de démonstration incompatible ou expiré.');
     await verifyOriginalsAgainstManifest(batch, manifest);
     const examples = makeUblExamples({
-      count: 500,
+      count: manifest.count,
       peppol: true,
       periodStart: manifest.periodStart,
       periodEnd: manifest.periodEnd,
@@ -55,7 +56,13 @@ export async function publishVatDemo(kit) {
     )
       throw Error('Seuls les XML fictifs du générateur peuvent être distribués.');
     files.push([name + '.preuve.json', proof], [name + '.originaux.json', batch]);
-    if (month === '01') january = manifest;
+    const { sales_vat, credit_vat } = vatPublicValues(batch);
+    if (month === '01') {
+      january = manifest;
+      netCents = sales_vat - credit_vat;
+    } else if (manifest.count !== january.count || sales_vat - credit_vat !== netCents) {
+      throw Error('Les deux mois de démonstration doivent avoir le même volume et le même total.');
+    }
     expiresAt = !expiresAt || manifest.expiresAt < expiresAt ? manifest.expiresAt : expiresAt;
   }
   const root = resolve('public/demo-tva');
@@ -86,6 +93,8 @@ export async function publishVatDemo(kit) {
   const descriptor = {
     id,
     company: january.companyId,
+    count: january.count,
+    netCents,
     month: january.periodStart.slice(0, 7),
     source: snapshot.issuers[0],
     januarySignature: january.signature,

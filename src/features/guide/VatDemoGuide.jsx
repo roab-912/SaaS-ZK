@@ -4,12 +4,13 @@ import { Button, PageHeading } from '../../components/ui.jsx';
 import { OperationProgress } from '../../components/OperationProgress.jsx';
 import { download } from '../../lib/files.js';
 import { compileForEngine, launchProof } from '../../lib/zk-client.js';
-import { parseVatBatch, vatCircuit, vatPublicValues } from '../../../shared/vat.mjs';
+import { parseVatBatch, vatCircuit, vatMoney, vatPublicValues } from '../../../shared/vat.mjs';
 
 export function VatDemoGuide() {
   const [kit, setKit] = useState(null);
   const [kitError, setKitError] = useState('');
   const [progress, setProgress] = useState('');
+  const [stage, setStage] = useState('prepare');
   const [error, setError] = useState('');
   const [proof, setProof] = useState(null);
   const operation = useRef(null);
@@ -23,9 +24,16 @@ export function VatDemoGuide() {
         });
         if (!response.ok) throw Error();
         const data = await response.json();
+        // The original 500-piece kit predates the volume and amount fields.
+        if (data.count === undefined && data.netCents === undefined) {
+          data.count = 500;
+          data.netCents = 3191700;
+        }
         if (
           !/^kit-[A-Za-z0-9]+$/.test(data.id) ||
           !/^\d{4}-01$/.test(data.month) ||
+          ![100, 500].includes(data.count) ||
+          !Number.isSafeInteger(data.netCents) ||
           !Number.isFinite(Date.parse(data.expiresAt))
         )
           throw Error();
@@ -68,14 +76,15 @@ export function VatDemoGuide() {
     operation.current = controller;
     setError('');
     setProof(null);
+    setStage('prepare');
     setProgress('Lecture du lot fictif de janvier…');
     try {
       const response = await fetch(base + 'janvier.originaux.json', { signal: controller.signal });
       if (!response.ok) throw Error('Le lot de janvier est indisponible.');
       const batch = parseVatBatch(await response.json());
-      if (batch.manifest.signature !== kit.januarySignature)
+      if (batch.manifest.signature !== kit.januarySignature || batch.manifest.count !== kit.count)
         throw Error('Le lot ne correspond pas à cette session de démonstration.');
-      const circuit = vatCircuit(500);
+      const circuit = vatCircuit(batch.manifest.count);
       setProgress('Préparation du circuit public…');
       const compiled = await compileForEngine(circuit, circuit.engine, controller.signal);
       controller.signal.throwIfAborted();
@@ -90,7 +99,7 @@ export function VatDemoGuide() {
           issuers: [kit.source],
         },
         setProgress,
-        { timeout: 900000 },
+        { timeout: 900000, onStage: setStage },
       );
       controller.signal.addEventListener('abort', task.cancel, { once: true });
       const result = await task.promise;
@@ -109,7 +118,7 @@ export function VatDemoGuide() {
     <>
       <PageHeading
         title="Démonstration TVA hors ligne"
-        desc="Générez une preuve pour 500 factures et avoirs fictifs. Sur un second poste, vérifiez le montant du mois, puis retrouvez les XML certifiés lors d’un contrôle sur pièces."
+        desc="Générez une preuve pour un mois de facturation. Sur un second poste, vérifiez le montant du mois, puis retrouvez les XML certifiés lors d’un contrôle sur pièces."
       />
       {kitError && (
         <p className="validation invalid" role="alert">
@@ -121,19 +130,20 @@ export function VatDemoGuide() {
         <section className="panel">
           <h2>1. Générer la preuve sur le poste de l’entreprise</h2>
           <p>
-            Le lot de {january} contient les 500 XML et le relevé signé par la plateforme de
-            démonstration. Téléchargez-le pour le conserver chez l’entreprise. Le bouton de
-            génération charge ce même lot et calcule une nouvelle preuve dans votre navigateur.
-            Gardez cet onglet ouvert et le poste connecté pendant le calcul.
+            Le lot de {january} contient les {kit?.count} XML fictifs et le relevé signé par la
+            plateforme de démonstration. Téléchargez-le pour le conserver chez l’entreprise. Le
+            bouton de génération charge ce même lot et calcule une nouvelle preuve dans votre
+            navigateur. Gardez cet onglet ouvert et le poste connecté pendant le calcul.
           </p>
           <div className="journey-actions">
-            {file('Lot signé de janvier (.clair)', 'janvier.originaux.clair')}
+            {!proof && file('Télécharger janvier.originaux.clair', 'janvier.originaux.clair')}
             <Button onClick={generate} disabled={!kit || !!progress}>
               Générer ma preuve de janvier
             </Button>
           </div>
           {progress && (
             <OperationProgress
+              stage={stage}
               message={progress}
               onCancel={() => {
                 operation.current?.abort();
@@ -154,6 +164,8 @@ export function VatDemoGuide() {
               <Button onClick={() => download(proof, 'ma-preuve-janvier.clair')}>
                 Télécharger ma preuve de janvier
               </Button>
+              <p>Conservez les factures signées chez l’entreprise pour le contrôle sur pièces.</p>
+              {file('Télécharger janvier.originaux.clair', 'janvier.originaux.clair')}
             </div>
           )}
           <p>
@@ -161,6 +173,11 @@ export function VatDemoGuide() {
             le même lot signé.
           </p>
           {file('Preuve de janvier déjà générée', 'janvier.preuve.clair')}
+          <p>
+            Pour utiliser vos propres XML, ouvrez <a href="/?view=vat">Prouver la TVA collectée</a>.
+            Une fois le relevé signé par la source, le formulaire de génération vous permet de
+            télécharger le lot d’originaux correspondant.
+          </p>
         </section>
         <section className="panel">
           <h2>2. Préparer le poste de l’agent</h2>
@@ -173,6 +190,11 @@ export function VatDemoGuide() {
             {file('Vérificateur de la démo (.zip)', 'verificateur.zip')}
             {file('Preuve de février (.clair)', 'fevrier.preuve.clair')}
           </div>
+          <p>
+            Pour vos propres preuves, téléchargez le vérificateur depuis les{' '}
+            <a href="/?view=issuers">Sources de confiance</a>. Il inclut toutes les autorités
+            approuvées de votre instance.
+          </p>
           <p>
             Copiez le ZIP et les deux preuves publiques sur le second poste. Gardez les lots
             d’originaux chez l’entreprise. Extrayez toute l’archive, coupez le réseau, puis
@@ -199,9 +221,21 @@ export function VatDemoGuide() {
             <li>
               Gardez les mêmes critères. Ouvrez <code>ma-preuve-janvier.clair</code> ou la référence{' '}
               <code>janvier.preuve.clair</code> et vérifiez-la. L’agent doit lire{' '}
-              <strong>Demande de TVA satisfaite</strong>, <strong>500 pièces</strong> et{' '}
-              <strong>31 917,00 €</strong> de TVA facturée nette des avoirs. Conservez cette preuve
-              pour le contrôle sur pièces.
+              <strong>Demande de TVA satisfaite</strong>, le nombre de pièces
+              {kit && (
+                <>
+                  {' '}
+                  (<strong>{kit.count}</strong>)
+                </>
+              )}{' '}
+              et le montant de TVA facturée nette des avoirs
+              {kit && (
+                <>
+                  {' '}
+                  (<strong>{vatMoney(kit.netCents)}</strong>)
+                </>
+              )}
+              . Conservez cette preuve pour le contrôle sur pièces.
             </li>
           </ol>
         </section>
@@ -215,10 +249,9 @@ export function VatDemoGuide() {
           <p>
             Dans <strong>Contrôle distinct des originaux</strong>, ouvrez le lot de janvier. Le
             vérificateur recalcule l’empreinte de chaque XML et celle du lot, puis les compare au
-            relevé signé associé à la preuve acceptée. Attendez{' '}
-            <strong>500 originaux correspondent au relevé de la preuve acceptée</strong>,
-            sélectionnez une pièce pour lire son XML, puis cliquez sur{' '}
-            <strong>Fermer les originaux</strong>.
+            relevé signé associé à la preuve acceptée. Attendez la confirmation que les {kit?.count}{' '}
+            originaux correspondent au relevé de la preuve acceptée, sélectionnez une pièce pour
+            lire son XML, puis cliquez sur <strong>Fermer les originaux</strong>.
           </p>
           <p>
             Pour essayer un autre lot signé, remettez les originaux de février pour cette même
