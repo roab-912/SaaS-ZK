@@ -43,10 +43,9 @@ export async function startOffline({
     address;
   const assets = Object.fromEntries(
     await Promise.all(
-      ['index.html', 'app.js', 'style.css', '../shared/vat-originals.mjs'].map(async (name) => [
-        name,
-        await readFile(new URL('./' + name, import.meta.url), 'utf8'),
-      ]),
+      ['index.html', 'app.js', 'invoice-view.js', 'style.css', '../shared/vat-originals.mjs'].map(
+        async (name) => [name, await readFile(new URL('./' + name, import.meta.url), 'utf8')],
+      ),
     ),
   );
   const server = createServer(async (req, res) => {
@@ -66,6 +65,7 @@ export async function startOffline({
       const paths = {
         '/': 'index.html',
         '/app.js': 'app.js',
+        '/invoice-view.js': 'invoice-view.js',
         '/style.css': 'style.css',
         '/shared/vat-originals.mjs': '../shared/vat-originals.mjs',
       };

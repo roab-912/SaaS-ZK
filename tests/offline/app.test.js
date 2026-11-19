@@ -130,12 +130,25 @@ test('monthly request uses independent criteria and opens a browser-only audit a
       expect(el('audit-status').textContent).toContain('2 originaux correspondent'),
     );
     fireEvent.change(el('document'), { target: { selectedIndex: 1 } });
+    expect(el('invoice').textContent).toContain('Facture ' + batch.documents[0].originalId);
+    expect(el('invoice').textContent).toContain('Client de démonstration');
+    expect(el('invoice').textContent).toContain('Article de démonstration 2');
+    expect(el('invoice').textContent).toMatch(/146,38\s€/);
+    expect(el('xml-source').open).toBe(false);
+    el('xml-source').open = true;
     expect(el('xml').textContent).toContain('<?xml');
+    fireEvent.change(el('document'), { target: { selectedIndex: 2 } });
+    expect(el('xml-source').open).toBe(false);
+    expect(el('invoice').textContent).toContain('Avoir ' + batch.documents[1].originalId);
+    expect(el('invoice').textContent).toContain(
+      'Facture de référence · ' + batch.documents[0].originalId,
+    );
     expect(fetcher).toHaveBeenCalledTimes(calls);
     fireEvent.input(el('month'), { target: { value: '2026-10' } });
     expect(el('result').hidden).toBe(true);
     expect(el('audit').hidden).toBe(true);
     expect(el('xml').textContent).toBe('');
+    expect(el('invoice').textContent).toBe('');
   } finally {
     vi.unstubAllGlobals();
   }

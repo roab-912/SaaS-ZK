@@ -77,7 +77,13 @@
         <div id="inspection" hidden>
           <label for="document">Lire un original vérifié</label>
           <select id="document"></select>
-          <pre id="xml" hidden></pre>
+          <div id="document-view" hidden>
+            <article id="invoice"></article>
+            <details id="xml-source">
+              <summary>Afficher le XML original</summary>
+              <pre id="xml"></pre>
+            </details>
+          </div>
           <button id="close-audit" type="button">Fermer les originaux</button>
         </div>
       </section>

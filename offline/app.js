@@ -1,3 +1,4 @@
+import { showInvoice } from './invoice-view.js';
 import {
   VAT_DOCUMENT_LIMITS,
   base64Bytes,
@@ -183,17 +184,20 @@ function clearOriginals() {
   originalDocuments = null;
   element('inspection').hidden = true;
   element('document').replaceChildren();
-  element('xml').textContent = '';
-  element('xml').hidden = true;
+  showDocument();
   element('audit-status').textContent = '';
 }
 element('close-audit').onclick = clearOriginals;
-element('document').onchange = () => {
-  const index = element('document').selectedIndex - 1;
-  const doc = originalDocuments?.[index];
-  element('xml').textContent = doc ? new TextDecoder().decode(base64Bytes(doc.content)) : '';
-  element('xml').hidden = !doc;
-};
+function showDocument(doc) {
+  element('invoice').replaceChildren();
+  element('xml-source').open = false;
+  element('document-view').hidden = !doc;
+  const source = doc ? new TextDecoder().decode(base64Bytes(doc.content)) : '';
+  element('xml').textContent = source;
+  if (doc) showInvoice(element('invoice'), source);
+}
+element('document').onchange = () =>
+  showDocument(originalDocuments?.[element('document').selectedIndex - 1]);
 element('originals').onchange = async () => {
   clearOriginals();
   const run = auditRevision;

@@ -251,7 +251,8 @@ export function VatDemoGuide() {
             vérificateur recalcule l’empreinte de chaque XML et celle du lot, puis les compare au
             relevé signé associé à la preuve acceptée. Attendez la confirmation que les {kit?.count}{' '}
             originaux correspondent au relevé de la preuve acceptée, sélectionnez une pièce pour
-            lire son XML, puis cliquez sur <strong>Fermer les originaux</strong>.
+            lire sa fiche. Ouvrez <strong>Afficher le XML original</strong> pour consulter la
+            source, puis cliquez sur <strong>Fermer les originaux</strong>.
           </p>
           <p>
             Pour essayer un autre lot signé, remettez les originaux de février pour cette même
