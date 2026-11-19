@@ -1,5 +1,19 @@
 # Vérificateur portable hors ligne
 
+## Démontrer le contrôle TVA de janvier sur deux postes
+
+**Sur le poste de préparation** (Windows x64, avec la version Node du fichier `.node-version`, les dépendances du projet et Internet), exécuter `npm run demo:tva:offline` depuis la racine du dépôt. La commande construit le logiciel portable, génère une clé de démonstration en mémoire, valide deux jeux de 500 XML fictifs, signe les relevés, produit deux preuves TVA v2 et compare leurs sous-totaux avec ceux des XML. Chaque exécution crée un nouveau dossier sous `data/demo-tva-hors-ligne`. Le chemin exact est affiché à la fin.
+
+1. **Préparer le poste de l’agent.** Copier uniquement le dossier `administration` sur le second poste. Il contient le lanceur, le logiciel, le registre public de démonstration, une fiche de demande et les deux preuves publiques. Garder le dossier `entreprise` sur le premier poste. Couper le Wi-Fi et débrancher Ethernet sur le second poste, puis double-cliquer sur `administration/demarrer.cmd`. L’interface s’ouvre sur l’adresse de boucle locale.
+2. **Fixer la demande.** Choisir **Répondre à une demande mensuelle de TVA**. Saisir **FR00000000000** (entreprise A), le mois de janvier de l’année indiquée dans `demande.txt`, puis choisir **Plateforme de démonstration** dans le registre embarqué. La fiche fournit aussi les empreintes de clé et de circuit pour comparaison. Dans un pilote, l’agent obtient ces références par son propre canal de confiance. Le kit utilise le dernier couple janvier/février entièrement clôturé et les relevés sont valables 90 jours à compter de la préparation.
+3. **Essayer février pour la demande de janvier.** Ouvrir `fevrier.preuve.clair` et cliquer sur **Vérifier la preuve**. Verdict attendu : « Preuve valide, période différente du mois demandé. » Les deux lots ont la même taille, le même signataire et les mêmes totaux.
+4. **Vérifier janvier.** Garder les mêmes critères et ouvrir `janvier.preuve.clair`. Le vérificateur contrôle la preuve et la signature, le programme TVA v2, l’entreprise, les deux bornes exactes du mois et la clé attendue. Il affiche **Demande de TVA satisfaite**, **500 pièces** et **31 917,00 €** de TVA facturée nette des avoirs. Aucun XML n’a été remis à l’agent à ce stade. Conserver le fichier de preuve accepté avec le dossier.
+5. **Faire un contrôle sur pièces distinct.** L’entreprise remet cette fois `entreprise/janvier.originaux.clair`. Si l’application a été fermée, rouvrir la preuve de janvier conservée dans le dossier et la vérifier pour la même demande. Dans **Contrôle distinct des originaux**, choisir le lot privé. Le navigateur recalcule l’empreinte de chaque XML, puis celle de l’ensemble ordonné avec le masque privé. Il les rapproche du relevé de la preuve déjà acceptée. Après concordance, sélectionner une pièce pour lire son XML, puis **Fermer les originaux**. Ouvrir le lot de février à cet endroit permet aussi de montrer le refus d’un autre lot signé.
+
+Le contrôle sur pièces lit le lot privé dans le navigateur du poste de l’agent. Il n’envoie pas les XML au serveur local. Fermer les originaux retire le contenu de l’interface ; la copie du fichier remise lors du contrôle reste sur son support. Le verdict porte sur les octets des XML certifiés. L’examen du contenu fiscal appartient à l’agent.
+
+Le scénario suppose une seule clôture signée par entreprise et par mois. Hors ligne, le registre de clés reflète sa date d’export. Le programme rattache la TVA à la date des factures et avoirs, selon le périmètre documenté dans [TVA.md](TVA.md).
+
 ## Utiliser le logiciel
 
 Dans **Sources de confiance**, **Télécharger le vérificateur hors ligne** fournit le logiciel et toutes les sources actuellement approuvées. Le lien placé sur une source n’embarque que sa clé ; pour une preuve faisant intervenir plusieurs autorités, choisir le téléchargement global.

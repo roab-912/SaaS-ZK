@@ -6,7 +6,7 @@
     <meta name="clair-token" content="__TOKEN__" />
     <title>Clair — Vérification hors ligne</title>
     <link rel="stylesheet" href="/style.css" />
-    <script src="/app.js" defer></script>
+    <script src="/app.js" type="module"></script>
   </head>
   <body>
     <main>
@@ -26,6 +26,22 @@
         <div id="issuers"></div>
       </section>
       <section>
+        <label for="mode">Contrôle à effectuer</label>
+        <select id="mode">
+          <option value="general">Vérifier une preuve</option>
+          <option value="vat">Répondre à une demande mensuelle de TVA</option>
+        </select>
+        <div id="request" hidden>
+          <h2>Demande de l’administration</h2>
+          <p>Renseignez les éléments du dossier avant de choisir la preuve de l’entreprise.</p>
+          <label for="company">Identifiant de l’entreprise attendue</label>
+          <input id="company" maxlength="80" />
+          <label for="month">Mois demandé</label><input type="month" id="month" />
+          <label for="issuer">Source attendue</label>
+          <select id="issuer">
+            <option value="">Choisir dans le registre local</option>
+          </select>
+        </div>
         <label for="proof">Fichier de preuve .clair</label
         ><input id="proof" type="file" accept=".clair" /><label for="expected"
           >Empreinte du circuit attendu (facultatif)</label
@@ -48,6 +64,22 @@
         <h3>Provenance selon le registre téléchargé</h3>
         <div id="sources"></div>
         <p id="date"></p>
+      </section>
+      <section id="audit" hidden>
+        <h2>Contrôle distinct des originaux</h2>
+        <p>
+          Lors d’un contrôle sur pièces, ouvrez le lot privé remis par l’entreprise. Les XML seront
+          comparés au relevé de la preuve acceptée sur cet ordinateur.
+        </p>
+        <label for="originals">Lot certifié contenant les XML originaux (.clair)</label>
+        <input id="originals" type="file" accept=".clair" />
+        <p id="audit-status" role="status" aria-live="polite"></p>
+        <div id="inspection" hidden>
+          <label for="document">Lire un original vérifié</label>
+          <select id="document"></select>
+          <pre id="xml" hidden></pre>
+          <button id="close-audit" type="button">Fermer les originaux</button>
+        </div>
       </section>
     </main>
   </body>

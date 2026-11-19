@@ -43,7 +43,7 @@ export async function startOffline({
     address;
   const assets = Object.fromEntries(
     await Promise.all(
-      ['index.html', 'app.js', 'style.css'].map(async (name) => [
+      ['index.html', 'app.js', 'style.css', '../shared/vat-originals.mjs'].map(async (name) => [
         name,
         await readFile(new URL('./' + name, import.meta.url), 'utf8'),
       ]),
@@ -63,12 +63,17 @@ export async function startOffline({
     if (req.headers.host !== new URL(address).host)
       return send(403, { error: 'Hôte local invalide.' });
     if (req.method === 'GET') {
-      const paths = { '/': 'index.html', '/app.js': 'app.js', '/style.css': 'style.css' };
+      const paths = {
+        '/': 'index.html',
+        '/app.js': 'app.js',
+        '/style.css': 'style.css',
+        '/shared/vat-originals.mjs': '../shared/vat-originals.mjs',
+      };
       if (req.url === '/snapshot') return send(200, snapshot);
       const name = paths[req.url];
       if (!name) return send(404, { error: 'Introuvable.' });
       res.writeHead(200, {
-        'Content-Type': name.endsWith('.js')
+        'Content-Type': /\.m?js$/.test(name)
           ? 'text/javascript; charset=utf-8'
           : name.endsWith('.css')
             ? 'text/css; charset=utf-8'

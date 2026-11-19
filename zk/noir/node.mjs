@@ -1,7 +1,8 @@
 import { UltraHonkBackend } from '@aztec/bb.js';
 import { createNoirRuntime } from './runtime.mjs';
-export function createNoirNode({ crsPath } = {}) {
+export function createNoirNode({ crsPath, Noir } = {}) {
   return createNoirRuntime({
+    Noir,
     Backend: class extends UltraHonkBackend {
       constructor(bytecode, options) {
         super(bytecode, { ...options, crsPath });

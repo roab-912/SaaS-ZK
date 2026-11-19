@@ -31,7 +31,12 @@ export async function verifyOffline(raw, rawSnapshot, { crsPath = resolve('data/
     circuitHash: envelope.circuitHash,
     statement: describe(envelope.circuit),
     publicData: readablePublicValues(envelope),
-    ...(envelope.vatManifest ? { vatManifest: envelope.vatManifest } : {}),
+    ...(envelope.vatManifest
+      ? {
+          vatManifest: envelope.vatManifest,
+          vatProgramVersion: envelope.circuit.vat.programVersion ?? 1,
+        }
+      : {}),
     snapshot: { exportedAt: snapshot.exportedAt, origin: snapshot.origin },
     checkedAt: new Date().toISOString(),
   };

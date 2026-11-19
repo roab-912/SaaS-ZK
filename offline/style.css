@@ -40,7 +40,8 @@ strong,
 code {
   display: block;
 }
-input {
+input,
+select {
   display: block;
   width: 100%;
   padding: 12px;
@@ -74,4 +75,10 @@ code {
 }
 #snapshot {
   font-weight: 600;
+}
+#xml {
+  max-height: 28rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

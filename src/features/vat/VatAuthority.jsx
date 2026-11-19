@@ -1,7 +1,6 @@
 import { OperationProgress } from '../../components/OperationProgress.jsx';
 import { importUblFiles } from './ubl-import.js';
 import { makeUblExamples } from '../../../shared/ubl-examples.mjs';
-import { vatDocumentsRoot, UBL_VALIDATION_VERSION } from '../../../shared/vat-documents.mjs';
 import { downloadUblExamples, downloadOriginalUbl } from '../../lib/ubl-files.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { JourneySteps } from '../../components/JourneySteps.jsx';
@@ -11,7 +10,7 @@ import { DateInput } from '../../components/DateInput.jsx';
 import { api } from '../../lib/api.js';
 import { download } from '../../lib/files.js';
 import { launchProof } from '../../lib/zk-client.js';
-import { vatSummary, signVatManifest, vatMoney } from '../../../shared/vat.mjs';
+import { vatSummary, signVatUblBatch, vatMoney } from '../../../shared/vat.mjs';
 export function VatAuthority({ onBack, onReady, onManageSources }) {
   const now = new Date(),
     last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0)),
@@ -133,42 +132,8 @@ export function VatAuthority({ onBack, onReady, onManageSources }) {
       task.current = launchProof({ mode: 'vat-commit', draft });
       const commitment = await task.current.promise;
       if (token !== run.current) return;
-      const issued = Date.now();
-      const documentsRoot = await vatDocumentsRoot({
-        documents,
-        blinding: commitment.blinding,
-        ...draft,
-      });
-      const manifest = await signVatManifest(
-        {
-          format: 'clair-vat-manifest/2',
-          validation: UBL_VALIDATION_VERSION,
-          documentsRoot,
-          issuerId: source.id,
-          companyId: draft.companyId,
-          companyHash: commitment.companyHash,
-          periodStart: draft.periodStart,
-          periodEnd: draft.periodEnd,
-          currency: 'EUR',
-          scope: 'sales-and-credit-notes/invoice-date',
-          rounding: 'half-up-per-invoice-rate',
-          complete: true,
-          count: draft.invoices.length,
-          commitment: commitment.commitment,
-          issuedAt: new Date(issued).toISOString(),
-          expiresAt: new Date(issued + 90 * 86400000).toISOString(),
-        },
-        privateKey,
-        source.jwk,
-      );
-      if (token !== run.current) return;
-      setResult({
-        format: 'clair-vat-batch/2',
-        documents,
-        manifest,
-        blinding: commitment.blinding,
-        invoices: draft.invoices,
-      });
+      const signed = await signVatUblBatch({ draft, documents, commitment, source, privateKey });
+      if (token === run.current) setResult(signed);
     } catch (e) {
       if (token === run.current) setError(e.message);
     } finally {

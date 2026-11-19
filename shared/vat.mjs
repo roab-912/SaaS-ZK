@@ -1,4 +1,6 @@
 import {
+  vatDocumentsRoot,
+  UBL_VALIDATION_VERSION,
   vatDocumentsSchema,
   vatDocumentsValidationSchema,
   validateDocumentBindings,
@@ -281,6 +283,43 @@ export async function signVatManifest(raw, privateJwk, publicJwk) {
   if (!(await verifyVatSignature(m, publicJwk)))
     throw Error('La clé privée ne correspond pas à la source.');
   return m;
+}
+export async function signVatUblBatch({ draft, documents, commitment, source, privateKey }) {
+  const issued = Date.now();
+  const documentsRoot = await vatDocumentsRoot({
+    documents,
+    blinding: commitment.blinding,
+    ...draft,
+  });
+  const manifest = await signVatManifest(
+    {
+      format: 'clair-vat-manifest/2',
+      validation: UBL_VALIDATION_VERSION,
+      documentsRoot,
+      issuerId: source.id,
+      companyId: draft.companyId,
+      companyHash: commitment.companyHash,
+      periodStart: draft.periodStart,
+      periodEnd: draft.periodEnd,
+      currency: 'EUR',
+      scope: 'sales-and-credit-notes/invoice-date',
+      rounding: 'half-up-per-invoice-rate',
+      complete: true,
+      count: draft.invoices.length,
+      commitment: commitment.commitment,
+      issuedAt: new Date(issued).toISOString(),
+      expiresAt: new Date(issued + 90 * 86400000).toISOString(),
+    },
+    privateKey,
+    source.jwk,
+  );
+  return {
+    format: 'clair-vat-batch/2',
+    documents,
+    manifest,
+    blinding: commitment.blinding,
+    invoices: draft.invoices,
+  };
 }
 export async function verifyVatSignature(raw, publicJwk) {
   const m = vatManifestSchema.parse(raw),

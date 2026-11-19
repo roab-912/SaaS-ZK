@@ -1,5 +1,7 @@
 # Démonstration TVA reproductible
 
+Pour présenter le contrôle côté administration sur un second poste Windows hors ligne, utiliser le [parcours janvier/février et contrôle des originaux](../OFFLINE.md#démontrer-le-contrôle-tva-de-janvier-sur-deux-postes). Sa commande de préparation est `npm run demo:tva:offline`.
+
 ## Préparer et lancer
 
 Depuis la racine du dépôt, avec les dépendances et Chromium Playwright installés :

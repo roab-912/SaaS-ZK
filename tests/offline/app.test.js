@@ -2,6 +2,8 @@
 import { test, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { waitFor, fireEvent } from '@testing-library/react';
+import { webcrypto } from 'node:crypto';
+import { ublFixture } from '../helpers/ubl.mjs';
 test('offline interface distinguishes valid proof from true result and safely renders untrusted names', async () => {
   document.documentElement.innerHTML = readFileSync('offline/index.html', 'utf8');
   const snapshot = {
@@ -49,6 +51,91 @@ test('offline interface distinguishes valid proof from true result and safely re
       expect(document.getElementById('status').textContent).toContain('ne correspond pas'),
     );
     expect(fetcher).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test('monthly request uses independent criteria and opens a browser-only audit after acceptance', async () => {
+  vi.resetModules();
+  vi.stubGlobal('crypto', webcrypto);
+  try {
+    document.documentElement.innerHTML = readFileSync('offline/index.html', 'utf8');
+    const el = (id) => document.getElementById(id);
+    const { batch, manifest } = await ublFixture();
+    const issuer = { id: manifest.issuerId, name: 'Source TVA', keyHash: manifest.keyHash };
+    const response = {
+      valid: true,
+      result: true,
+      vatProgramVersion: 2,
+      vatManifest: manifest,
+      sources: [],
+      publicData: [],
+      checkedAt: manifest.issuedAt,
+    };
+    const fetcher = vi.fn(async (url) => ({
+      ok: true,
+      json: async () =>
+        url === '/snapshot'
+          ? {
+              origin: 'https://demo.invalid',
+              exportedAt: manifest.issuedAt,
+              issuers: [issuer, { ...issuer, id: 'autre' }],
+            }
+          : response,
+    }));
+    vi.stubGlobal('fetch', fetcher);
+    await import('../../offline/app.js');
+    await waitFor(() => expect(el('issuer').options.length).toBe(3));
+    const upload = (id, data) =>
+      fireEvent.change(el(id), {
+        target: {
+          files: [
+            {
+              size: 1500,
+              text: async () => JSON.stringify(data),
+            },
+          ],
+        },
+      });
+    const verify = async (expected) => {
+      fireEvent.click(el('verify'));
+      await waitFor(() => expect(el('status').textContent).toContain(expected));
+    };
+    fireEvent.change(el('mode'), { target: { value: 'vat' } });
+    el('company').value = manifest.companyId;
+    el('issuer').value = issuer.id;
+    el('month').value = '2026-08';
+    upload('proof', {});
+    await verify('période différente');
+    expect(el('audit').hidden).toBe(true);
+    el('month').value = '2026-09';
+    el('company').value = 'AUTRE';
+    await verify('entreprise différente');
+    el('company').value = manifest.companyId;
+    el('issuer').value = 'autre';
+    await verify('source différente');
+    el('issuer').value = issuer.id;
+    response.vatProgramVersion = 1;
+    await verify('programme TVA v2');
+    response.vatProgramVersion = 2;
+    response.valid = false;
+    await verify('Demande refusée');
+    response.valid = true;
+    await verify('Vérification terminée');
+    expect(el('validity').textContent).toBe('Demande de TVA satisfaite');
+    const calls = fetcher.mock.calls.length;
+    upload('originals', batch);
+    await waitFor(() =>
+      expect(el('audit-status').textContent).toContain('2 originaux correspondent'),
+    );
+    fireEvent.change(el('document'), { target: { selectedIndex: 1 } });
+    expect(el('xml').textContent).toContain('<?xml');
+    expect(fetcher).toHaveBeenCalledTimes(calls);
+    fireEvent.input(el('month'), { target: { value: '2026-10' } });
+    expect(el('result').hidden).toBe(true);
+    expect(el('audit').hidden).toBe(true);
+    expect(el('xml').textContent).toBe('');
   } finally {
     vi.unstubAllGlobals();
   }

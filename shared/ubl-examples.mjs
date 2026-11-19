@@ -13,14 +13,15 @@ export function makeUblExamples({
   periodStart = '2026-09-01',
   periodEnd = '2026-09-30',
   peppol = false,
+  idPrefix = 'DEMO-',
 } = {}) {
   if (!Number.isInteger(count) || count < 1 || count > UBL_LIMITS.files)
     throw Error('Choisissez entre 1 et 500 exemples UBL.');
   makeVatExample('UBL-DEMO', periodStart, periodEnd, 1);
-  let previous = 'DEMO-FA-000001';
+  let previous = idPrefix + 'FA-000001';
   return Array.from({ length: count }, (_, n) => {
     const credit = n > 0 && (n % 10 === 9 || n === count - 1),
-      id = 'DEMO-' + (credit ? 'AV-' : 'FA-') + String(n + 1).padStart(6, '0');
+      id = idPrefix + (credit ? 'AV-' : 'FA-') + String(n + 1).padStart(6, '0');
     const root = credit ? 'CreditNote' : 'Invoice',
       line = credit ? 'CreditNoteLine' : 'InvoiceLine',
       quantity = credit ? 'CreditedQuantity' : 'InvoicedQuantity';
