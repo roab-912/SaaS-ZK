@@ -1163,6 +1163,25 @@ summary:focus-visible,
   color: var(--muted);
   font-size: 13px;
 }
+.vat-statement + .vat-guarantees {
+  margin-top: 20px;
+}
+.vat-guarantees .vat-guarantees-lead {
+  color: inherit;
+  font-size: 14px;
+}
+.vat-guarantees-list {
+  padding-left: 20px;
+  margin: 16px 0;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.vat-guarantees-list li + li {
+  margin-top: 10px;
+}
+.vat-guarantees .journey-details {
+  margin-top: 16px;
+}
 .statement {
   background: #f6f8f1;
   border: 1px solid #e8eddf;

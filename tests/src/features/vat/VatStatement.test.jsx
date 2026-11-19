@@ -12,18 +12,21 @@ test('public summary distinguishes announced and verified totals and shows the c
     const view = render(<VatStatement manifest={f.manifest} sales={3000} credits={500} />);
     expect(screen.getByText('DEMO-VAT')).toBeVisible();
     expect(screen.getByText('01/09/2026 au 30/09/2026')).toBeVisible();
-    expect(screen.getByText(/absence de factures inconnues/)).toBeVisible();
+    expect(screen.getByText(/Exhaustivité du lot signé/)).toBeVisible();
+    expect(screen.getByText(/Programme TVA initial/)).toBeInTheDocument();
     view.rerender(
       <VatStatement
         manifest={f.manifest}
         sales={3000}
         credits={500}
         source={{ valid: true, issuerName: 'Autorité TVA' }}
+        circuit={f.circuit}
         proved
       />,
     );
     expect(screen.getByText('Calcul et source vérifiés')).toBeVisible();
     expect(screen.getByText(/25,00/)).toBeVisible();
+    expect(screen.getByText(/Programme TVA v2/)).toBeInTheDocument();
   } finally {
     vi.unstubAllGlobals();
   }

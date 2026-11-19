@@ -122,6 +122,8 @@ export const vatBatchSchema = z.discriminatedUnion('format', [
 export const vatConfigSchema = z
   .object({
     capacity: z.number().refine((v) => VAT_CAPACITIES.includes(v)),
+    // Absence identifies the original program; never upgrade old proofs implicitly.
+    programVersion: z.literal(2).optional(),
   })
   .strict();
 export const vatInputs = () =>
@@ -132,8 +134,10 @@ export const vatInputs = () =>
     { id: 'sales_vat', label: 'TVA des ventes en centimes', type: 'number' },
     { id: 'credit_vat', label: 'TVA des avoirs en centimes', type: 'number' },
   ].map((i) => ({ ...i, visibility: 'public', source: 'declared' }));
-export function vatCircuit(capacity = 500) {
-  vatConfigSchema.parse({ capacity });
+export function vatCircuit(capacity = 500, programVersion = 2) {
+  if (![1, 2].includes(programVersion)) throw Error('Version du programme TVA incompatible.');
+  const vat = { capacity, ...(programVersion === 2 ? { programVersion: 2 } : {}) };
+  vatConfigSchema.parse(vat);
   return {
     version: 2,
     engine: ENGINE,
@@ -142,11 +146,11 @@ export function vatCircuit(capacity = 500) {
       'Somme de la TVA des ventes et des avoirs sur un relevé exhaustif signé, selon la date de facture. EUR ; arrondi par facture et par taux. Les factures restent privées.',
     inputs: vatInputs(),
     root: { kind: 'constant', type: 'boolean', value: true },
-    vat: { capacity },
+    vat,
   };
 }
 export function validateVatCircuit(c) {
-  const expected = vatCircuit(c.vat.capacity);
+  const expected = vatCircuit(c.vat.capacity, c.vat.programVersion ?? 1);
   if (c.name !== expected.name || c.description !== expected.description)
     throw Error('Le descripteur du programme TVA est fixe.');
   if (

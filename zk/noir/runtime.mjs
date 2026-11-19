@@ -23,7 +23,9 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
         ({ witness } = await noir.execute({
           context: contextField(compiled.hash),
           ...normalizeInputs(circuit, values),
-          ...(circuit.vat ? await vatWitness(vatBatch, circuit.vat.capacity) : {}),
+          ...(circuit.vat
+            ? await vatWitness(vatBatch, circuit.vat.capacity, circuit.vat.programVersion ?? 1)
+            : {}),
           ...privateSignatureWitness(circuit, attestations),
           ...(circuit.version === 2 ? { result: evaluateCircuit(circuit, values) } : {}),
         }));

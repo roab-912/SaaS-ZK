@@ -270,6 +270,7 @@ export function Verify({ initial, notify }) {
               <p>{outcome === null ? 'Indéterminé' : outcome ? 'Vrai' : 'Faux'}</p>
               {envelope.circuit.vat && (
                 <VatStatement
+                  circuit={envelope.circuit}
                   manifest={envelope.vatManifest}
                   sales={fields.find((i) => i.id === 'sales_vat')?.value ?? 0}
                   credits={fields.find((i) => i.id === 'credit_vat')?.value ?? 0}

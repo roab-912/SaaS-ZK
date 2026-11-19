@@ -65,7 +65,7 @@ export async function prepareVatDraft(raw, blinding) {
   }
   return { commitment: chain, companyHash, blinding };
 }
-export async function vatWitness(raw, capacity) {
+export async function vatWitness(raw, capacity, programVersion = 2) {
   const batch = parseVatBatch(raw);
   if (batch.invoices.length > capacity) throw Error('La capacité du circuit est dépassée.');
   const draft = vatDraftFromBatch(batch),
@@ -85,5 +85,17 @@ export async function vatWitness(raw, capacity) {
       (_, i) => items[i]?.row.map(String) ?? Array(12).fill('0'),
     ),
     metadata: Array.from({ length: capacity }, (_, i) => items[i]?.metadata ?? Array(3).fill('0')),
+    ...(programVersion === 2
+      ? {
+          order: [
+            ...items
+              .map((_, i) => i)
+              .sort((a, b) =>
+                BigInt(items[a].metadata[0]) < BigInt(items[b].metadata[0]) ? -1 : 1,
+              ),
+            ...Array.from({ length: capacity - items.length }, (_, i) => items.length + i),
+          ].map(String),
+        }
+      : {}),
   };
 }

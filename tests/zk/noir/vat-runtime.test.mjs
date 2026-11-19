@@ -7,6 +7,12 @@ test('commitments preserve ordering, company, dates and private blinding, with z
   expect(w.rows).toHaveLength(10);
   expect(w.rows[2]).toEqual(Array(12).fill('0'));
   expect(w.metadata[2]).toEqual(Array(3).fill('0'));
+  expect(new Set(w.order).size).toBe(10);
+  expect(w.order.slice(2)).toEqual(['2', '3', '4', '5', '6', '7', '8', '9']);
+  expect(BigInt(w.metadata[Number(w.order[0])][0])).toBeLessThan(
+    BigInt(w.metadata[Number(w.order[1])][0]),
+  );
+  expect(await vatWitness(f.batch, 10, 1)).not.toHaveProperty('order');
   expect((await prepareVatDraft(f.draft, f.batch.blinding)).commitment).toBe(f.manifest.commitment);
   const d = structuredClone(f.draft);
   d.invoices.reverse();

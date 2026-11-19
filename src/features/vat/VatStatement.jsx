@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '../../components/ui.jsx';
 import { date, displayDate } from '../../lib/format.js';
 import { vatMoney } from '../../../shared/vat.mjs';
-export function VatStatement({ manifest, sales, credits, source, proved = false }) {
+export function VatStatement({ manifest, sales, credits, source, proved = false, circuit }) {
   if (!manifest) return null;
   const rows = [
     ['Entreprise', manifest.companyId],
@@ -44,12 +44,18 @@ export function VatStatement({ manifest, sales, credits, source, proved = false 
         Émis le {date(manifest.issuedAt)} · Expire le {date(manifest.expiresAt)}
       </p>
       <p className="help">
-        La preuve couvre toutes les pièces du relevé signé par cette source. L’autorité certifie son
-        exhaustivité pour cette entreprise et cette période ; elle ne prouve pas l’absence de
-        factures inconnues de cette autorité.
+        Exhaustivité du lot signé : toutes les pièces certifiées participent au calcul. L’autorité
+        de confiance certifie l’ensemble des factures et avoirs de cette entreprise pour la période.
+        La preuve protège ce lot contre toute suppression, substitution ou ajout après signature.
+        L’exhaustivité initiale repose sur l’autorité.
       </p>
       <details className="journey-details">
         <summary>Contrôles et détails techniques</summary>
+        <p className="help">
+          {circuit?.vat.programVersion === 2
+            ? 'Programme TVA v2 : l’unicité des identifiants de pièces est également imposée dans le circuit.'
+            : 'Programme TVA initial : l’unicité des identifiants est contrôlée avant signature par la source ; le circuit garantit la conservation du lot signé.'}
+        </p>
         {manifest.format === 'clair-vat-manifest/2' && (
           <p className="help">
             Documents UBL 2.1 : empreinte des originaux couverte par le relevé signé. Validation

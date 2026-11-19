@@ -13,6 +13,17 @@ import {
   signVatManifest,
 } from '../../shared/vat.mjs';
 import { parseProof, validateCircuit } from '../../shared/circuit.mjs';
+import { circuitHash } from '../../shared/circuit-model.mjs';
+
+test('new VAT programs are versioned without upgrading legacy descriptors', async () => {
+  const current = vatCircuit(10),
+    legacy = vatCircuit(10, 1);
+  expect(current.vat).toEqual({ capacity: 10, programVersion: 2 });
+  expect(validateCircuit(legacy).vat).toEqual({ capacity: 10 });
+  expect(await circuitHash(current)).not.toBe(await circuitHash(legacy));
+  expect(() => validateCircuit({ ...current, vat: { capacity: 10, programVersion: 1 } })).toThrow();
+  expect(() => validateCircuit({ ...current, vat: { capacity: 10, programVersion: 3 } })).toThrow();
+});
 test('supports 500 multi-rate invoices and credits with integer half-up rounding', () => {
   const d = makeVatExample('DEMO', '2026-09-01', '2026-09-30', 500),
     s = vatSummary(d);

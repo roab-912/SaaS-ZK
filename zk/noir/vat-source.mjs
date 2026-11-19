@@ -2,6 +2,26 @@ import { VAT_DOMAIN, VAT_RATES } from '../../shared/vat.mjs';
 import { contextField } from '../../shared/proof.mjs';
 export function vatNoirSource(c, hash) {
   const n = c.vat.capacity;
+  // Keep the original source byte-for-byte for descriptors without programVersion.
+  // N strictly increasing identifiers selected from N active positions imply
+  // N distinct positions, so the ordering necessarily covers the whole lot.
+  const orderInput = c.vat.programVersion === 2 ? `,order: [u32;${n}]` : '';
+  const unique =
+    c.vat.programVersion === 2
+      ? ` let mut ids: [Field;${n}]=[0;${n}];
+ for i in 0..${n} {ids[i]=metadata[i][0];}
+ let mut previous: Field=0;
+ for i in 0..${n} {
+  let index=order[i];
+  let id=ids[index];
+  if i<in_2 {
+   assert(index<in_2);
+   assert(previous.lt(id));
+  } else {assert(index==i);}
+  previous=id;
+ }
+`
+      : '';
   return `fn poseidon_hash<let N: u32>(input: [Field;N]) -> Field {
  let mut state: [Field;4]=[0,0,0,(N as Field)*18446744073709551616];
  for block in 0..(N/3) {
@@ -21,7 +41,7 @@ fn valid_date(v: u32) {
 fn main(context: pub Field,result: pub bool,
  in_0: pub u32,in_1: pub u32,in_2: pub u32,in_3: pub u32,in_4: pub u32,
  commitment: pub Field,company_hash: pub Field,
- blinding: Field,rows: [[u32;12];${n}],metadata: [[Field;3];${n}]) {
+ blinding: Field,rows: [[u32;12];${n}],metadata: [[Field;3];${n}]${orderInput}) {
  assert(context==${contextField(hash)});
  assert(result);
  valid_date(in_0); valid_date(in_1); assert(in_0<=in_1);
@@ -52,7 +72,7 @@ fn main(context: pub Field,result: pub bool,
    for j in 0..3 {assert(m[j]==0);}
   }
  }
- assert(sales==(in_3 as u64)); assert(credits==(in_4 as u64));
+${unique} assert(sales==(in_3 as u64)); assert(credits==(in_4 as u64));
  assert(chain==commitment);
 }`;
 }

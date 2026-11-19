@@ -20,6 +20,7 @@ import {
   parseEuroCents,
 } from '../../../shared/vat.mjs';
 import { VatStatement } from './VatStatement.jsx';
+import { VatGuarantees } from './VatGuarantees.jsx';
 export function VatPage({ notify, refresh, onVerify, onManageSources }) {
   const [preparing, setPreparing] = useState(false),
     [batch, setBatch] = useState(null),
@@ -363,31 +364,17 @@ export function VatPage({ notify, refresh, onVerify, onManageSources }) {
           </p>
         </section>
         <aside>
-          {manifest && totals ? (
+          {manifest && totals && (
             <VatStatement
+              circuit={result?.circuit ?? vatCircuit(vatCapacity(manifest.count))}
               manifest={manifest}
               sales={totals.sales}
               credits={totals.credits}
               source={source}
               proved={!!result}
             />
-          ) : (
-            <section className="panel explanation">
-              <h2>Ce que la preuve contrôle</h2>
-              <p>
-                La signature de l’autorité sur l’entreprise, la période clôturée et l’empreinte du
-                relevé exhaustif.
-              </p>
-              <p>
-                La présence de toutes les factures du lot signé, leurs dates, les taux et les
-                arrondis, puis l’addition des ventes et des avoirs.
-              </p>
-              <p>
-                Le signataire reste responsable de l’exhaustivité et de la qualification fiscale des
-                données qu’il certifie.
-              </p>
-            </section>
           )}
+          <VatGuarantees programVersion={result ? (result.circuit.vat.programVersion ?? 1) : 2} />
         </aside>
       </div>
     </>

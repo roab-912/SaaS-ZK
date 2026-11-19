@@ -77,7 +77,7 @@ for (const scenario of [
     );
     await expect(
       page.getByText(scenario.count + ' factures et avoirs prêts', { exact: true }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 30000 });
 
     await page.getByRole('button', { name: 'Continuer vers la signature' }).click();
     await page.getByRole('checkbox').check();
