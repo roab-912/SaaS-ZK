@@ -2,6 +2,10 @@
 
 ## Démontrer le contrôle TVA de janvier sur deux postes
 
+**Pour les participants**, ouvrir **Sources de confiance → Guide et fichiers de la démonstration TVA hors ligne**, ou directement `/?view=demo-tva`. Cette page fournit le lot fictif de janvier, la génération sur le poste de l’entreprise, les deux preuves de référence, les originaux de février et le ZIP Windows associé au registre de la démo. Seul le contrôle sur pièces nécessite la remise des originaux à l’agent.
+
+La commande de préparation ci-dessous publie aussi les fichiers de l’exercice sous `public/demo-tva`. Pour rendre accessible un kit déjà préparé, exécuter `node scripts/publish-vat-demo.mjs session-XXXXXX` avec le nom du dossier de cette session. En mode développement la page est disponible immédiatement. Pour servir une version construite, lancer ensuite `npm run build` et distribuer le répertoire `dist` avec les fichiers de la démo. Le registre de l’application conserve ses propres sources.
+
 **Sur le poste de préparation** (Windows x64, avec la version Node du fichier `.node-version`, les dépendances du projet et Internet), exécuter `npm run demo:tva:offline` depuis la racine du dépôt. La commande construit le logiciel portable, génère une clé de démonstration en mémoire, valide deux jeux de 500 XML fictifs, signe les relevés, produit deux preuves TVA v2 et compare leurs sous-totaux avec ceux des XML. Chaque exécution crée un nouveau dossier sous `data/demo-tva-hors-ligne`. Le chemin exact est affiché à la fin.
 
 1. **Préparer le poste de l’agent.** Copier uniquement le dossier `administration` sur le second poste. Il contient le lanceur, le logiciel, le registre public de démonstration, une fiche de demande et les deux preuves publiques. Garder le dossier `entreprise` sur le premier poste. Couper le Wi-Fi et débrancher Ethernet sur le second poste, puis double-cliquer sur `administration/demarrer.cmd`. L’interface s’ouvre sur l’adresse de boucle locale.

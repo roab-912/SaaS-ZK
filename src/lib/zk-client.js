@@ -35,7 +35,7 @@ export function launchProof(
       worker = createWorker();
       timer = setTimeout(
         () =>
-          finish(Error('Calcul interrompu après cinq minutes. Réduisez la complexité du circuit.')),
+          finish(Error('Le délai de calcul est dépassé. Réessayez sur un poste plus puissant.')),
         timeout,
       );
       worker.onmessage = ({ data }) => {

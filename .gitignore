@@ -1,6 +1,7 @@
 node_modules/
 dist/
 data/
+public/demo-tva/
 .env
 playwright-report/
 test-results/

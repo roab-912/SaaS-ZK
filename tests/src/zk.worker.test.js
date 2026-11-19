@@ -24,6 +24,22 @@ test('worker emits progress/results and never leaks provider diagnostics', async
   state.run.mockRejectedValueOnce(Error('PRIVATE WITNESS = 123456'));
   await scope.onmessage({ data: { mode: 'prove' } });
   expect(JSON.stringify(scope.postMessage.mock.calls)).not.toContain('123456');
+  const fetcher = vi.fn().mockResolvedValue({});
+  scope.fetch = fetcher;
+  const range = { headers: { Range: 'bytes=0-1023' } };
+  state.run.mockImplementationOnce(async () => {
+    await scope.fetch('https://crs.aztec.network/g1.dat', range);
+    await scope.fetch('https://crs.aztec.network/g2.dat');
+    await scope.fetch('/assets/runtime.wasm');
+    return {};
+  });
+  await scope.onmessage({ data: { mode: 'prove', demoKit: 'kit-Abc123' } });
+  expect(fetcher.mock.calls).toEqual([
+    ['/demo-tva/kit-Abc123/g1.dat', range],
+    ['/demo-tva/kit-Abc123/g2.dat', undefined],
+    ['/assets/runtime.wasm', undefined],
+  ]);
+  expect(scope.fetch).toBe(fetcher);
   let release;
   state.run.mockImplementationOnce(() => new Promise((r) => (release = r)));
   const pending = scope.onmessage({ data: { mode: 'prove' } });

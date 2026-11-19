@@ -2330,6 +2330,22 @@ pre {
   flex-wrap: wrap;
   margin-top: 18px;
 }
+.vat-demo-steps {
+  display: grid;
+  gap: 18px;
+  max-width: 900px;
+}
+.vat-demo-steps .panel {
+  padding: clamp(18px, 4vw, 32px);
+}
+.vat-demo-steps p,
+.vat-demo-steps li {
+  margin: 12px 0;
+  line-height: 1.6;
+}
+.vat-demo-steps ol {
+  padding-left: 1.4em;
+}
 .vat-authority > h2 {
   margin-bottom: 18px;
 }

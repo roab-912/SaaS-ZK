@@ -44,6 +44,7 @@ import { Billing } from './features/billing/BillingPage.jsx';
 import { Issuers } from './features/issuers/IssuersPage.jsx';
 import { IssueAttestation } from './features/issuers/IssueAttestation.jsx';
 import { Guide } from './features/guide/GuidePage.jsx';
+import { VatDemoGuide } from './features/guide/VatDemoGuide.jsx';
 import { Dashboard } from './features/dashboard/Dashboard.jsx';
 import { AdminDashboard } from './features/admin/AdminDashboard.jsx';
 import { ProofLibrary } from './features/proofs/ProofLibrary.jsx';
@@ -62,6 +63,7 @@ const pageTitles = {
   vat: 'TVA collectée',
   'vat-authority': 'Certifier des factures',
   guide: 'Comprendre',
+  'demo-tva': 'Démonstration TVA hors ligne',
   faq: 'FAQ',
   admin: 'Administration',
   login: 'Connexion',
@@ -104,6 +106,7 @@ function pageForLocation() {
     'vat',
     'attestation',
     'vat-authority',
+    'demo-tva',
   ].includes(view)
     ? view
     : 'home';
@@ -413,7 +416,9 @@ export function App() {
           <button
             className={
               'nav-item ' +
-              (['issuers', 'attestation', 'vat-authority'].includes(page) ? 'active' : '')
+              (['issuers', 'attestation', 'vat-authority', 'demo-tva'].includes(page)
+                ? 'active'
+                : '')
             }
             onClick={() => nav('issuers')}
             aria-current={page === 'issuers' ? 'page' : undefined}
@@ -742,6 +747,7 @@ export function App() {
                 />
               )}
               {page === 'guide' && <Guide onNavigate={nav} />}
+              {page === 'demo-tva' && <VatDemoGuide />}
               {page === 'faq' && <Faq onNavigate={nav} />}
             </>
           )}

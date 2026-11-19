@@ -453,6 +453,11 @@ export function Issuers({
               : 'Un administrateur peut ajouter des sources avec leur clé publique.'}
           </Empty>
         ) : null}
+        <div className="journey-actions">
+          <a className="button secondary" href="/?view=demo-tva">
+            Guide et fichiers de la démonstration TVA hors ligne
+          </a>
+        </div>
         {offline?.available && (
           <details className="journey-details">
             <summary>Vérifier des preuves hors ligne</summary>

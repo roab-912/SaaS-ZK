@@ -17,6 +17,7 @@ import { createEngineRegistry } from '../zk/registry.mjs';
 import { executeZkOperation } from '../zk/operations.mjs';
 import { OFFLINE_LAUNCHER, offlineRelease } from '../server/offline-bundle.mjs';
 import { fixtureReference } from './vat-demo-fixtures.mjs';
+import { publishVatDemo } from './publish-vat-demo.mjs';
 
 // A new directory and a new fictional signing key isolate every rehearsal.
 const root = resolve('data/demo-tva-hors-ligne');
@@ -121,3 +122,4 @@ await writeFile(
   ].join('\r\n'),
 );
 console.log('Kit prêt. Transférez uniquement le dossier ' + agent + ' pour le contrôle ordinaire.');
+await publishVatDemo(kit);

@@ -12,7 +12,24 @@ self.onmessage = async ({ data }) => {
     return;
   }
   running = true;
+  const originalFetch = self.fetch;
   try {
+    // bb.js uses fixed URLs for public CRS points. The demonstration ships these
+    // same points on this origin. Preserve Range so the engine gets its prefix.
+    if (data?.mode === 'prove' && /^kit-[A-Za-z0-9]+$/.test(data.demoKit ?? '')) {
+      self.fetch = (url, options) => {
+        if (
+          url === 'https://crs.aztec.network/g1.dat' ||
+          url === 'https://crs.aztec.network/g2.dat'
+        )
+          return originalFetch.call(
+            self,
+            '/demo-tva/' + data.demoKit + '/' + new URL(url).pathname.slice(1),
+            options,
+          );
+        return originalFetch.call(self, url, options);
+      };
+    }
     const result =
       data?.mode === 'vat-commit'
         ? await prepareVatDraft(data.draft)
@@ -34,6 +51,7 @@ self.onmessage = async ({ data }) => {
           : 'Preuve invalide ou fichier incompatible.',
     });
   } finally {
+    self.fetch = originalFetch;
     running = false;
   }
 };
