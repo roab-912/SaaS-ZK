@@ -1,6 +1,8 @@
 import { test, expect, vi } from 'vitest';
 import { createNoirRuntime, normalizeInputs } from '../../../zk/noir/runtime.mjs';
 import { proofFixture } from '../../helpers/proof.mjs';
+import { vatFixture } from '../../helpers/vat.mjs';
+import { vatCircuit } from '../../../shared/vat.mjs';
 test('adapter always enables ZK and wipes witness on success and every failure', async () => {
   const envelope = await proofFixture(),
     compiled = { hash: envelope.circuitHash, artifact: { bytecode: 'code' } };
@@ -17,10 +19,14 @@ test('adapter always enables ZK and wipes witness on success and every failure',
     });
     const verifyProof = vi.fn(async () => failure !== 'verify');
     const adapter = createNoirRuntime({
+      largeVatProverThreads: 4,
       Noir: class {
         execute = execute;
       },
       Backend: class {
+        constructor(bytecode, options) {
+          expect(options.threads).toBe(1);
+        }
         generateProof = generateProof;
         verifyProof = verifyProof;
         destroy = destroy;
@@ -55,7 +61,11 @@ test('verification releases backend even when provider verification throws', asy
   const destroy = vi.fn(),
     proof = await proofFixture();
   const adapter = createNoirRuntime({
+    largeVatProverThreads: 4,
     Backend: class {
+      constructor(bytecode, options) {
+        expect(options.threads).toBe(1);
+      }
       verifyProof = vi.fn(async () => {
         throw Error('bad proof');
       });
@@ -67,4 +77,37 @@ test('verification releases backend even when provider verification throws', asy
     adapter.verify({ envelope: proof, compiled: { artifact: { bytecode: 'x' } } }),
   ).rejects.toThrow('bad proof');
   expect(destroy).toHaveBeenCalledOnce();
+});
+
+test('only the largest VAT circuit uses the configured prover threads', async () => {
+  const { batch, values, envelope } = await vatFixture(1, true);
+  const threads = [];
+  const runtime = createNoirRuntime({
+    largeVatProverThreads: 4,
+    Noir: class {
+      async execute() {
+        return { witness: new Uint8Array(1) };
+      }
+    },
+    Backend: class {
+      constructor(bytecode, options) {
+        threads.push(options.threads);
+      }
+      async generateProof() {
+        throw Error('end of thread selection test');
+      }
+      async destroy() {}
+    },
+  });
+  for (const capacity of [250, 500]) {
+    await expect(
+      runtime.prove({
+        circuit: vatCircuit(capacity),
+        compiled: { hash: envelope.circuitHash, artifact: { bytecode: 'code' } },
+        vatBatch: batch,
+        values,
+      }),
+    ).rejects.toThrow('end of thread selection test');
+  }
+  expect(threads).toEqual([1, 4]);
 });

@@ -10,6 +10,8 @@ let initialized;
 export const noirBrowser = createNoirRuntime({
   Noir,
   Backend: UltraHonkBackend,
+  // bb.js further limits this to the available cores, or one without shared memory.
+  largeVatProverThreads: 4,
   initialize: () =>
     (initialized ??= Promise.all([initACVM(fetch(acvm)), initNoirC(fetch(noirc))]).catch(
       (error) => {

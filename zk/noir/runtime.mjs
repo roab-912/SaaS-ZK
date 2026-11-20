@@ -10,7 +10,14 @@ export function normalizeInputs(circuit, values) {
   );
 }
 // Dependencies are injected so the adapter contract can be tested without WASM.
-export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, encode, decode }) {
+export function createNoirRuntime({
+  Noir,
+  Backend,
+  initialize = async () => {},
+  encode,
+  decode,
+  largeVatProverThreads = 1,
+}) {
   const options = Object.freeze({ keccakZK: true });
   return {
     id: ENGINE,
@@ -29,7 +36,9 @@ export function createNoirRuntime({ Noir, Backend, initialize = async () => {}, 
           ...privateSignatureWitness(circuit, attestations),
           ...(circuit.version === 2 ? { result: evaluateCircuit(circuit, values) } : {}),
         }));
-        backend = new Backend(compiled.artifact.bytecode, { threads: 1 });
+        backend = new Backend(compiled.artifact.bytecode, {
+          threads: circuit.vat?.capacity === 500 ? largeVatProverThreads : 1,
+        });
         onProgress('Calcul de la preuve confidentielle…', 'prove');
         const proof = await backend.generateProof(witness, options);
         onProgress('Contrôle de la preuve générée…', 'verify');

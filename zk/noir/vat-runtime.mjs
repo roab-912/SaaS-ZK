@@ -38,6 +38,9 @@ async function entries(draft) {
 }
 export async function prepareVatDraft(raw, blinding) {
   const { draft } = vatSummary(raw);
+  return commitEntries(draft, await entries(draft), blinding);
+}
+async function commitEntries(draft, invoices, blinding) {
   if (!blinding) {
     const random = crypto.getRandomValues(new Uint8Array(32));
     blinding = vatHex(
@@ -50,7 +53,6 @@ export async function prepareVatDraft(raw, blinding) {
     throw Error('Masque de confidentialité invalide.');
   const hash = await hasher(),
     companyHash = await vatTextField('clair-vat-company/1:' + draft.companyId);
-  const invoices = await entries(draft);
   let chain = hash([
     VAT_DOMAIN,
     companyHash,
@@ -68,14 +70,14 @@ export async function prepareVatDraft(raw, blinding) {
 export async function vatWitness(raw, capacity, programVersion = 2) {
   const batch = parseVatBatch(raw);
   if (batch.invoices.length > capacity) throw Error('La capacité du circuit est dépassée.');
-  const draft = vatDraftFromBatch(batch),
-    computed = await prepareVatDraft(draft, batch.blinding);
+  const draft = vatDraftFromBatch(batch);
+  const items = await entries(draft);
+  const computed = await commitEntries(draft, items, batch.blinding);
   if (
     computed.commitment !== batch.manifest.commitment ||
     computed.companyHash !== batch.manifest.companyHash
   )
     throw Error('Une facture manque, a été ajoutée, déplacée ou modifiée.');
-  const items = await entries(draft);
   return {
     commitment: batch.manifest.commitment,
     company_hash: batch.manifest.companyHash,

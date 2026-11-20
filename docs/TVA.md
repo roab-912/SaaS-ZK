@@ -72,7 +72,9 @@ Les tests couvrent les règles métier, la signature et la révocation, les date
 
 - `tests/zk/noir/vat-source.test.mjs` exécute réellement Noir avec des témoins altérés : dates, taxes, pièces manquantes ou dupliquées et remplissage non nul. Des engagements recalculés isolent les contraintes métier de la protection du lot signé ; les sources des cinq anciens programmes sont figées par empreinte pour préserver les preuves existantes.
 - `tests/vat-crypto.test.mjs` génère et vérifie une preuve de 500 pièces. Il contrôle le rejet d’un montant public modifié, d’une signature incorrecte et d’une source retirée du registre.
-- `tests/vat.spec.mjs` couvre le parcours navigateur complet, de la signature émetteur à la vérification anonyme, pour 500 pièces.
+- `tests/vat.spec.mjs` couvre le parcours navigateur de la signature émetteur à la vérification anonyme. Le scénario de `tests/ubl.spec.mjs` importe et certifie 500 pièces UBL avant de générer une preuve.
+
+Pour le circuit de capacité 500 (lots de 251 à 500 pièces), le navigateur peut utiliser jusqu’à quatre threads pour générer la preuve et la contrôler avant téléchargement. Le moteur utilise un seul thread quand la mémoire partagée est indisponible. Les mesures du programme v2 détaillent le temps gagné sur un même lot signé. [Comparatif sur 500 pièces du 20 novembre 2026](demo-tva/MESURES-TVA-500-2026-11-20.md)
 
 Mesure historique du programme initial, sur Node avec un thread et 500 pièces de démonstration : compilation environ 5 s, génération et contrôle de la preuve environ 62 s, preuve binaire d’environ 16 Ko. Cette mesure ne décrit pas le coût du programme v2 et ne garantit pas le même temps sur un autre appareil. Le parcours navigateur est également testé séparément.
 
