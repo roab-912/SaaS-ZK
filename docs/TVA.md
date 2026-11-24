@@ -76,6 +76,10 @@ Les tests couvrent les règles métier, la signature et la révocation, les date
 
 Pour le circuit de capacité 500 (lots de 251 à 500 pièces), le navigateur peut utiliser jusqu’à quatre threads pour générer la preuve et la contrôler avant téléchargement. Le moteur utilise un seul thread quand la mémoire partagée est indisponible. Les mesures du programme v2 détaillent le temps gagné sur un même lot signé. [Comparatif sur 500 pièces du 20 novembre 2026](demo-tva/MESURES-TVA-500-2026-11-20.md)
 
+Pour le programme TVA v2 de capacité 500, le navigateur embarque aussi la clé publique de vérification UltraKeccakZKHonk. Il compare l’identifiant du circuit et le SHA-256 de son bytecode décompressé avant de l’utiliser. Pour un autre programme, le moteur dérive la clé comme auparavant. Le contrôle de la preuve générée porte sur la preuve entière avec ses entrées publiques. Le vérificateur portable peut la vérifier indépendamment en dérivant lui-même la clé. [Mesures avec et sans précalcul](demo-tva/MESURES-TVA-500-2026-11-24.md)
+
+Pour reproduire la clé embarquée, exécuter `node scripts/build-vat-verification-key.mjs <répertoire-du-CRS>` avec les dépendances du projet et les paramètres publics `bn254_g1.dat` et `bn254_g2.dat`. Le script recompile le circuit et écrit `zk/noir/vat-500-v2-vk.json`. Les seuls éléments utilisés sont le programme public et ses paramètres cryptographiques.
+
 Mesure historique du programme initial, sur Node avec un thread et 500 pièces de démonstration : compilation environ 5 s, génération et contrôle de la preuve environ 62 s, preuve binaire d’environ 16 Ko. Cette mesure ne décrit pas le coût du programme v2 et ne garantit pas le même temps sur un autre appareil. Le parcours navigateur est également testé séparément.
 
 Pour tester sans télécharger les paramètres cryptographiques depuis Node, `CLAIR_TEST_CRS_PATH` peut désigner un répertoire contenant les fichiers publics `bn254_g1.dat` et `bn254_g2.dat` d’Aztec, avec suffisamment de points pour le circuit. Cette option concerne uniquement le test cryptographique, pas le parcours de production.

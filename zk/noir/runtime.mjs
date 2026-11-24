@@ -17,6 +17,7 @@ export function createNoirRuntime({
   encode,
   decode,
   largeVatProverThreads = 1,
+  proveLargeVat,
 }) {
   const options = Object.freeze({ keccakZK: true });
   return {
@@ -36,14 +37,21 @@ export function createNoirRuntime({
           ...privateSignatureWitness(circuit, attestations),
           ...(circuit.version === 2 ? { result: evaluateCircuit(circuit, values) } : {}),
         }));
-        backend = new Backend(compiled.artifact.bytecode, {
-          threads: circuit.vat?.capacity === 500 ? largeVatProverThreads : 1,
-        });
+        const largeVat = circuit.vat?.capacity === 500;
+        const checking = () => onProgress('Contrôle de la preuve générée…', 'verify');
         onProgress('Calcul de la preuve confidentielle…', 'prove');
-        const proof = await backend.generateProof(witness, options);
-        onProgress('Contrôle de la preuve générée…', 'verify');
-        if (!(await backend.verifyProof(proof, options)))
-          throw Error('La preuve générée ne passe pas la vérification.');
+        let proof;
+        if (largeVat && proveLargeVat)
+          proof = await proveLargeVat(compiled, witness, largeVatProverThreads, checking);
+        if (!proof) {
+          backend = new Backend(compiled.artifact.bytecode, {
+            threads: largeVat ? largeVatProverThreads : 1,
+          });
+          proof = await backend.generateProof(witness, options);
+          checking();
+          if (!(await backend.verifyProof(proof, options)))
+            throw Error('La preuve générée ne passe pas la vérification.');
+        }
         return buildProofEnvelope({
           attestations,
           engine: ENGINE,
